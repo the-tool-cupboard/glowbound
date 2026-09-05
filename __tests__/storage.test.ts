@@ -1,0 +1,69 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { STARTING_EMBERS } from "../lib/economyConfig";
+import { createEconomyState } from "../lib/economyEngine";
+import {
+  getEconomyState,
+  getHighScore,
+  getHighestReachedLevel,
+  setEconomyState,
+  setHighScore,
+} from "../lib/storage";
+
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+}));
+
+const mockedStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+
+describe("storage fallbacks", () => {
+  beforeEach(() => {
+    mockedStorage.getItem.mockReset();
+    mockedStorage.setItem.mockReset();
+  });
+
+  it("returns 0 when a high score is missing, non-numeric, or unreadable", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getHighScore()).resolves.toBe(0);
+
+    mockedStorage.getItem.mockResolvedValueOnce("abc");
+    await expect(getHighScore()).resolves.toBe(0);
+
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getHighScore()).resolves.toBe(0);
+  });
+
+  it("returns 0 when highest reached level storage fails", async () => {
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getHighestReachedLevel()).resolves.toBe(0);
+  });
+
+  it("loads default economy when storage is empty", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getEconomyState()).resolves.toEqual(createEconomyState());
+  });
+
+  it("loads default economy when stored JSON is corrupt", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("{not-json");
+    await expect(getEconomyState()).resolves.toEqual(createEconomyState());
+  });
+
+  it("clamps a negative stored ember count through createEconomyState", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({ embers: -90, inventory: { ward: 1 }, difficulty: "harsh" })
+    );
+
+    const loaded = await getEconomyState();
+    expect(loaded.embers).toBe(0);
+    expect(loaded.difficulty).toBe("harsh");
+    expect(loaded.inventory.ward).toBe(1);
+  });
+
+  it("does not throw when persistence fails", async () => {
+    mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
+
+    await expect(setHighScore(40)).resolves.toBeUndefined();
+    await expect(setEconomyState(createEconomyState({ embers: STARTING_EMBERS }))).resolves.toBeUndefined();
+  });
+});

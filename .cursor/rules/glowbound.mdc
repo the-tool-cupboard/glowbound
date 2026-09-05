@@ -1,0 +1,20 @@
+---
+description: Glowbound project development rules
+alwaysApply: true
+---
+
+# Glowbound Development Rules
+
+- This is an Expo React Native memory game for iOS and Android.
+- Use TypeScript. Do not use `any`.
+- Use functional components and React hooks.
+- Keep visual components separate from game rules.
+- Put pure game logic in lib/gameEngine.ts.
+- Keep all level difficulty settings in lib/gameConfig.ts.
+- Keep screens focused on layout and navigation.
+- Build small, testable changes. Do not rewrite unrelated files.
+- Avoid unnecessary packages and dependencies.
+- Do not add a backend, user accounts, payments, ads, analytics, or multiplayer unless explicitly asked.
+- Use accessible labels for all controls and interactive rune cells.
+- Explain planned file changes before making them.
+- After each feature, provide concise manual test steps for iOS and Android.
