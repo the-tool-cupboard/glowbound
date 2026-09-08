@@ -6,20 +6,29 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ShopGoodsDisplay } from "@/components/ShopItemCard";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
+import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { canAfford } from "@/lib/economyEngine";
 import { theme } from "@/lib/theme";
 
 export default function ShopScreen() {
   const router = useRouter();
-  const { embers, inventory, buyItem } = useGameEconomy();
+  const { embers, inventory, buyItem, ready } = useGameEconomy();
+  const { playSfx } = useGameAudio();
+  useScreenMusic("menuTheme");
+
+  const handleBuy = (id: Parameters<typeof buyItem>[0]) => {
+    void buyItem(id).then((result) => {
+      playSfx(result.ok ? "purchase" : "purchaseFail");
+    });
+  };
 
   return (
     <ScreenContainer style={styles.screen}>
       <View style={styles.hero}>
         <Text style={styles.title}>Shop</Text>
-        <Text style={styles.copy}>Spend embers on charms.</Text>
-        <CurrencyBalance embers={embers} />
+        <Text style={styles.copy}>Spend embers on charms. You can hold 3 of each.</Text>
+        <CurrencyBalance embers={embers} pending={!ready} />
       </View>
 
       <ShopGoodsDisplay
@@ -27,9 +36,7 @@ export default function ShopScreen() {
         inventory={inventory}
         embers={embers}
         canAfford={canAfford}
-        onBuy={(id) => {
-          void buyItem(id);
-        }}
+        onBuy={handleBuy}
       />
 
       <PrimaryButton
@@ -55,13 +62,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.title,
-    fontWeight: "700",
-    letterSpacing: -0.8,
+    ...theme.typography.title,
   },
   copy: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    lineHeight: 22,
+    ...theme.typography.body,
   },
 });

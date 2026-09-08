@@ -6,6 +6,7 @@ import type { EconomyState } from "../types/economy";
 const HIGH_SCORE_KEY = "glowbound:high-score";
 const HIGHEST_REACHED_KEY = "glowbound:highest-reached-level";
 const ECONOMY_KEY = "glowbound:economy";
+const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
 
 function parseScore(raw: string | null): number {
   if (raw == null) {
@@ -81,6 +82,23 @@ export async function getEconomyState(): Promise<EconomyState> {
 export async function setEconomyState(state: EconomyState): Promise<void> {
   try {
     await AsyncStorage.setItem(ECONOMY_KEY, JSON.stringify(createEconomyState(state)));
+  } catch {
+    // Storage can be unavailable in some runtimes; keep gameplay working.
+  }
+}
+
+export async function getAnimatedBackgroundsEnabled(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(ANIMATED_BACKGROUNDS_KEY);
+    return raw === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function setAnimatedBackgroundsEnabled(enabled: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ANIMATED_BACKGROUNDS_KEY, enabled ? "true" : "false");
   } catch {
     // Storage can be unavailable in some runtimes; keep gameplay working.
   }

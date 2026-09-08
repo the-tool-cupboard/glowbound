@@ -35,7 +35,7 @@ export interface EconomyState {
 
 export type PurchaseResult =
   | { ok: true; state: EconomyState }
-  | { ok: false; reason: "unknownItem" | "cannotAfford" };
+  | { ok: false; reason: "unknownItem" | "cannotAfford" | "capReached" };
 
 export type ConsumeResult =
   | { ok: true; inventory: Inventory }

@@ -1,3 +1,68 @@
+import type { TextStyle } from "react-native";
+
+type TypeRole = Pick<
+  TextStyle,
+  "fontSize" | "fontWeight" | "letterSpacing" | "lineHeight" | "textTransform"
+>;
+
+const typography = {
+  display: {
+    fontSize: 46,
+    fontWeight: "700",
+    letterSpacing: -1.2,
+    lineHeight: 52,
+  },
+  title: {
+    fontSize: 40,
+    fontWeight: "700",
+    letterSpacing: -0.8,
+    lineHeight: 46,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 28,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: "400",
+    letterSpacing: 0.2,
+    lineHeight: 22,
+  },
+  caption: {
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: 0.4,
+    lineHeight: 18,
+  },
+  button: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    lineHeight: 24,
+  },
+  score: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 32,
+  },
+  multiplier: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+    lineHeight: 26,
+  },
+  overline: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    lineHeight: 16,
+    textTransform: "uppercase",
+  },
+} as const satisfies Record<string, TypeRole>;
+
 export const theme = {
   colors: {
     background: "#0B1220",
@@ -22,27 +87,38 @@ export const theme = {
     xxl: 48,
   },
   radius: {
-    sm: 12,
-    md: 18,
-    lg: 28,
-    pill: 999,
+    pixel: 4,
+    sm: 4,
+    md: 6,
+    lg: 8,
+    pill: 6,
   },
-  typography: {
-    display: 46,
-    title: 40,
-    heading: 22,
-    body: 16,
-    caption: 13,
-    score: 20,
+  pixel: {
+    outline: 3,
+    inset: 2,
+    shade: 4,
+    step: 8,
+  },
+  typography,
+  button3d: {
+    face: "#E6C35C",
+    facePressed: "#D4B04E",
+    highlight: "#F8E7A0",
+    shade: "#A67C2A",
+    rim: "#2A1F0A",
+    specular: "#FFF5CC",
+    ghostFace: "rgba(11, 18, 32, 0.28)",
+    ghostRimHighlight: "#F8E7A0",
+    ghostRimShade: "#A67C2A",
   },
   overlay: {
     sky: "rgba(7, 11, 22, 0.42)",
     dock: "rgba(7, 11, 22, 0.55)",
   },
   artTextShadow: {
-    textShadowColor: "rgba(7, 11, 22, 0.88)",
+    textShadowColor: "rgba(7, 11, 22, 0.94)",
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
+    textShadowRadius: 12,
   },
   hitSlop: {
     top: 8,
@@ -50,5 +126,8 @@ export const theme = {
     bottom: 8,
     left: 8,
   },
-  minTapTarget: 56,
+  minTapTarget: 60,
+  art: {
+    bitDepth: 32,
+  },
 } as const;

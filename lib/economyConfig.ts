@@ -1,6 +1,7 @@
 import type { DifficultyId, DifficultyOption, Inventory, PowerUpId, ShopItem } from "../types/economy";
 
-export const STARTING_EMBERS = 20;
+export const STARTING_EMBERS = 25;
+export const MAX_OWNED_PER_ITEM = 3;
 export const SECOND_SIGHT_MS = 900;
 export const LANTERN_OIL_BONUS_MS = 700;
 export const WARD_FLASH_MS = 500;
@@ -43,7 +44,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "calm",
     name: "Calm",
-    description: "Longer glow, one fewer rune, fewer embers.",
+    description: "The lantern lingers. One fewer rune.",
     previewMsMultiplier: 1.25,
     extraTargets: -1,
     emberMultiplier: 0.75,
@@ -51,7 +52,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "standard",
     name: "Standard",
-    description: "Normal glow, rune count, and embers.",
+    description: "The true path. Fair glow.",
     previewMsMultiplier: 1,
     extraTargets: 0,
     emberMultiplier: 1,
@@ -59,7 +60,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "harsh",
     name: "Harsh",
-    description: "Shorter glow, one extra rune, richer embers.",
+    description: "A fleeting spark. One extra rune.",
     previewMsMultiplier: 0.7,
     extraTargets: 1,
     emberMultiplier: 1.5,
@@ -72,4 +73,8 @@ export function getShopItem(id: PowerUpId): ShopItem | undefined {
 
 export function getDifficulty(id: DifficultyId): DifficultyOption {
   return DIFFICULTIES.find((item) => item.id === id) ?? DIFFICULTIES[1]!;
+}
+
+export function formatEmberMultiplier(multiplier: number): string {
+  return `${multiplier}x`;
 }

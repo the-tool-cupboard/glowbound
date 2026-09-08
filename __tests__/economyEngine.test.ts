@@ -5,9 +5,12 @@ import {
   canAfford,
   consumePowerUp,
   createEconomyState,
+  isDifficultyId,
+  isInventoryFull,
   purchaseItem,
 } from "../lib/economyEngine";
-import { EMPTY_INVENTORY, STARTING_EMBERS } from "../lib/economyConfig";
+import { EMPTY_INVENTORY, MAX_OWNED_PER_ITEM, STARTING_EMBERS } from "../lib/economyConfig";
+import { MIN_PREVIEW_MS } from "../lib/gameConfig";
 
 describe("createEconomyState", () => {
   it("starts with a grant of embers and an empty pack", () => {
@@ -22,12 +25,17 @@ describe("createEconomyState", () => {
     expect(createEconomyState({ embers: -40 }).embers).toBe(0);
   });
 
-  it("currently preserves negative inventory counts from corrupt storage", () => {
+  it("clamps negative inventory counts from corrupt storage", () => {
     const state = createEconomyState({
       inventory: { ...EMPTY_INVENTORY, ward: -2 },
     });
 
-    expect(state.inventory.ward).toBe(-2);
+    expect(state.inventory.ward).toBe(0);
+  });
+
+  it("rejects an unknown difficulty id", () => {
+    expect(isDifficultyId("wanderer")).toBe(false);
+    expect(createEconomyState({ difficulty: "wanderer" as never }).difficulty).toBe("standard");
   });
 });
 
@@ -65,10 +73,10 @@ describe("purchaseItem", () => {
     expect(original).toEqual(snapshot);
   });
 
-  it("does not enforce an inventory cap", () => {
+  it("stops purchases at the owned cap", () => {
     let state = createEconomyState({ embers: 1000 });
 
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < MAX_OWNED_PER_ITEM; i += 1) {
       const result = purchaseItem(state, "pathHint");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -76,7 +84,9 @@ describe("purchaseItem", () => {
       }
     }
 
-    expect(state.inventory.pathHint).toBe(8);
+    expect(state.inventory.pathHint).toBe(MAX_OWNED_PER_ITEM);
+    expect(isInventoryFull(state.inventory, "pathHint")).toBe(true);
+    expect(purchaseItem(state, "pathHint")).toEqual({ ok: false, reason: "capReached" });
   });
 });
 
@@ -123,11 +133,17 @@ describe("calculateEmbersEarned", () => {
 });
 
 describe("applyDifficultyToConfig", () => {
-  const base = { gridSize: 3, targetCount: 3, previewDurationMs: 1600 };
+  const base = {
+    layoutId: "grid" as const,
+    runeCount: 9,
+    targetCount: 3,
+    previewDurationMs: 1600,
+  };
 
-  it("softens calm and hardens harsh without exceeding the grid", () => {
+  it("softens calm and hardens harsh without exceeding the board", () => {
     expect(applyDifficultyToConfig(base, "calm")).toEqual({
-      gridSize: 3,
+      layoutId: "grid",
+      runeCount: 9,
       targetCount: 2,
       previewDurationMs: 2000,
     });
@@ -137,18 +153,18 @@ describe("applyDifficultyToConfig", () => {
     ).toBe(9);
   });
 
-  it("can shorten harsh previews below the 850ms config floor, but not below 500ms", () => {
+  it("never shortens harsh previews below the 850ms config floor", () => {
     expect(
       applyDifficultyToConfig(
-        { gridSize: 6, targetCount: 20, previewDurationMs: 850 },
+        { layoutId: "spiral", runeCount: 36, targetCount: 20, previewDurationMs: 850 },
         "harsh"
       ).previewDurationMs
-    ).toBe(595);
+    ).toBe(MIN_PREVIEW_MS);
     expect(
       applyDifficultyToConfig(
-        { gridSize: 6, targetCount: 20, previewDurationMs: 600 },
+        { layoutId: "spiral", runeCount: 36, targetCount: 20, previewDurationMs: 600 },
         "harsh"
       ).previewDurationMs
-    ).toBe(500);
+    ).toBe(MIN_PREVIEW_MS);
   });
 });

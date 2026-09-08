@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 
 import { LANTERN_OIL_BONUS_MS, SECOND_SIGHT_MS, WARD_FLASH_MS } from "@/lib/economyConfig";
 import { applyDifficultyToConfig } from "@/lib/economyEngine";
 import {
   LEVEL_COMPLETE_DELAY_MS,
+  getLayoutForLevel,
   getLevelConfig,
   getStagesForLevel,
 } from "@/lib/gameConfig";
@@ -12,9 +14,12 @@ import {
   generateUniqueTargetCellIds,
   hasCompletedPattern,
   isCorrectSelection,
+  patternKey,
 } from "@/lib/gameEngine";
 import type { DifficultyId, PowerUpId } from "@/types/economy";
-import type { CellId, GamePhase } from "@/types/game";
+import type { CellId, GamePhase, RuneLayout } from "@/types/game";
+
+type PreviewKind = "round" | "sight";
 
 function clearTimer(timerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>) {
   if (timerRef.current != null) {
@@ -27,7 +32,7 @@ export function useMemoryGame() {
   const [phase, setPhase] = useState<GamePhase>("idle");
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
-  const [gridSize, setGridSize] = useState(3);
+  const [layout, setLayout] = useState<RuneLayout>(() => getLayoutForLevel(1));
   const [targetCellIds, setTargetCellIds] = useState<readonly CellId[]>([]);
   const [selectedCellIds, setSelectedCellIds] = useState<readonly CellId[]>([]);
   const [hintCellIds, setHintCellIds] = useState<readonly CellId[]>([]);
@@ -51,6 +56,11 @@ export function useMemoryGame() {
   const selectedRef = useRef<readonly CellId[]>([]);
   const hintRef = useRef<readonly CellId[]>([]);
   const wardArmedRef = useRef(false);
+  const previewKindRef = useRef<PreviewKind>("round");
+  const previewMsRef = useRef(0);
+  const previewPausedRef = useRef(false);
+  const stageAdvancePausedRef = useRef(false);
+  const recentPatternKeysRef = useRef<string[]>([]);
 
   const clearTimers = useCallback(() => {
     clearTimer(previewTimerRef);
@@ -59,22 +69,83 @@ export function useMemoryGame() {
     clearTimer(wardTimerRef);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      clearTimers();
-    };
-  }, [clearTimers]);
+  const finishPreview = useCallback(() => {
+    previewPausedRef.current = false;
+    phaseRef.current = "playerInput";
+    setPhase("playerInput");
+    setStatusNote(null);
+    previewTimerRef.current = null;
+    sightTimerRef.current = null;
+  }, []);
+
+  const schedulePreview = useCallback(
+    (kind: PreviewKind, ms: number) => {
+      previewKindRef.current = kind;
+      previewMsRef.current = Math.max(0, ms);
+      previewPausedRef.current = false;
+      clearTimer(previewTimerRef);
+      clearTimer(sightTimerRef);
+
+      const timerRef = kind === "sight" ? sightTimerRef : previewTimerRef;
+      timerRef.current = setTimeout(() => {
+        finishPreview();
+      }, previewMsRef.current);
+    },
+    [finishPreview]
+  );
+
+  const pauseForInterrupt = useCallback(() => {
+    if (phaseRef.current === "preview") {
+      clearTimer(previewTimerRef);
+      clearTimer(sightTimerRef);
+      previewPausedRef.current = true;
+      return;
+    }
+
+    if (phaseRef.current === "stageComplete") {
+      clearTimer(advanceTimerRef);
+      stageAdvancePausedRef.current = true;
+    }
+  }, []);
+
+  const resumeAfterInterrupt = useCallback(() => {
+    if (previewPausedRef.current && phaseRef.current === "preview") {
+      previewPausedRef.current = false;
+      if (previewKindRef.current === "sight") {
+        setStatusNote("Showing the pattern again.");
+      }
+      schedulePreview(previewKindRef.current, previewMsRef.current);
+      return;
+    }
+
+    if (stageAdvancePausedRef.current && phaseRef.current === "stageComplete") {
+      stageAdvancePausedRef.current = false;
+      beginRoundRef.current(levelRef.current, scoreRef.current, stageRef.current + 1);
+    }
+  }, [schedulePreview]);
 
   const beginRound = useCallback(
     (nextLevel: number, nextScore: number, nextStage: number) => {
       clearTimers();
+      previewPausedRef.current = false;
+      stageAdvancePausedRef.current = false;
 
       const base = getLevelConfig(nextLevel);
       const config = applyDifficultyToConfig(base, difficultyRef.current);
       const previewMs = config.previewDurationMs + lanternOilMsRef.current;
       lanternOilMsRef.current = 0;
-      const capacity = config.gridSize * config.gridSize;
-      const nextTargets = generateUniqueTargetCellIds(capacity, config.targetCount);
+      const capacity = config.runeCount;
+      const nextTargets = generateUniqueTargetCellIds(
+        capacity,
+        config.targetCount,
+        Math.random,
+        recentPatternKeysRef.current
+      );
+      const nextKey = patternKey(nextTargets);
+      if (nextKey.length > 0) {
+        recentPatternKeysRef.current = [nextKey, ...recentPatternKeysRef.current].slice(0, 8);
+      }
+      const nextLayout = getLayoutForLevel(nextLevel);
       const safeStage = Math.max(1, Math.floor(nextStage));
 
       levelRef.current = nextLevel;
@@ -88,7 +159,7 @@ export function useMemoryGame() {
       setLevel(nextLevel);
       setScore(nextScore);
       setStage(safeStage);
-      setGridSize(config.gridSize);
+      setLayout(nextLayout);
       setTargetCellIds(nextTargets);
       setSelectedCellIds([]);
       setHintCellIds([]);
@@ -96,14 +167,35 @@ export function useMemoryGame() {
       setStatusNote(null);
       setPhase("preview");
 
-      previewTimerRef.current = setTimeout(() => {
-        phaseRef.current = "playerInput";
-        setPhase("playerInput");
-        previewTimerRef.current = null;
-      }, previewMs);
+      schedulePreview("round", previewMs);
     },
-    [clearTimers]
+    [clearTimers, schedulePreview]
   );
+
+  const beginRoundRef = useRef(beginRound);
+  beginRoundRef.current = beginRound;
+
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, [clearTimers]);
+
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      if (next !== "active") {
+        pauseForInterrupt();
+        return;
+      }
+
+      resumeAfterInterrupt();
+    };
+
+    const subscription = AppState.addEventListener("change", onChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [pauseForInterrupt, resumeAfterInterrupt]);
 
   const startGame = useCallback(
     (
@@ -116,6 +208,7 @@ export function useMemoryGame() {
       const resumeScore = Math.max(0, Math.floor(resume?.score ?? 0));
       runStartLevelRef.current = chapter;
       difficultyRef.current = difficulty;
+      recentPatternKeysRef.current = [];
       lanternOilMsRef.current = 0;
       wardArmedRef.current = false;
       setWardArmed(false);
@@ -125,6 +218,7 @@ export function useMemoryGame() {
   );
 
   const restartGame = useCallback(() => {
+    recentPatternKeysRef.current = [];
     lanternOilMsRef.current = 0;
     wardArmedRef.current = false;
     setWardArmed(false);
@@ -137,20 +231,18 @@ export function useMemoryGame() {
     }
 
     phaseRef.current = "preview";
-    clearTimer(sightTimerRef);
     setPhase("preview");
     setStatusNote("Showing the pattern again.");
-    sightTimerRef.current = setTimeout(() => {
-      phaseRef.current = "playerInput";
-      setPhase("playerInput");
-      setStatusNote(null);
-      sightTimerRef.current = null;
-    }, SECOND_SIGHT_MS);
+    schedulePreview("sight", SECOND_SIGHT_MS);
     return true;
-  }, []);
+  }, [schedulePreview]);
 
   const applyLanternOil = useCallback(() => {
-    lanternOilMsRef.current += LANTERN_OIL_BONUS_MS;
+    if (lanternOilMsRef.current > 0) {
+      return false;
+    }
+
+    lanternOilMsRef.current = LANTERN_OIL_BONUS_MS;
     setStatusNote("The next reveal will last longer.");
     return true;
   }, []);
@@ -212,6 +304,7 @@ export function useMemoryGame() {
           if (stageRef.current < stagesRequired) {
             phaseRef.current = "stageComplete";
             setPhase("stageComplete");
+            stageAdvancePausedRef.current = false;
             advanceTimerRef.current = setTimeout(() => {
               beginRound(levelRef.current, nextScore, stageRef.current + 1);
             }, LEVEL_COMPLETE_DELAY_MS);
@@ -248,54 +341,16 @@ export function useMemoryGame() {
   );
 
   const applyMercyItem = useCallback((itemId: PowerUpId) => {
-    if (phaseRef.current !== "lastChance") {
+    if (phaseRef.current !== "lastChance" || itemId !== "ward") {
       return false;
     }
 
     setWrongCellId(null);
-
-    if (itemId === "ward") {
-      wardArmedRef.current = false;
-      setWardArmed(false);
-      phaseRef.current = "playerInput";
-      setPhase("playerInput");
-      setStatusNote("Ward used. Keep going.");
-      return true;
-    }
-
-    if (itemId === "lanternOil") {
-      lanternOilMsRef.current += LANTERN_OIL_BONUS_MS;
-      phaseRef.current = "playerInput";
-      setPhase("playerInput");
-      setStatusNote("The next reveal will last longer.");
-      return true;
-    }
-
-    if (itemId === "pathHint") {
-      const remaining = targetRef.current.filter(
-        (id) => !selectedRef.current.includes(id) && !hintRef.current.includes(id)
-      );
-      const nextHint = remaining[0];
-      if (nextHint !== undefined) {
-        hintRef.current = [...hintRef.current, nextHint];
-        setHintCellIds(hintRef.current);
-      }
-      phaseRef.current = "playerInput";
-      setPhase("playerInput");
-      setStatusNote("One remaining rune is lit.");
-      return true;
-    }
-
-    phaseRef.current = "preview";
-    clearTimer(sightTimerRef);
-    setPhase("preview");
-    setStatusNote("Showing the pattern again.");
-    sightTimerRef.current = setTimeout(() => {
-      phaseRef.current = "playerInput";
-      setPhase("playerInput");
-      setStatusNote(null);
-      sightTimerRef.current = null;
-    }, SECOND_SIGHT_MS);
+    wardArmedRef.current = false;
+    setWardArmed(false);
+    phaseRef.current = "playerInput";
+    setPhase("playerInput");
+    setStatusNote("Ward used. Keep going.");
     return true;
   }, []);
 
@@ -315,7 +370,7 @@ export function useMemoryGame() {
     phase,
     level,
     score,
-    gridSize,
+    layout,
     targetCellIds,
     selectedCellIds,
     hintCellIds,
@@ -333,6 +388,8 @@ export function useMemoryGame() {
     applyPathHint,
     applyMercyItem,
     endRun,
+    pauseForInterrupt,
+    resumeAfterInterrupt,
     onRunePress,
   };
 }

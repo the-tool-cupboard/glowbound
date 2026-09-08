@@ -7,24 +7,35 @@ interface GameHeaderProps {
   score: number;
   stage?: number;
   stagesRequired?: number;
+  onArt?: boolean;
 }
 
-export function GameHeader({ level, score, stage, stagesRequired }: GameHeaderProps) {
+export function GameHeader({ level, score, stage, stagesRequired, onArt = false }: GameHeaderProps) {
   const stageLabel =
-    stage != null && stagesRequired != null ? `Stage ${stage} of ${stagesRequired}` : null;
+    stage != null && stagesRequired != null ? `Pattern ${stage} of ${stagesRequired}` : null;
+  const artStyle = onArt ? styles.onArt : undefined;
 
   return (
     <View style={styles.row} accessibilityRole="header">
-      <View style={styles.stat}>
-        <Text style={styles.label}>Level</Text>
-        <Text style={styles.value} accessibilityLabel={`Level ${level}${stageLabel ? `, ${stageLabel}` : ""}`}>
+      <View style={styles.side}>
+        <Text style={[styles.label, artStyle]}>Level</Text>
+        <Text
+          style={[styles.value, artStyle]}
+          accessibilityLabel={`Level ${level}${stageLabel ? `, ${stageLabel}` : ""}`}
+        >
           {level}
         </Text>
-        {stageLabel ? <Text style={styles.stage}>{stageLabel}</Text> : null}
       </View>
-      <View style={styles.stat}>
-        <Text style={[styles.label, styles.alignRight]}>Score</Text>
-        <Text style={[styles.value, styles.alignRight]} accessibilityLabel={`Score ${score}`}>
+      <View style={styles.center}>
+        {stageLabel ? (
+          <Text style={[styles.stage, artStyle]} accessibilityElementsHidden>
+            {stageLabel}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.side}>
+        <Text style={[styles.label, styles.alignRight, artStyle]}>Score</Text>
+        <Text style={[styles.value, styles.alignRight, artStyle]} accessibilityLabel={`Score ${score}`}>
           {score}
         </Text>
       </View>
@@ -37,29 +48,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    width: "100%",
   },
-  stat: {
-    minWidth: 88,
+  side: {
+    flex: 1,
+    minWidth: 72,
+  },
+  center: {
+    flex: 1.2,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 2,
   },
   label: {
     color: theme.colors.accent,
-    fontSize: theme.typography.caption,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
     marginBottom: 4,
+    ...theme.typography.overline,
   },
   value: {
     color: theme.colors.text,
-    fontSize: theme.typography.score,
-    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    ...theme.typography.score,
   },
   alignRight: {
     textAlign: "right",
   },
   stage: {
     color: theme.colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    marginTop: 2,
+    ...theme.typography.caption,
+    fontWeight: "600",
+  },
+  onArt: {
+    ...theme.artTextShadow,
   },
 });

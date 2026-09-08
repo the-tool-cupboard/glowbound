@@ -3,8 +3,18 @@ import {
   generateUniqueTargetCellIds,
   hasCompletedPattern,
   isCorrectSelection,
+  patternKey,
 } from "../lib/gameEngine";
-import { getLevelConfig, getStagesForLevel, isCheckpointUnlocked } from "../lib/gameConfig";
+import {
+  CHECKPOINTS,
+  getCheckpointForLevel,
+  getLevelConfig,
+  getLevelInStage,
+  getRuneCountForLevel,
+  getStageIndex,
+  getStagesForLevel,
+  isCheckpointUnlocked,
+} from "../lib/gameConfig";
 
 describe("generateUniqueTargetCellIds", () => {
   it("generates unique target cell IDs", () => {
@@ -38,15 +48,23 @@ describe("generateUniqueTargetCellIds", () => {
     expect(ids).toEqual([0]);
   });
 
-  it.each([3, 4, 5, 6])(
-    "keeps all cells unique on a %s-wide grid at capacity",
-    (gridSize) => {
-      const capacity = gridSize * gridSize;
-      const ids = generateUniqueTargetCellIds(capacity, capacity, () => 0.37);
+  it("skips a recently used pattern when a constant rng would otherwise repeat", () => {
+    const first = generateUniqueTargetCellIds(9, 4, () => 0.2);
+    const second = generateUniqueTargetCellIds(9, 4, () => 0.2, [patternKey(first)]);
 
-      expect(ids).toHaveLength(capacity);
-      expect(new Set(ids).size).toBe(capacity);
-      expect(ids.every((id) => id >= 0 && id < capacity)).toBe(true);
+    expect(patternKey(second)).not.toBe(patternKey(first));
+    expect(second).toHaveLength(4);
+    expect(new Set(second).size).toBe(4);
+  });
+
+  it.each([5, 9, 16, 36])(
+    "keeps all cells unique on a %s-rune board at capacity",
+    (runeCount) => {
+      const ids = generateUniqueTargetCellIds(runeCount, runeCount, () => 0.37);
+
+      expect(ids).toHaveLength(runeCount);
+      expect(new Set(ids).size).toBe(runeCount);
+      expect(ids.every((id) => id >= 0 && id < runeCount)).toBe(true);
     }
   );
 
@@ -83,28 +101,37 @@ describe("calculateScoreForLevel", () => {
 });
 
 describe("getLevelConfig", () => {
-  it("starts level 1 with two targets on a 3x3 grid and a 1800ms preview", () => {
+  it("starts level 1 with five targets on a 9-rune lattice and a 1600ms preview", () => {
     const config = getLevelConfig(1);
 
-    expect(config.gridSize).toBe(3);
-    expect(config.targetCount).toBe(2);
-    expect(config.previewDurationMs).toBe(1800);
+    expect(config.layoutId).toBe("grid");
+    expect(config.runeCount).toBe(9);
+    expect(config.targetCount).toBe(5);
+    expect(config.previewDurationMs).toBe(1600);
   });
 
-  it("grows the grid at the planned breakpoints", () => {
-    expect(getLevelConfig(3).gridSize).toBe(3);
-    expect(getLevelConfig(4).gridSize).toBe(4);
-    expect(getLevelConfig(8).gridSize).toBe(5);
-    expect(getLevelConfig(13).gridSize).toBe(6);
+  it("uses a formula: +1 rune per level, +2 at each new stage", () => {
+    expect(getRuneCountForLevel(1)).toBe(9);
+    expect(getRuneCountForLevel(10)).toBe(18);
+    expect(getRuneCountForLevel(11)).toBe(11);
+    expect(getRuneCountForLevel(100)).toBe(36);
+    expect(getStageIndex(1)).toBe(1);
+    expect(getStageIndex(10)).toBe(1);
+    expect(getStageIndex(11)).toBe(2);
+    expect(getStageIndex(100)).toBe(10);
+    expect(getLevelInStage(11)).toBe(1);
+    expect(getLevelInStage(20)).toBe(10);
   });
 
-  it("increases targets gradually and never exceeds capacity", () => {
-    expect(getLevelConfig(3).targetCount).toBe(4);
-    expect(getLevelConfig(20).targetCount).toBeLessThanOrEqual(36);
+  it("increases targets with a rising fill ratio and never exceeds capacity", () => {
+    expect(getLevelConfig(10).targetCount).toBe(10);
+    expect(getLevelConfig(100).targetCount).toBeLessThan(getLevelConfig(100).runeCount);
+    expect(getLevelConfig(100).targetCount).toBe(27);
   });
 
-  it("never shortens preview below 850ms", () => {
-    expect(getLevelConfig(30).previewDurationMs).toBe(850);
+  it("never shortens preview below 800ms", () => {
+    expect(getLevelConfig(100).previewDurationMs).toBe(808);
+    expect(getLevelConfig(30).previewDurationMs).toBeGreaterThanOrEqual(800);
   });
 
   it("treats level 0, negatives, and decimals as level 1", () => {
@@ -113,45 +140,41 @@ describe("getLevelConfig", () => {
     expect(getLevelConfig(1.9)).toEqual(getLevelConfig(1));
   });
 
-  it("keeps a mid level, a high level, and an extreme level inside the 6x6 grid", () => {
-    const level8 = getLevelConfig(8);
-    const level25 = getLevelConfig(25);
+  it("keeps a mid level, a high level, and an extreme level on the 10-stage curve", () => {
+    const level10 = getLevelConfig(10);
+    const level50 = getLevelConfig(50);
     const level100 = getLevelConfig(100);
 
-    expect(level8).toEqual({ gridSize: 5, targetCount: 9, previewDurationMs: 1310 });
-    expect(level25.gridSize).toBe(6);
-    expect(level25.targetCount).toBe(26);
-    expect(level25.previewDurationMs).toBe(850);
-    expect(level100.gridSize).toBe(6);
-    expect(level100.targetCount).toBe(36);
-    expect(level100.previewDurationMs).toBe(850);
+    expect(level10).toEqual({
+      layoutId: "grid",
+      runeCount: 18,
+      targetCount: 10,
+      previewDurationMs: 1528,
+    });
+    expect(level50.layoutId).toBe("hex");
+    expect(level50.runeCount).toBe(26);
+    expect(level50.targetCount).toBe(17);
+    expect(level100.layoutId).toBe("spiral");
+    expect(level100.runeCount).toBe(36);
+    expect(level100.targetCount).toBe(27);
+    expect(getLevelConfig(140)).toEqual(level100);
   });
 
-  it("does not produce an impossible target count for Infinity", () => {
-    const config = getLevelConfig(Number.POSITIVE_INFINITY);
-
-    expect(config.gridSize).toBe(6);
-    expect(config.targetCount).toBe(36);
-    expect(config.previewDurationMs).toBe(850);
+  it("treats Infinity like level 1", () => {
+    expect(getLevelConfig(Number.POSITIVE_INFINITY)).toEqual(getLevelConfig(1));
   });
 
-  it("does not throw for NaN, but the resulting config is not a playable finite level", () => {
-    const config = getLevelConfig(Number.NaN);
-
-    expect(Number.isFinite(config.gridSize)).toBe(true);
-    expect(Number.isFinite(config.targetCount)).toBe(false);
-    expect(Number.isFinite(config.previewDurationMs)).toBe(false);
+  it("treats NaN like level 1", () => {
+    expect(getLevelConfig(Number.NaN)).toEqual(getLevelConfig(1));
   });
 });
 
 describe("getStagesForLevel", () => {
-  it("requires at least three stages on early levels", () => {
-    expect(getStagesForLevel(1)).toBe(3);
-    expect(getStagesForLevel(4)).toBe(3);
-  });
-
-  it("asks for one extra stage in the Tower", () => {
-    expect(getStagesForLevel(13)).toBe(4);
+  it("asks for five patterns on every level", () => {
+    expect(getStagesForLevel(1)).toBe(5);
+    expect(getStagesForLevel(4)).toBe(5);
+    expect(getStagesForLevel(13)).toBe(5);
+    expect(getStagesForLevel(100)).toBe(5);
   });
 });
 
@@ -161,13 +184,27 @@ describe("isCheckpointUnlocked", () => {
     expect(isCheckpointUnlocked(1, 1)).toBe(true);
   });
 
-  it("locks Castle Gate until the player reaches level 4", () => {
-    expect(isCheckpointUnlocked(4, 3)).toBe(false);
-    expect(isCheckpointUnlocked(4, 4)).toBe(true);
+  it("locks Castle Gate until the player reaches level 11", () => {
+    expect(isCheckpointUnlocked(11, 10)).toBe(false);
+    expect(isCheckpointUnlocked(11, 11)).toBe(true);
   });
 
-  it("unlocks Crystal Ascent at level 8 without opening the Tower", () => {
-    expect(isCheckpointUnlocked(8, 8)).toBe(true);
-    expect(isCheckpointUnlocked(13, 8)).toBe(false);
+  it("unlocks later stages only at their start levels", () => {
+    expect(isCheckpointUnlocked(21, 20)).toBe(false);
+    expect(isCheckpointUnlocked(21, 21)).toBe(true);
+    expect(isCheckpointUnlocked(91, 90)).toBe(false);
+    expect(CHECKPOINTS).toHaveLength(10);
+  });
+});
+
+describe("getCheckpointForLevel", () => {
+  it("keeps levels 1 through 10 in the Sleeping Woods", () => {
+    expect(getCheckpointForLevel(1).title).toBe("Sleeping Woods");
+    expect(getCheckpointForLevel(10).title).toBe("Sleeping Woods");
+  });
+
+  it("moves to Castle Gate at level 11", () => {
+    expect(getCheckpointForLevel(11).title).toBe("Castle Gate");
+    expect(getCheckpointForLevel(20).title).toBe("Castle Gate");
   });
 });

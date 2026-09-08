@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -6,6 +7,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ShopGoodsDisplay } from "@/components/ShopItemCard";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
+import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { canAfford } from "@/lib/economyEngine";
 import { theme } from "@/lib/theme";
@@ -38,7 +40,26 @@ export default function LevelCompleteScreen() {
   const playLevel = asCount(params.playLevel) || level + 1;
   const shardsEarned = asScore(params.shards);
   const difficulty = params.difficulty ?? "standard";
-  const { embers, inventory, buyItem } = useGameEconomy();
+  const { embers, inventory, buyItem, ready } = useGameEconomy();
+  const { playSfx } = useGameAudio();
+  useScreenMusic("resultsTheme");
+  const celebrationPlayedRef = useRef(false);
+
+  useEffect(() => {
+    if (celebrationPlayedRef.current) {
+      return;
+    }
+    celebrationPlayedRef.current = true;
+    if (shardsEarned > 0) {
+      playSfx("emberGain");
+    }
+  }, [playSfx, shardsEarned]);
+
+  const handleBuy = (id: Parameters<typeof buyItem>[0]) => {
+    void buyItem(id).then((result) => {
+      playSfx(result.ok ? "purchase" : "purchaseFail");
+    });
+  };
 
   const continueRun = () => {
     router.replace({
@@ -57,7 +78,7 @@ export default function LevelCompleteScreen() {
       <View style={styles.hero}>
         <Text style={styles.title}>Level {level} complete</Text>
         <Text style={styles.copy}>You earned {shardsEarned} embers.</Text>
-        <CurrencyBalance embers={embers} />
+        <CurrencyBalance embers={embers} pending={!ready} />
       </View>
 
       <ShopGoodsDisplay
@@ -65,9 +86,7 @@ export default function LevelCompleteScreen() {
         inventory={inventory}
         embers={embers}
         canAfford={canAfford}
-        onBuy={(id) => {
-          void buyItem(id);
-        }}
+        onBuy={handleBuy}
       />
 
       <View style={styles.actions}>
@@ -100,14 +119,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.title,
-    fontWeight: "700",
-    letterSpacing: -0.8,
+    ...theme.typography.title,
   },
   copy: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    lineHeight: 22,
+    ...theme.typography.body,
   },
   actions: {
     width: "100%",

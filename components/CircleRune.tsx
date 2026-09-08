@@ -11,12 +11,22 @@ interface CircleRuneProps {
   onPress: (cellId: CellId) => void;
 }
 
+const GEM_SCALE = 0.78;
+
 const FILL_BY_STATE: Record<RuneVisualState, string> = {
   inactive: theme.colors.idle,
   previewTarget: theme.colors.preview,
   selected: theme.colors.selected,
   correct: theme.colors.correct,
   incorrect: theme.colors.wrong,
+};
+
+const BORDER_BY_STATE: Record<RuneVisualState, string> = {
+  inactive: theme.colors.idleBorder,
+  previewTarget: theme.button3d.rim,
+  selected: "#1A5C42",
+  correct: "#1A5C42",
+  incorrect: "#6B2E28",
 };
 
 function stateLabel(visualState: RuneVisualState): string {
@@ -43,6 +53,9 @@ export function CircleRune({
 }: CircleRuneProps) {
   const fill = FILL_BY_STATE[visualState];
   const runeNumber = cellId + 1;
+  const gemSize = size * GEM_SCALE;
+  const gemRadius = theme.radius.pixel;
+  const lit = visualState !== "inactive";
 
   return (
     <Pressable
@@ -53,7 +66,7 @@ export function CircleRune({
         selected: visualState === "selected" || visualState === "correct",
       }}
       disabled={disabled}
-      hitSlop={theme.hitSlop}
+      hitSlop={0}
       onPress={() => onPress(cellId)}
       style={({ pressed }) => [
         styles.hitTarget,
@@ -63,19 +76,19 @@ export function CircleRune({
     >
       <View
         style={[
-          styles.circle,
+          styles.gem,
           {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
+            width: gemSize,
+            height: gemSize,
+            borderRadius: gemRadius,
             backgroundColor: fill,
+            borderColor: BORDER_BY_STATE[visualState],
           },
-          visualState === "inactive" && styles.inactiveBorder,
-          visualState === "previewTarget" && styles.glow,
-          visualState === "correct" && styles.correctGlow,
-          visualState === "incorrect" && styles.failGlow,
         ]}
-      />
+      >
+        {lit ? <View style={styles.pixelHilite} /> : null}
+        {lit ? <View style={styles.pixelShade} /> : null}
+      </View>
     </Pressable>
   );
 }
@@ -85,38 +98,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  circle: {
-    borderWidth: 1,
-    borderColor: "transparent",
+  gem: {
+    borderWidth: theme.pixel.outline,
+    overflow: "hidden",
   },
-  inactiveBorder: {
-    borderColor: theme.colors.idleBorder,
+  pixelHilite: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: theme.pixel.inset,
+    backgroundColor: "rgba(255, 245, 204, 0.45)",
   },
-  glow: {
-    shadowColor: theme.colors.preview,
-    shadowOpacity: 0.85,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-    borderColor: "rgba(230, 195, 92, 0.55)",
-  },
-  correctGlow: {
-    shadowColor: theme.colors.correct,
-    shadowOpacity: 0.75,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
-    borderColor: "rgba(61, 220, 151, 0.5)",
-  },
-  failGlow: {
-    shadowColor: theme.colors.wrong,
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
-    borderColor: "rgba(224, 122, 106, 0.6)",
+  pixelShade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: theme.pixel.shade,
+    backgroundColor: "rgba(10, 11, 15, 0.28)",
   },
   pressed: {
-    opacity: 0.88,
+    transform: [{ translateY: 1 }],
+    opacity: 0.92,
   },
 });

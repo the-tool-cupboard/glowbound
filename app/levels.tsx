@@ -1,33 +1,48 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useProgress } from "@/hooks/useProgress";
-import { CHECKPOINTS, isCheckpointUnlocked } from "@/lib/gameConfig";
+import { useScreenMusic } from "@/hooks/useGameAudio";
+import {
+  CHECKPOINTS,
+  getCheckpointLevelRange,
+  getCheckpointShapeName,
+  isCheckpointUnlocked,
+} from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 
 export default function LevelsScreen() {
   const router = useRouter();
-  const { highestReachedLevel } = useProgress();
+  const { highestReachedLevel, ready } = useProgress();
+  useScreenMusic("menuTheme");
 
   return (
     <ScreenContainer style={styles.screen}>
       <View style={styles.hero}>
-        <Text style={styles.title}>Levels</Text>
-        <Text style={styles.copy}>Start from a chapter you have already reached.</Text>
+        <Text style={styles.title}>Stages</Text>
+        <Text style={styles.copy}>Ten levels each. Start from a stage you have already reached.</Text>
       </View>
 
-      <View style={styles.list}>
-        {CHECKPOINTS.map((checkpoint) => {
-          const unlocked = isCheckpointUnlocked(checkpoint.startLevel, highestReachedLevel);
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {CHECKPOINTS.map((checkpoint, index) => {
+          const unlocked = isCheckpointUnlocked(
+            checkpoint.startLevel,
+            ready ? highestReachedLevel : 0
+          );
+          const pending = !ready && checkpoint.startLevel > 1;
 
           return (
             <Pressable
               key={checkpoint.startLevel}
               accessibilityRole="button"
-              accessibilityLabel={`${checkpoint.title}, level ${checkpoint.startLevel}, ${checkpoint.gridSize} by ${checkpoint.gridSize}${unlocked ? "" : ", locked"}`}
-              accessibilityState={{ disabled: !unlocked }}
+              accessibilityLabel={`Stage ${index + 1}, ${checkpoint.title}, ${getCheckpointLevelRange(checkpoint)}, ${getCheckpointShapeName(checkpoint)}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
+              accessibilityState={{ disabled: !unlocked, busy: pending }}
               disabled={!unlocked}
               onPress={() =>
                 router.push({
@@ -37,31 +52,31 @@ export default function LevelsScreen() {
               }
               style={({ pressed }) => [
                 styles.row,
-                !unlocked && styles.rowLocked,
+                (!unlocked || pending) && styles.rowLocked,
                 pressed && unlocked && styles.rowPressed,
               ]}
             >
               <View style={styles.rowCopy}>
-                <Text style={[styles.rowTitle, !unlocked && styles.lockedText]}>
+                <Text style={[styles.rowTitle, (!unlocked || pending) && styles.lockedText]}>
                   {checkpoint.title}
                 </Text>
-                <Text style={[styles.rowMeta, !unlocked && styles.lockedText]}>
-                  Level {checkpoint.startLevel} · {checkpoint.gridSize}x{checkpoint.gridSize}
+                <Text style={[styles.rowMeta, (!unlocked || pending) && styles.lockedText]}>
+                  Stage {index + 1} · {getCheckpointLevelRange(checkpoint)}
                 </Text>
               </View>
-              <Text style={[styles.rowState, !unlocked && styles.lockedText]}>
-                {unlocked ? "Unlocked" : "Locked"}
+              <Text style={[styles.rowState, (!unlocked || pending) && styles.lockedText]}>
+                {pending ? "…" : unlocked ? "Unlocked" : "Locked"}
               </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       <PrimaryButton
-        label="Return Home"
+        label="Back to camp"
         variant="ghost"
         fullWidth
-        accessibilityHint="Returns to the home screen"
+        accessibilityHint="Returns to the start menu at camp"
         onPress={() => router.replace("/")}
       />
     </ScreenContainer>
@@ -79,19 +94,19 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.title,
-    fontWeight: "700",
-    letterSpacing: -0.8,
     marginBottom: theme.spacing.sm,
+    ...theme.typography.title,
   },
   copy: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    lineHeight: 22,
+    ...theme.typography.body,
   },
   list: {
     flex: 1,
+  },
+  listContent: {
     gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
   },
   row: {
     minHeight: theme.minTapTarget,
@@ -120,20 +135,15 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: theme.colors.text,
-    fontSize: theme.typography.heading,
-    fontWeight: "700",
+    ...theme.typography.heading,
   },
   rowMeta: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
-    letterSpacing: 0.4,
+    ...theme.typography.caption,
   },
   rowState: {
     color: theme.colors.accent,
-    fontSize: theme.typography.caption,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    ...theme.typography.overline,
   },
   lockedText: {
     color: theme.colors.textMuted,

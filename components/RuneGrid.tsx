@@ -1,14 +1,15 @@
 import { StyleSheet, View } from "react-native";
 
-import { useScreenMetrics } from "@/components/ScreenContainer";
 import { getRuneVisualState, isInputEnabled } from "@/lib/gameEngine";
-import { theme } from "@/lib/theme";
-import type { CellId, GamePhase } from "@/types/game";
+import { runeCellSize } from "@/lib/runeLayouts";
+import type { CellId, GamePhase, RuneLayout } from "@/types/game";
 
 import { CircleRune } from "./CircleRune";
 
 interface RuneGridProps {
-  gridSize: number;
+  layout: RuneLayout;
+  slotWidth: number;
+  slotHeight: number;
   phase: GamePhase;
   targetCellIds: readonly CellId[];
   selectedCellIds: readonly CellId[];
@@ -17,8 +18,14 @@ interface RuneGridProps {
   onRunePress: (cellId: CellId) => void;
 }
 
+function cellSizeForBoard(layout: RuneLayout, boardSize: number): number {
+  return runeCellSize(layout.points, boardSize);
+}
+
 export function RuneGrid({
-  gridSize,
+  layout,
+  slotWidth,
+  slotHeight,
   phase,
   targetCellIds,
   selectedCellIds,
@@ -26,23 +33,27 @@ export function RuneGrid({
   wrongCellId,
   onRunePress,
 }: RuneGridProps) {
-  const { width, height } = useScreenMetrics();
-  const availableWidth = Math.max(width, 0);
-  const availableHeight = Math.max(height * 0.58, 180);
-  const maxGrid = Math.min(availableWidth, availableHeight);
-  const gap = gridSize >= 5 ? theme.spacing.sm : theme.spacing.md;
-  const cellSize = Math.max(0, (maxGrid - gap * (gridSize - 1)) / gridSize);
-  const gridWidth = cellSize * gridSize + gap * (gridSize - 1);
+  const boardSize = Math.max(0, Math.min(slotWidth, slotHeight));
+  const cellSize = cellSizeForBoard(layout, boardSize);
+  const usable = Math.max(0, boardSize - cellSize);
   const inputEnabled = isInputEnabled(phase);
-  const cells = Array.from({ length: gridSize * gridSize }, (_, cellId) => cellId);
 
   return (
     <View
-      style={[styles.grid, { width: gridWidth, gap }]}
-      accessibilityLabel="Rune grid"
+      style={[styles.board, { width: boardSize, height: boardSize }]}
+      accessibilityLabel={`${layout.name} rune board`}
     >
-      {cells.map((cellId) => (
-        <View key={cellId} style={{ width: cellSize, height: cellSize }}>
+      {layout.points.map((point, cellId) => (
+        <View
+          key={cellId}
+          style={{
+            position: "absolute",
+            width: cellSize,
+            height: cellSize,
+            left: point.x * usable,
+            top: point.y * usable,
+          }}
+        >
           <CircleRune
             cellId={cellId}
             size={cellSize}
@@ -63,10 +74,7 @@ export function RuneGrid({
 }
 
 const styles = StyleSheet.create({
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    alignSelf: "center",
+  board: {
+    position: "relative",
   },
 });

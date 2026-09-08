@@ -3,9 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STARTING_EMBERS } from "../lib/economyConfig";
 import { createEconomyState } from "../lib/economyEngine";
 import {
+  getAnimatedBackgroundsEnabled,
   getEconomyState,
   getHighScore,
   getHighestReachedLevel,
+  setAnimatedBackgroundsEnabled,
   setEconomyState,
   setHighScore,
 } from "../lib/storage";
@@ -60,10 +62,36 @@ describe("storage fallbacks", () => {
     expect(loaded.inventory.ward).toBe(1);
   });
 
+  it("falls back to standard when stored difficulty is unknown", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({ embers: 40, inventory: {}, difficulty: "wanderer" })
+    );
+
+    const loaded = await getEconomyState();
+    expect(loaded.difficulty).toBe("standard");
+  });
+
   it("does not throw when persistence fails", async () => {
     mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
 
     await expect(setHighScore(40)).resolves.toBeUndefined();
     await expect(setEconomyState(createEconomyState({ embers: STARTING_EMBERS }))).resolves.toBeUndefined();
+    await expect(setAnimatedBackgroundsEnabled(true)).resolves.toBeUndefined();
+  });
+
+  it("treats missing or unreadable animated-background flags as still images", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getAnimatedBackgroundsEnabled()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockResolvedValueOnce("false");
+    await expect(getAnimatedBackgroundsEnabled()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getAnimatedBackgroundsEnabled()).resolves.toBe(false);
+  });
+
+  it("reads the animated-background flag when stored as true", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("true");
+    await expect(getAnimatedBackgroundsEnabled()).resolves.toBe(true);
   });
 });

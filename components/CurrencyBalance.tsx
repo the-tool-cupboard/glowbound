@@ -8,6 +8,7 @@ interface CurrencyBalanceProps {
   label?: string;
   accessible?: boolean;
   onArt?: boolean;
+  pending?: boolean;
 }
 
 export function CurrencyBalance({
@@ -16,15 +17,18 @@ export function CurrencyBalance({
   label = "Embers",
   accessible = true,
   onArt = false,
+  pending = false,
 }: CurrencyBalanceProps) {
   return (
     <View
       accessible={accessible}
       style={[styles.row, align === "left" && styles.left, align === "right" && styles.right]}
-      accessibilityLabel={`${embers} ${label.toLowerCase()}`}
+      accessibilityLabel={pending ? `${label} loading` : `${embers} ${label.toLowerCase()}`}
     >
       <Text style={[styles.label, onArt && styles.onArt]}>{label}</Text>
-      <Text style={[styles.value, onArt && styles.onArt]}>{embers}</Text>
+      <Text style={[styles.value, onArt && styles.onArt, pending && styles.pending]}>
+        {pending ? " " : embers}
+      </Text>
     </View>
   );
 }
@@ -42,17 +46,17 @@ const styles = StyleSheet.create({
   },
   label: {
     color: theme.colors.accent,
-    fontSize: theme.typography.caption,
-    letterSpacing: 1.8,
-    textTransform: "uppercase",
+    ...theme.typography.overline,
   },
   value: {
     color: theme.colors.text,
-    fontSize: theme.typography.heading,
-    fontWeight: "700",
     fontVariant: ["tabular-nums"],
+    ...theme.typography.score,
   },
   onArt: {
     ...theme.artTextShadow,
+  },
+  pending: {
+    opacity: 0.35,
   },
 });

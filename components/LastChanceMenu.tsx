@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { PowerUpBar } from "@/components/PowerUpBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { theme } from "@/lib/theme";
 import type { Inventory, PowerUpId } from "@/types/economy";
@@ -22,23 +21,23 @@ export function LastChanceMenu({
     return null;
   }
 
-  const hasItems = Object.values(inventory).some((count) => count > 0);
+  const hasWard = inventory.ward > 0;
 
   return (
     <View style={styles.overlay} accessibilityViewIsModal accessibilityRole="alert">
       <View style={styles.card}>
         <Text style={styles.title}>Wrong rune</Text>
         <Text style={styles.question}>
-          {hasItems
-            ? "Use a charm to continue, or end this run."
-            : "You have no charms left."}
+          {hasWard
+            ? "A Rune Ward can ignore this miss and let you keep going."
+            : "You have no Rune Ward left."}
         </Text>
-        {hasItems ? (
-          <PowerUpBar
-            inventory={inventory}
-            disabled={false}
-            wardArmed={false}
-            onUse={onUseItem}
+        {hasWard ? (
+          <PrimaryButton
+            label="Use Rune Ward"
+            fullWidth
+            accessibilityHint="Consumes one Rune Ward and continues this run"
+            onPress={() => onUseItem("ward")}
           />
         ) : null}
         <PrimaryButton
@@ -62,22 +61,22 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   card: {
+    width: "100%",
     backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.lg,
+    borderRadius: theme.radius.pixel,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: "rgba(224, 122, 106, 0.35)",
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.colors.wrong,
     gap: theme.spacing.md,
+    overflow: "hidden",
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.heading,
-    fontWeight: "700",
+    ...theme.typography.heading,
   },
   question: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    lineHeight: 22,
+    ...theme.typography.body,
   },
 });

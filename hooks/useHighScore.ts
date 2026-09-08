@@ -40,9 +40,9 @@ export function useHighScore() {
       return next;
     } catch {
       setHighScoreState((current) => Math.max(current, score));
-      return Math.max(highScore, score);
+      return Math.max(0, Math.floor(score));
     }
-  }, [highScore]);
+  }, []);
 
   return {
     highScore,

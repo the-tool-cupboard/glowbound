@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/lib/theme";
-import type { PowerUpId, ShopItem } from "@/types/economy";
+import { MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
+import { isInventoryFull } from "@/lib/economyEngine";
+import type { Inventory, PowerUpId, ShopItem } from "@/types/economy";
 
 const ITEM_MARK: Record<PowerUpId, string> = {
   pathHint: "H",
@@ -15,6 +17,7 @@ interface ShopItemCardProps {
   item: ShopItem;
   owned: number;
   canAfford: boolean;
+  atCap: boolean;
   instantBuy?: boolean;
   onBuy: () => void;
 }
@@ -23,6 +26,7 @@ export function ShopItemCard({
   item,
   owned,
   canAfford,
+  atCap,
   instantBuy = false,
   onBuy,
 }: ShopItemCardProps) {
@@ -39,17 +43,17 @@ export function ShopItemCard({
   }, []);
 
   const buy = useCallback(() => {
-    if (!canAfford) {
+    if (!canAfford || atCap) {
       return;
     }
 
     setPrimed(false);
     lastTapRef.current = 0;
     onBuy();
-  }, [canAfford, onBuy]);
+  }, [atCap, canAfford, onBuy]);
 
   const onPress = () => {
-    if (!canAfford) {
+    if (!canAfford || atCap) {
       return;
     }
 
@@ -79,35 +83,38 @@ export function ShopItemCard({
     }, 320);
   };
 
+  const locked = !canAfford || atCap;
+  const hint = atCap
+    ? `You already own the maximum of ${MAX_OWNED_PER_ITEM}`
+    : canAfford
+      ? instantBuy
+        ? "Buys this charm"
+        : "Double tap this charm to buy it"
+      : "Not enough embers";
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${item.description}, ${item.cost} embers, ${owned} owned`}
-      accessibilityHint={
-        canAfford
-          ? instantBuy
-            ? "Buys this charm"
-            : "Double tap this charm to buy it"
-          : "Not enough embers"
-      }
-      accessibilityState={{ disabled: !canAfford }}
-      disabled={!canAfford}
+      accessibilityLabel={`${item.name}, ${item.description}, ${item.cost} embers, ${owned} of ${MAX_OWNED_PER_ITEM} owned`}
+      accessibilityHint={hint}
+      accessibilityState={{ disabled: locked }}
+      disabled={locked}
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
-        !canAfford && styles.tileLocked,
+        locked && styles.tileLocked,
         primed && styles.tilePrimed,
-        pressed && canAfford && styles.pressed,
+        pressed && !locked && styles.pressed,
       ]}
     >
-      <View style={[styles.mark, !canAfford && styles.markLocked]}>
+      <View style={[styles.mark, locked && styles.markLocked]}>
         <Text style={styles.markLabel}>{ITEM_MARK[item.id]}</Text>
       </View>
-      <Text style={[styles.name, !canAfford && styles.muted]}>{item.name}</Text>
-      <Text style={[styles.description, !canAfford && styles.muted]}>{item.description}</Text>
-      <Text style={[styles.cost, !canAfford && styles.muted]}>{item.cost}</Text>
-      <Text style={[styles.owned, !canAfford && styles.muted]} accessibilityLabel={`${owned} owned`}>
-        {owned} owned
+      <Text style={[styles.name, locked && styles.muted]}>{item.name}</Text>
+      <Text style={[styles.description, locked && styles.muted]}>{item.description}</Text>
+      <Text style={[styles.cost, locked && styles.muted]}>{item.cost} embers</Text>
+      <Text style={[styles.owned, locked && styles.muted]} accessibilityLabel={`${owned} of ${MAX_OWNED_PER_ITEM} owned`}>
+        {atCap ? `Max ${MAX_OWNED_PER_ITEM}` : `${owned} owned`}
       </Text>
     </Pressable>
   );
@@ -121,7 +128,7 @@ export function ShopGoodsDisplay({
   onBuy,
 }: {
   items: readonly ShopItem[];
-  inventory: Record<PowerUpId, number>;
+  inventory: Inventory;
   embers: number;
   canAfford: (embers: number, cost: number) => boolean;
   onBuy: (id: PowerUpId) => void;
@@ -154,13 +161,14 @@ export function ShopGoodsDisplay({
             item={item}
             owned={inventory[item.id]}
             canAfford={canAfford(embers, item.cost)}
+            atCap={isInventoryFull(inventory, item.id)}
             instantBuy={instantBuy}
             onBuy={() => onBuy(item.id)}
           />
         ))}
       </View>
       <Text style={styles.hint}>
-        {instantBuy ? "Tap a charm to buy it." : "Double tap a charm to buy it."}
+        {instantBuy ? "Tap a charm to buy it." : "Double tap a charm to buy it. Max 3 of each."}
       </Text>
     </View>
   );
@@ -183,33 +191,34 @@ const styles = StyleSheet.create({
     maxWidth: "48%",
     minHeight: 168,
     backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: "rgba(230, 195, 92, 0.22)",
+    borderRadius: theme.radius.pixel,
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     gap: 6,
+    overflow: "hidden",
   },
   tileLocked: {
     opacity: 0.45,
-    borderColor: "rgba(196, 184, 150, 0.12)",
+    borderColor: "rgba(196, 184, 150, 0.28)",
   },
   tilePrimed: {
     borderColor: theme.colors.accent,
-    transform: [{ scale: 1.03 }],
+    backgroundColor: "#1C2438",
   },
   pressed: {
-    opacity: 0.9,
+    transform: [{ translateY: theme.pixel.inset }],
   },
   mark: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.pixel,
     backgroundColor: "rgba(230, 195, 92, 0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(230, 195, 92, 0.55)",
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
@@ -220,40 +229,34 @@ const styles = StyleSheet.create({
   },
   markLabel: {
     color: theme.colors.accent,
-    fontSize: 22,
-    fontWeight: "700",
+    ...theme.typography.heading,
   },
   name: {
     color: theme.colors.text,
-    fontSize: theme.typography.body,
-    fontWeight: "700",
     textAlign: "center",
+    ...theme.typography.heading,
   },
   description: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 16,
     textAlign: "center",
     paddingHorizontal: 2,
+    ...theme.typography.caption,
   },
   cost: {
     color: theme.colors.accent,
-    fontSize: theme.typography.heading,
-    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    ...theme.typography.multiplier,
   },
   owned: {
     color: theme.colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: "uppercase",
+    ...theme.typography.overline,
   },
   muted: {
     color: theme.colors.textMuted,
   },
   hint: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
     textAlign: "center",
-    letterSpacing: 0.4,
+    ...theme.typography.caption,
   },
 });

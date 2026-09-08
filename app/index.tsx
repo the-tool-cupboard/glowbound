@@ -1,22 +1,45 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 
+import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
+import { MotionToggle } from "@/components/MotionToggle";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
+import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { theme } from "@/lib/theme";
 
 const menuBackground = require("../assets/images/game images/GB_Menu-Background.png");
+const menuVideo = require("../assets/video/GB_Menu-Background.mp4");
 
 export default function HomeScreen() {
   const router = useRouter();
   const { highScore, ready: scoreReady } = useHighScore();
   const { embers, ready: economyReady } = useGameEconomy();
+  const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
+    useAnimatedBackgrounds();
+  const focused = useIsFocused();
+  const {
+    playSfx,
+    ready: audioReady,
+    sfxVolume,
+    musicVolume,
+    setSfxVolume,
+    setMusicVolume,
+  } = useGameAudio();
+  useScreenMusic("menuTheme");
 
   return (
-    <ScreenContainer style={styles.screen} backgroundSource={menuBackground}>
+    <ScreenContainer
+      style={styles.screen}
+      backgroundSource={menuBackground}
+      backgroundVideo={menuVideo}
+      playBackgroundVideo={animatedBackgrounds && focused}
+    >
       <View style={styles.skyVeil}>
         <View style={styles.status}>
           <Pressable
@@ -27,11 +50,20 @@ export default function HomeScreen() {
             accessibilityHint="Opens the ember shop"
             accessibilityState={{ busy: !economyReady }}
             hitSlop={theme.hitSlop}
-            onPress={() => router.push("/shop")}
+            onPress={() => {
+              playSfx("uiTap");
+              router.push("/shop");
+            }}
             style={({ pressed }) => [styles.shopHit, pressed && styles.pressed]}
           >
-            <View style={!economyReady ? styles.pendingValue : undefined}>
-              <CurrencyBalance embers={embers} align="left" accessible={false} onArt />
+            <View>
+              <CurrencyBalance
+                embers={embers}
+                align="left"
+                accessible={false}
+                onArt
+                pending={!economyReady}
+              />
             </View>
             <View style={styles.shopMark} />
           </Pressable>
@@ -66,6 +98,32 @@ export default function HomeScreen() {
       <View style={styles.stage} pointerEvents="none" accessible={false} />
 
       <View style={styles.dockVeil}>
+        <View style={styles.dockRow}>
+          <View style={styles.audioSlot}>
+            <AudioMuteBar
+              musicVolume={musicVolume}
+              sfxVolume={sfxVolume}
+              disabled={!audioReady}
+              onChangeMusicVolume={(volume) => {
+                void setMusicVolume(volume);
+              }}
+              onChangeSfxVolume={(volume) => {
+                void setSfxVolume(volume);
+              }}
+              onPreviewSfx={() => {
+                playSfx("uiTap");
+              }}
+            />
+          </View>
+          <MotionToggle
+            enabled={animatedBackgrounds}
+            disabled={!motionReady}
+            onToggle={() => {
+              playSfx("uiTap");
+              toggleAnimatedBackgrounds();
+            }}
+          />
+        </View>
         <PrimaryButton
           label="Begin Journey"
           fullWidth
@@ -75,9 +133,12 @@ export default function HomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Levels"
-          accessibilityHint="Opens chapters you can start from"
+          accessibilityHint="Opens stages you can start from"
           hitSlop={theme.hitSlop}
-          onPress={() => router.push("/levels")}
+          onPress={() => {
+            playSfx("uiTap");
+            router.push("/levels");
+          }}
           style={({ pressed }) => [styles.levelsHit, pressed && styles.pressed]}
         >
           <Text style={styles.levelsLabel}>Levels</Text>
@@ -110,11 +171,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   shopMark: {
-    width: 28,
-    height: 1,
+    width: 24,
+    height: 2,
     marginTop: 4,
     backgroundColor: theme.colors.accent,
-    opacity: 0.7,
   },
   highScore: {
     alignItems: "flex-end",
@@ -125,16 +185,13 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
-    letterSpacing: 1.8,
-    textTransform: "uppercase",
+    ...theme.typography.overline,
     ...theme.artTextShadow,
   },
   scoreValue: {
     color: theme.colors.text,
-    fontSize: theme.typography.heading,
-    fontWeight: "700",
     fontVariant: ["tabular-nums"],
+    ...theme.typography.score,
     ...theme.artTextShadow,
   },
   pendingValue: {
@@ -148,21 +205,18 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.display,
-    fontWeight: "700",
-    letterSpacing: -1.2,
     textAlign: "center",
+    ...theme.typography.display,
     ...theme.artTextShadow,
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 2 },
   },
   subtitle: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
-    lineHeight: 18,
     textAlign: "center",
     alignSelf: "stretch",
     paddingHorizontal: theme.spacing.sm,
+    ...theme.typography.caption,
     ...theme.artTextShadow,
   },
   stage: {
@@ -176,8 +230,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
-    backgroundColor: theme.overlay.dock,
     gap: theme.spacing.xs,
+    backgroundColor: theme.overlay.dock,
+  },
+  dockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.xs,
+    width: "100%",
+  },
+  audioSlot: {
+    flex: 1,
+    minWidth: 0,
   },
   levelsHit: {
     minHeight: theme.minTapTarget,
@@ -186,9 +251,8 @@ const styles = StyleSheet.create({
   },
   levelsLabel: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
+    ...theme.typography.body,
     fontWeight: "600",
-    letterSpacing: 0.4,
     ...theme.artTextShadow,
   },
   pressed: {

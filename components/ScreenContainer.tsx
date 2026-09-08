@@ -17,6 +17,7 @@ import { Image, type ImageProps } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { IPHONE_PREVIEW } from "@/components/PhonePreview";
+import { LoopingVideoBackground } from "@/components/LoopingVideoBackground";
 import { theme } from "@/lib/theme";
 
 interface ScreenMetrics {
@@ -44,12 +45,16 @@ interface ScreenContainerProps {
   children: ReactNode;
   style?: ViewStyle;
   backgroundSource?: ImageProps["source"];
+  backgroundVideo?: number;
+  playBackgroundVideo?: boolean;
 }
 
 export function ScreenContainer({
   children,
   style,
   backgroundSource,
+  backgroundVideo,
+  playBackgroundVideo = false,
 }: ScreenContainerProps) {
   const [metrics, setMetrics] = useState<ScreenMetrics>({ width: 0, height: 0 });
 
@@ -64,7 +69,7 @@ export function ScreenContainer({
   };
 
   const value = useMemo(() => metrics, [metrics]);
-  const hasBackground = backgroundSource != null;
+  const hasBackground = backgroundSource != null || (playBackgroundVideo && backgroundVideo != null);
 
   const content = (
     <ScreenMetricsContext.Provider value={value}>
@@ -99,16 +104,21 @@ export function ScreenContainer({
 
   return (
     <View style={styles.backgroundWrap}>
-      <Image
-        source={backgroundSource}
-        style={styles.backgroundImage}
-        contentFit="cover"
-        contentPosition="center"
-        cachePolicy="memory-disk"
-        priority="high"
-        transition={0}
-        accessible={false}
-      />
+      {backgroundSource != null ? (
+        <Image
+          source={backgroundSource}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          contentPosition="center"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={0}
+          accessible={false}
+        />
+      ) : null}
+      {playBackgroundVideo && backgroundVideo != null ? (
+        <LoopingVideoBackground source={backgroundVideo} playing />
+      ) : null}
       {framed}
     </View>
   );
@@ -120,10 +130,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     overflow: "hidden",
+    position: "relative",
     backgroundColor: theme.colors.background,
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
     pointerEvents: "none",
   },
   safeArea: {
@@ -131,6 +143,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     overflow: "hidden",
+    zIndex: 1,
     backgroundColor: theme.colors.background,
   },
   transparentFill: {

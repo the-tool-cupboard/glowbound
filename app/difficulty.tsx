@@ -6,10 +6,13 @@ import { DifficultyCard } from "@/components/DifficultyCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
+import { useScreenMusic } from "@/hooks/useGameAudio";
 import { DIFFICULTIES } from "@/lib/economyConfig";
 import { isDifficultyId } from "@/lib/economyEngine";
 import { theme } from "@/lib/theme";
 import type { DifficultyId } from "@/types/economy";
+
+const pathBackground = require("../assets/images/game images/GB_Difficulty-Background.png");
 
 function asCount(value: string | string[] | undefined): number {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -23,6 +26,7 @@ export default function DifficultyScreen() {
   const startLevel = asCount(params.startLevel) || 1;
   const { difficulty, ready, setDifficulty } = useGameEconomy();
   const [selected, setSelected] = useState<DifficultyId>("standard");
+  useScreenMusic("menuTheme");
 
   useEffect(() => {
     if (ready && isDifficultyId(difficulty)) {
@@ -45,10 +49,10 @@ export default function DifficultyScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.screen}>
+    <ScreenContainer style={styles.screen} backgroundSource={pathBackground}>
       <View style={styles.hero}>
-        <Text style={styles.title}>Difficulty</Text>
-        <Text style={styles.copy}>This sets glow time, how many runes appear, and embers earned.</Text>
+        <Text style={styles.title}>Choose Your Path</Text>
+        <Text style={styles.copy}>Glow, rune count, and embers change with the road.</Text>
       </View>
 
       <View style={styles.list}>
@@ -64,7 +68,7 @@ export default function DifficultyScreen() {
 
       <View style={styles.actions}>
         <PrimaryButton
-          label={`Start ${selectedName} run`}
+          label={`Walk the ${selectedName} road`}
           fullWidth
           accessibilityHint={`Starts a ${selectedName} run from level ${startLevel}`}
           onPress={begin}
@@ -87,28 +91,34 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   hero: {
+    marginHorizontal: -theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.title,
-    fontWeight: "700",
-    letterSpacing: -0.8,
     marginBottom: theme.spacing.sm,
+    ...theme.typography.title,
+    ...theme.artTextShadow,
   },
   copy: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
-    lineHeight: 22,
+    ...theme.typography.body,
+    ...theme.artTextShadow,
   },
   list: {
     flex: 1,
     gap: theme.spacing.sm,
   },
   actions: {
-    width: "100%",
-    gap: theme.spacing.md,
+    alignSelf: "stretch",
+    marginHorizontal: -theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
+    gap: theme.spacing.md,
+    alignItems: "stretch",
   },
 });

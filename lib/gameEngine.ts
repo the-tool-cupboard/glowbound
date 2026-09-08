@@ -2,17 +2,28 @@ import type { CellId, GamePhase, RuneVisualState } from "../types/game";
 
 export type Rng = () => number;
 
-export function generateUniqueTargetCellIds(
-  totalCells: number,
-  targetCount: number,
-  rng: Rng = Math.random
-): number[] {
-  const safeCapacity = Math.max(0, Math.floor(totalCells));
-  const safeCount = Math.min(Math.max(0, Math.floor(targetCount)), safeCapacity);
-  const pool = Array.from({ length: safeCapacity }, (_, index) => index);
+const PATTERN_RETRY_ATTEMPTS = 32;
+const GOLDEN_FRACTION = 0.6180339887498949;
 
-  for (let i = 0; i < safeCount; i += 1) {
-    const remaining = safeCapacity - i;
+export function patternKey(cellIds: readonly number[]): string {
+  return [...cellIds]
+    .map((id) => Math.floor(id))
+    .sort((a, b) => a - b)
+    .join(",");
+}
+
+function saltedRng(rng: Rng, attempt: number): Rng {
+  return () => {
+    const mixed = rng() + (attempt + 1) * GOLDEN_FRACTION;
+    return mixed - Math.floor(mixed);
+  };
+}
+
+function pickTargetCellIds(totalCells: number, targetCount: number, rng: Rng): number[] {
+  const pool = Array.from({ length: totalCells }, (_, index) => index);
+
+  for (let i = 0; i < targetCount; i += 1) {
+    const remaining = totalCells - i;
     const j = i + Math.floor(rng() * remaining);
     const current = pool[i];
     const swap = pool[j];
@@ -23,7 +34,33 @@ export function generateUniqueTargetCellIds(
     pool[j] = current;
   }
 
-  return pool.slice(0, safeCount);
+  return pool.slice(0, targetCount);
+}
+
+export function generateUniqueTargetCellIds(
+  totalCells: number,
+  targetCount: number,
+  rng: Rng = Math.random,
+  recentPatternKeys: readonly string[] = []
+): number[] {
+  const safeCapacity = Math.max(0, Math.floor(totalCells));
+  const safeCount = Math.min(Math.max(0, Math.floor(targetCount)), safeCapacity);
+  if (safeCount <= 0 || safeCapacity <= 0) {
+    return [];
+  }
+
+  const blocked = new Set(recentPatternKeys.filter((key) => key.length > 0));
+  let last: number[] = [];
+
+  for (let attempt = 0; attempt < PATTERN_RETRY_ATTEMPTS; attempt += 1) {
+    const roll = attempt === 0 ? rng : saltedRng(rng, attempt);
+    last = pickTargetCellIds(safeCapacity, safeCount, roll);
+    if (!blocked.has(patternKey(last))) {
+      return last;
+    }
+  }
+
+  return last;
 }
 
 export function isCorrectSelection(cellId: number, targetCellIds: readonly number[]): boolean {

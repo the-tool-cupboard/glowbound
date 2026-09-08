@@ -39,7 +39,7 @@ export function PowerUpBar({ inventory, disabled, wardArmed, onUse }: PowerUpBar
               pressed && !itemDisabled && styles.pressed,
             ]}
           >
-            <Text style={[styles.label, itemDisabled && styles.labelOff]}>
+            <Text numberOfLines={1} style={[styles.label, itemDisabled && styles.labelOff]}>
               {SHORT_LABEL[item.id]}
             </Text>
             <Text style={[styles.count, itemDisabled && styles.labelOff]}>{count}</Text>
@@ -53,39 +53,38 @@ export function PowerUpBar({ inventory, disabled, wardArmed, onUse }: PowerUpBar
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    flexWrap: "nowrap",
+    alignItems: "stretch",
+    width: "100%",
     gap: theme.spacing.xs,
   },
   chip: {
-    minHeight: 44,
-    minWidth: 68,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: "rgba(230, 195, 92, 0.4)",
+    flex: 1,
+    minWidth: 0,
+    minHeight: theme.minTapTarget,
+    paddingHorizontal: theme.spacing.xs,
+    borderRadius: theme.radius.pixel,
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
     backgroundColor: theme.colors.backgroundElevated,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   chipOff: {
     opacity: 0.45,
-    borderColor: "rgba(196, 184, 150, 0.16)",
+    borderColor: "rgba(196, 184, 150, 0.28)",
   },
   pressed: {
-    opacity: 0.86,
+    transform: [{ translateY: theme.pixel.inset }],
   },
   label: {
     color: theme.colors.text,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
+    ...theme.typography.overline,
   },
   count: {
     color: theme.colors.accent,
-    fontSize: 11,
-    fontWeight: "700",
+    ...theme.typography.overline,
   },
   labelOff: {
     color: theme.colors.textMuted,

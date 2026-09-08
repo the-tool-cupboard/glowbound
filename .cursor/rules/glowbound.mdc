@@ -18,3 +18,4 @@ alwaysApply: true
 - Use accessible labels for all controls and interactive rune cells.
 - Explain planned file changes before making them.
 - After each feature, provide concise manual test steps for iOS and Android.
+- When saving Kling-generated images or videos, download `urlWithoutWatermark` / `coverUrlWithoutWatermark` only. Never keep the corner Kling watermark.

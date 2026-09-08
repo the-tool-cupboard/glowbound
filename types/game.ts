@@ -16,8 +16,33 @@ export type RuneVisualState =
   | "correct"
   | "incorrect";
 
+export type LayoutId =
+  | "grid"
+  | "triangle"
+  | "diamond"
+  | "ring"
+  | "hex"
+  | "cross"
+  | "star"
+  | "petal"
+  | "octagon"
+  | "spiral";
+
+export interface RunePoint {
+  x: number;
+  y: number;
+}
+
+export interface RuneLayout {
+  id: LayoutId;
+  name: string;
+  runeCount: number;
+  points: readonly RunePoint[];
+}
+
 export interface LevelConfig {
-  gridSize: number;
+  layoutId: LayoutId;
+  runeCount: number;
   targetCount: number;
   previewDurationMs: number;
 }
@@ -25,7 +50,8 @@ export interface LevelConfig {
 export interface GameState {
   level: number;
   score: number;
-  gridSize: number;
+  layoutId: LayoutId;
+  runeCount: number;
   targetCellIds: readonly CellId[];
   selectedCellIds: readonly CellId[];
   phase: GamePhase;

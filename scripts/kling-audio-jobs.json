@@ -1,0 +1,178 @@
+[
+  {
+    "id": "uiTap",
+    "filename": "ui-tap.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 100,
+    "audio": "A single tiny tap on warm lantern-gold glass, like a fingertip on a hanging brass lantern pane. Dry, high, amber click with almost no tail. No whoosh, no room reverb, no music bed.",
+    "music": null,
+    "visual": "Locked still of the lantern-lit forest path and crystal castle under the full moon. The nearest golden lantern flickers once, one warm spark on the glass. No people, no camera move, no cuts."
+  },
+  {
+    "id": "uiSelect",
+    "filename": "ui-select.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 150,
+    "audio": "A soft lantern-gold confirmation tick, then a brief moonlight-cyan glass shimmer, like choosing a glowing stepping-stone on a forest path. Two-part, intimate, no bass thump.",
+    "music": "Two quiet notes only: warm gold tick resolving to a cooler cyan glass tone. No melody after that.",
+    "visual": "Near-still path: a circular foreground stone catches lantern-gold, then a thin cyan glint slides toward the distant crystal castle. Fireflies hold still. No people, no camera move, no cuts."
+  },
+  {
+    "id": "runeTap",
+    "filename": "rune-tap.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 110,
+    "audio": "A close, dry tap on a glowing ice-crystal rune. Moonlight-cyan glass click with a faint frost ring, no crack, no shatter. Tactile and short, cooler than a UI button.",
+    "music": null,
+    "visual": "Still forest path. A small frost-cyan rune sigil appears on a foreground stepping-stone and pulses once, then holds. Lanterns stay warm and quiet. No people, no camera move, no cuts."
+  },
+  {
+    "id": "runeCorrect",
+    "filename": "rune-correct.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 260,
+    "audio": "A clear moonlight-cyan crystal chime, one bright correct note, then a tiny lantern-gold afterglow. Hopeful, short, no applause, no sparkle storm.",
+    "music": "Two-note rising celesta: cool cyan first, warm gold resolve. Very quiet, no harmony stack.",
+    "visual": "The path-stone rune flares moonlight-cyan, then a thin gold halo blooms around it like a lantern answering. Castle and moon stay still. No people, no camera move, no cuts."
+  },
+  {
+    "id": "runeWrong",
+    "filename": "rune-wrong.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 200,
+    "audio": "A muted moonlight-cyan glass thud, slightly off-pitch, like a frost rune going dull. Soft downward wood-and-ice tap. No alarm buzz, no scream, no distortion.",
+    "music": null,
+    "visual": "The path-stone rune dims from cyan to pale mist-blue; nearby lantern-gold stays, but does not celebrate. Soft valley fog, no people, no camera move, no cuts."
+  },
+  {
+    "id": "previewChime",
+    "filename": "preview-chime.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 600,
+    "audio": "Three even moonlight-cyan crystal ticks, like fireflies marking the next stones on the path. Soft pulse, no melody, no drums, each tick identical and gentle.",
+    "music": null,
+    "visual": "Three firefly motes blink in sequence up the winding stone path toward the crystal castle. Camera locked. Lanterns idle. No people, no cuts."
+  },
+  {
+    "id": "stageClear",
+    "filename": "stage-clear.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 1600,
+    "audio": "A small lantern-gold swell and a moonlight-cyan crystal lift of three notes, like the next path lantern lighting. Hushed wonder, airy, no drums, no choir.",
+    "music": "Three-note rising harp/celesta: gold, cyan, gold. Quiet forest-night sting, no percussion.",
+    "visual": "The next lantern along the hill path kindles with warm gold; a faint cyan glint answers from the castle doorway. Slow firefly drift only. No people, no camera move, no cuts."
+  },
+  {
+    "id": "levelClear",
+    "filename": "level-clear.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 2800,
+    "audio": "Warm lantern-gold bells blooming under a cool moonlight-cyan crystal shimmer. Hopeful night-forest resolve, airy and close, no brass fanfare, no drums, no vocals.",
+    "music": "Soft four-note music-box lift, lantern-gold melody over a thin moonlight-cyan pad. Quiet, no percussion, no choir.",
+    "visual": "The crystal castle doorway brightens cyan; foreground lanterns bloom a little warmer; the full moon holds. Gentle firefly rise. No people, no camera move, no cuts."
+  },
+  {
+    "id": "gameOver",
+    "filename": "game-over.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 2000,
+    "audio": "A distant moonlight-cyan glass tone fading into night mist, with one last lantern-gold ember dying to a whisper. Gentle, sad-soft. No boom, no horror drone, no scream.",
+    "music": "One falling music-box note into a cool pad fade. Very quiet, no minor-key sting cluster.",
+    "visual": "Foreground lanterns dim; pale blue mist rises in the valley; the castle glow cools. Still frame otherwise. No people, no camera move, no cuts."
+  },
+  {
+    "id": "charmUse",
+    "filename": "charm-use.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "true",
+    "keepMs": 350,
+    "audio": "A close swirl of lantern-gold charm dust and a moonlight-cyan crystal sip, like drinking starlight from a small vial. Soft sparkle-whoosh, short, no explosion, no thunder.",
+    "music": null,
+    "visual": "A tiny spiral of gold mote-dust lifts beside the nearest lantern, then a thin cyan sparkle dissolves into the path air. Still camera. No people, no cuts."
+  },
+  {
+    "id": "wardArm",
+    "filename": "ward-arm.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 400,
+    "audio": "A circular moonlight-cyan glass shield humming once, then a warm lantern-gold latch click as the ward locks. Protective and quiet. No metal armor clang, no combat whoosh.",
+    "music": null,
+    "visual": "A thin cyan ring blooms around the nearest golden lantern, then settles as if latched. Path, castle, and moon stay still. No people, no camera move, no cuts."
+  },
+  {
+    "id": "purchase",
+    "filename": "purchase.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 300,
+    "audio": "A few warm lantern-gold ember-coins settling into a wooden tray, then a tiny moonlight-cyan crystal ding of approval. Soft and satisfying. No modern cash-register, no coin jackpot cascade.",
+    "music": "Tiny two-note gold chime, then silence.",
+    "visual": "A small cluster of gold ember motes gathers at the base of the foreground lantern, then a cyan glint answers from the castle. Still camera. No people, no cuts."
+  },
+  {
+    "id": "purchaseFail",
+    "filename": "purchase-fail.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "false",
+    "keepMs": 200,
+    "audio": "A hollow wooden tap and a dull moonlight-cyan glass miss, like an empty lantern with no oil. Soft denial. No error buzz, no alarm, no comic boing.",
+    "music": null,
+    "visual": "The nearest lantern gutters, flame shrinking, then holds dim. Castle stays distant and cool. No people, no camera move, no cuts."
+  },
+  {
+    "id": "emberGain",
+    "filename": "ember-gain.wav",
+    "kind": "sfx",
+    "duration": "5",
+    "asmr": "true",
+    "keepMs": 600,
+    "audio": "A cluster of lantern-gold firefly embers igniting and lifting, tiny warm amber crackles, then a soft moonlight-cyan sparkle as they settle. Intimate, close, wondrous. No coin shower, no slot-machine.",
+    "music": "Soft rising three-note music-box, lantern-gold, very quiet.",
+    "visual": "Firefly motes gather into a warm gold drift above the path lanterns, then a few drift toward the moonlit castle. Locked camera. No people, no cuts."
+  },
+  {
+    "id": "playTheme",
+    "filename": "play-theme.wav",
+    "kind": "bgm",
+    "duration": "10",
+    "asmr": "false",
+    "keepMs": 10000,
+    "audio": "Soft night-forest bed: slow lantern-gold pulse under a moonlight-cyan crystal drone. A gentle heartbeat-like glow, not a beat. Distant firefly ticks as rhythm dust. No drums, no vocals, no bass drop, no EDM.",
+    "music": "Hushed looping night theme: warm gold plucked harp ostinato, very quiet, over cool cyan pads and high glass harmonics. Slightly more motion than a menu lullaby. No percussion, no choir, no fanfare.",
+    "visual": "Near-still moonlit path. Lanterns breathe slowly. Fireflies drift in a soft repeating pulse toward the crystal castle. No people, no camera move, no cuts."
+  },
+  {
+    "id": "resultsTheme",
+    "filename": "results-theme.wav",
+    "kind": "bgm",
+    "duration": "10",
+    "asmr": "false",
+    "keepMs": 10000,
+    "audio": "Warm lantern-gold afterglow and cool moonlight-cyan air, like standing on the path after the castle door has opened. Soft ember crackle far away. No applause, no drums, no vocals.",
+    "music": "Hopeful music-box and harp, lantern-gold melody over moonlight-cyan pads. Gentle lift, then a held quiet. No brass, no choir swell, no victory march.",
+    "visual": "Still forest night: castle doorway glowing cyan, moon bright, foreground lanterns steady and warm, fireflies hovering. No people, no camera move, no cuts."
+  }
+]

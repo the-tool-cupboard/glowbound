@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { theme } from "@/lib/theme";
 
@@ -27,6 +28,7 @@ export default function ResultsScreen() {
   const embersEarned = asCount(params.embers);
   const difficulty = params.difficulty ?? "standard";
   const { highScore } = useHighScore();
+  useScreenMusic("resultsTheme");
 
   return (
     <ScreenContainer style={styles.screen}>
@@ -54,7 +56,7 @@ export default function ResultsScreen() {
       <View style={styles.actions}>
         <PrimaryButton
           label={`Retry from level ${startLevel}`}
-          accessibilityHint={`Starts this chapter again from level ${startLevel}`}
+          accessibilityHint={`Starts this stage again from level ${startLevel}`}
           onPress={() =>
             router.replace({
               pathname: "/game",
@@ -83,15 +85,13 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.title,
-    fontWeight: "700",
-    letterSpacing: -0.8,
     marginBottom: theme.spacing.sm,
+    ...theme.typography.title,
   },
   copy: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
     marginBottom: theme.spacing.md,
+    ...theme.typography.body,
   },
   stats: {
     flexDirection: "row",
@@ -100,23 +100,22 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.pixel,
     paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: "rgba(230, 195, 92, 0.16)",
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
+    overflow: "hidden",
   },
   statLabel: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
     marginBottom: theme.spacing.xs,
+    ...theme.typography.overline,
   },
   statValue: {
     color: theme.colors.text,
-    fontSize: 32,
-    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    ...theme.typography.score,
   },
   actions: {
     width: "100%",

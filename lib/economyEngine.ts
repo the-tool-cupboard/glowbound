@@ -10,19 +10,49 @@ import type {
 import {
   DIFFICULTIES,
   EMPTY_INVENTORY,
+  MAX_OWNED_PER_ITEM,
   STARTING_EMBERS,
   getDifficulty,
   getShopItem,
 } from "./economyConfig";
+import { MIN_PREVIEW_MS } from "./gameConfig";
+
+function sanitizeCount(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.min(MAX_OWNED_PER_ITEM, Math.max(0, Math.floor(parsed)));
+}
+
+function sanitizeInventory(partial?: Partial<Inventory>): Inventory {
+  return {
+    secondSight: sanitizeCount(partial?.secondSight),
+    lanternOil: sanitizeCount(partial?.lanternOil),
+    ward: sanitizeCount(partial?.ward),
+    pathHint: sanitizeCount(partial?.pathHint),
+  };
+}
+
+export function isDifficultyId(value: string | undefined): value is DifficultyId {
+  return DIFFICULTIES.some((item) => item.id === value);
+}
+
+export function isInventoryFull(inventory: Inventory, itemId: PowerUpId): boolean {
+  return sanitizeCount(inventory[itemId]) >= MAX_OWNED_PER_ITEM;
+}
 
 export function createEconomyState(partial?: Partial<EconomyState>): EconomyState {
+  const embersRaw = partial?.embers;
+  const embersParsed = typeof embersRaw === "number" ? embersRaw : Number(embersRaw);
+
   return {
-    embers: Math.max(0, Math.floor(partial?.embers ?? STARTING_EMBERS)),
-    inventory: {
-      ...EMPTY_INVENTORY,
-      ...partial?.inventory,
-    },
-    difficulty: partial?.difficulty ?? "standard",
+    embers: Number.isFinite(embersParsed)
+      ? Math.max(0, Math.floor(embersParsed))
+      : STARTING_EMBERS,
+    inventory: sanitizeInventory(partial?.inventory),
+    difficulty: isDifficultyId(partial?.difficulty) ? partial.difficulty : "standard",
   };
 }
 
@@ -55,6 +85,10 @@ export function purchaseItem(state: EconomyState, itemId: PowerUpId): PurchaseRe
   const item = getShopItem(itemId);
   if (!item) {
     return { ok: false, reason: "unknownItem" };
+  }
+
+  if (isInventoryFull(state.inventory, itemId)) {
+    return { ok: false, reason: "capReached" };
   }
 
   if (!canAfford(state.embers, item.cost)) {
@@ -94,13 +128,13 @@ export function applyDifficultyToConfig(
   difficulty: DifficultyId
 ): LevelConfig {
   const spec = getDifficulty(difficulty);
-  const capacity = Math.max(0, config.gridSize * config.gridSize);
+  const capacity = Math.max(0, config.runeCount);
   const targetCount = Math.min(
     capacity,
     Math.max(1, config.targetCount + spec.extraTargets)
   );
   const previewDurationMs = Math.max(
-    500,
+    MIN_PREVIEW_MS,
     Math.round(config.previewDurationMs * spec.previewMsMultiplier)
   );
 
@@ -109,8 +143,4 @@ export function applyDifficultyToConfig(
     targetCount,
     previewDurationMs,
   };
-}
-
-export function isDifficultyId(value: string | undefined): value is DifficultyId {
-  return DIFFICULTIES.some((item) => item.id === value);
 }
