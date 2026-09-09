@@ -33,7 +33,7 @@ export function StageCard({
       onPress={onPress}
       style={({ pressed }) => [styles.outer, pressed && unlocked && styles.pressed]}
     >
-      <View style={[styles.tile, unlocked ? styles.tileOpen : styles.tileQuiet]}>
+      <View style={styles.tile}>
         <View style={[styles.pixelHilite, unlocked && styles.pixelHiliteOn]} />
         <View style={styles.copy}>
           <Text style={styles.name}>{title}</Text>
@@ -70,13 +70,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.md,
     overflow: "hidden",
-  },
-  tileOpen: {
     borderColor: theme.button3d.rim,
-    backgroundColor: theme.colors.backgroundElevated,
-  },
-  tileQuiet: {
-    borderColor: theme.colors.idleBorder,
     backgroundColor: theme.colors.backgroundElevated,
   },
   pixelHilite: {
