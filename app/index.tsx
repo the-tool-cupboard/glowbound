@@ -7,6 +7,7 @@ import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { MotionToggle } from "@/components/MotionToggle";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ShopStallMark } from "@/components/ShopStallMark";
 import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
@@ -56,16 +57,16 @@ export default function HomeScreen() {
             }}
             style={({ pressed }) => [styles.shopHit, pressed && styles.pressed]}
           >
-            <View>
-              <CurrencyBalance
-                embers={embers}
-                align="left"
-                accessible={false}
-                onArt
-                pending={!economyReady}
-              />
-            </View>
-            <View style={styles.shopMark} />
+            <CurrencyBalance
+              embers={embers}
+              align="left"
+              accessible={false}
+              onArt
+              compact
+              chip
+              pending={!economyReady}
+              leading={<ShopStallMark />}
+            />
           </Pressable>
           <View
             style={styles.highScore}
@@ -130,19 +131,13 @@ export default function HomeScreen() {
           accessibilityHint="Opens difficulty selection, then starts from the Sleeping Woods"
           onPress={() => router.push("/difficulty")}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Levels"
+        <PrimaryButton
+          label="Levels"
+          variant="ghost"
+          fullWidth
           accessibilityHint="Opens stages you can start from"
-          hitSlop={theme.hitSlop}
-          onPress={() => {
-            playSfx("uiTap");
-            router.push("/levels");
-          }}
-          style={({ pressed }) => [styles.levelsHit, pressed && styles.pressed]}
-        >
-          <Text style={styles.levelsLabel}>Levels</Text>
-        </Pressable>
+          onPress={() => router.push("/levels")}
+        />
       </View>
     </ScreenContainer>
   );
@@ -169,12 +164,6 @@ const styles = StyleSheet.create({
     minWidth: theme.minTapTarget,
     justifyContent: "center",
     flexShrink: 1,
-  },
-  shopMark: {
-    width: 24,
-    height: 2,
-    marginTop: 4,
-    backgroundColor: theme.colors.accent,
   },
   highScore: {
     alignItems: "flex-end",
@@ -230,7 +219,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
-    gap: theme.spacing.xs,
+    gap: theme.spacing.md,
     backgroundColor: theme.overlay.dock,
   },
   dockRow: {
@@ -243,17 +232,6 @@ const styles = StyleSheet.create({
   audioSlot: {
     flex: 1,
     minWidth: 0,
-  },
-  levelsHit: {
-    minHeight: theme.minTapTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  levelsLabel: {
-    color: theme.colors.textMuted,
-    ...theme.typography.body,
-    fontWeight: "600",
-    ...theme.artTextShadow,
   },
   pressed: {
     opacity: 0.86,
