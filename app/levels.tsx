@@ -1,8 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { StageCard } from "@/components/StageCard";
+import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useProgress } from "@/hooks/useProgress";
 import { useScreenMusic } from "@/hooks/useGameAudio";
 import {
@@ -13,16 +16,37 @@ import {
 } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 
+const menuBackground = require("../assets/images/game images/GB_Menu-Background.png");
+const menuVideo = require("../assets/video/GB_Menu-Background.mp4");
+
 export default function LevelsScreen() {
   const router = useRouter();
   const { highestReachedLevel, ready } = useProgress();
+  const { enabled: animatedBackgrounds } = useAnimatedBackgrounds();
+  const focused = useIsFocused();
   useScreenMusic("menuTheme");
 
   return (
-    <ScreenContainer style={styles.screen}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Stages</Text>
-        <Text style={styles.copy}>Ten levels each. Start from a stage you have already reached.</Text>
+    <ScreenContainer
+      style={styles.screen}
+      backgroundSource={menuBackground}
+      backgroundVideo={menuVideo}
+      playBackgroundVideo={animatedBackgrounds && focused}
+    >
+      <View style={styles.skyVeil}>
+        <View style={styles.hero}>
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.3}
+            style={styles.title}
+          >
+            Stages
+          </Text>
+          <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={styles.copy}>
+            Ten levels each. Start from a stage you have already reached.
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -38,114 +62,77 @@ export default function LevelsScreen() {
           const pending = !ready && checkpoint.startLevel > 1;
 
           return (
-            <Pressable
+            <StageCard
               key={checkpoint.startLevel}
-              accessibilityRole="button"
-              accessibilityLabel={`Stage ${index + 1}, ${checkpoint.title}, ${getCheckpointLevelRange(checkpoint)}, ${getCheckpointShapeName(checkpoint)}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
-              accessibilityState={{ disabled: !unlocked, busy: pending }}
-              disabled={!unlocked}
+              title={checkpoint.title}
+              stageNumber={index + 1}
+              levelRange={getCheckpointLevelRange(checkpoint)}
+              shapeName={getCheckpointShapeName(checkpoint)}
+              unlocked={unlocked}
+              pending={pending}
               onPress={() =>
                 router.push({
                   pathname: "/difficulty",
                   params: { startLevel: String(checkpoint.startLevel) },
                 })
               }
-              style={({ pressed }) => [
-                styles.row,
-                (!unlocked || pending) && styles.rowLocked,
-                pressed && unlocked && styles.rowPressed,
-              ]}
-            >
-              <View style={styles.rowCopy}>
-                <Text style={[styles.rowTitle, (!unlocked || pending) && styles.lockedText]}>
-                  {checkpoint.title}
-                </Text>
-                <Text style={[styles.rowMeta, (!unlocked || pending) && styles.lockedText]}>
-                  Stage {index + 1} · {getCheckpointLevelRange(checkpoint)}
-                </Text>
-              </View>
-              <Text style={[styles.rowState, (!unlocked || pending) && styles.lockedText]}>
-                {pending ? "…" : unlocked ? "Unlocked" : "Locked"}
-              </Text>
-            </Pressable>
+            />
           );
         })}
       </ScrollView>
 
-      <PrimaryButton
-        label="Back to camp"
-        variant="ghost"
-        fullWidth
-        accessibilityHint="Returns to the start menu at camp"
-        onPress={() => router.replace("/")}
-      />
+      <View style={styles.dockVeil}>
+        <PrimaryButton
+          label="Back to camp"
+          variant="ghost"
+          fullWidth
+          accessibilityHint="Returns to the start menu at camp"
+          onPress={() => router.replace("/")}
+        />
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    justifyContent: "space-between",
     width: "100%",
   },
+  skyVeil: {
+    marginHorizontal: -theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.overlay.sky,
+  },
   hero: {
-    paddingTop: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
   },
   title: {
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-    ...theme.typography.title,
+    ...theme.typography.heading,
+    ...theme.artTextShadow,
   },
   copy: {
     color: theme.colors.textMuted,
-    ...theme.typography.body,
+    ...theme.typography.caption,
+    ...theme.artTextShadow,
   },
   list: {
     flex: 1,
+    minHeight: 0,
+    width: "100%",
   },
   listContent: {
+    flexGrow: 1,
     gap: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
-  },
-  row: {
-    minHeight: theme.minTapTarget,
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.md,
     paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: "rgba(230, 195, 92, 0.28)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.md,
   },
-  rowLocked: {
-    borderColor: "rgba(196, 184, 150, 0.12)",
-    opacity: 0.55,
-  },
-  rowPressed: {
-    opacity: 0.86,
-    transform: [{ scale: 0.99 }],
-  },
-  rowCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  rowTitle: {
-    color: theme.colors.text,
-    ...theme.typography.heading,
-  },
-  rowMeta: {
-    color: theme.colors.textMuted,
-    ...theme.typography.caption,
-  },
-  rowState: {
-    color: theme.colors.accent,
-    ...theme.typography.overline,
-  },
-  lockedText: {
-    color: theme.colors.textMuted,
+  dockVeil: {
+    marginHorizontal: -theme.spacing.lg,
+    marginBottom: -theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.overlay.dock,
   },
 });
