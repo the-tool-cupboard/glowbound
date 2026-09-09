@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/lib/theme";
@@ -11,6 +12,7 @@ interface CurrencyBalanceProps {
   pending?: boolean;
   compact?: boolean;
   chip?: boolean;
+  leading?: ReactNode;
 }
 
 export function CurrencyBalance({
@@ -22,29 +24,30 @@ export function CurrencyBalance({
   pending = false,
   compact = false,
   chip = false,
+  leading,
 }: CurrencyBalanceProps) {
+  const alignStyle = align === "left" ? styles.left : align === "right" ? styles.right : undefined;
+
   return (
     <View
       accessible={accessible}
-      style={[
-        styles.row,
-        align === "left" && styles.left,
-        align === "right" && styles.right,
-        chip && styles.chip,
-      ]}
+      style={[styles.row, alignStyle, chip && styles.chip, leading != null && styles.withLeading]}
       accessibilityLabel={pending ? `${label} loading` : `${embers} ${label.toLowerCase()}`}
     >
-      <Text style={[styles.label, onArt && styles.onArt]}>{label}</Text>
-      <Text
-        style={[
-          styles.value,
-          compact && styles.valueCompact,
-          onArt && styles.onArt,
-          pending && styles.pending,
-        ]}
-      >
-        {pending ? " " : embers}
-      </Text>
+      {leading}
+      <View style={[styles.stack, alignStyle]} pointerEvents="none">
+        <Text style={[styles.label, onArt && styles.onArt]}>{label}</Text>
+        <Text
+          style={[
+            styles.value,
+            compact && styles.valueCompact,
+            onArt && styles.onArt,
+            pending && styles.pending,
+          ]}
+        >
+          {pending ? " " : embers}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -52,6 +55,8 @@ export function CurrencyBalance({
 const styles = StyleSheet.create({
   row: {
     alignItems: "center",
+  },
+  stack: {
     gap: 4,
   },
   left: {
@@ -59,6 +64,11 @@ const styles = StyleSheet.create({
   },
   right: {
     alignItems: "flex-end",
+  },
+  withLeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
   },
   chip: {
     minHeight: theme.minTapTarget,
