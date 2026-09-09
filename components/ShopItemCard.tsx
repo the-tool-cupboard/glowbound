@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ShopCharmMark } from "@/components/ShopCharmMark";
 import { theme } from "@/lib/theme";
@@ -7,7 +7,8 @@ import { MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
 import { isInventoryFull } from "@/lib/economyEngine";
 import type { Inventory, PowerUpId, ShopItem } from "@/types/economy";
 
-const BUY_FLASH_MS = 520;
+const BUY_FLASH_MS = 720;
+const PRIME_WINDOW_MS = 650;
 
 interface ShopItemCardProps {
   item: ShopItem;
@@ -78,7 +79,7 @@ export function ShopItemCard({
     }
 
     const now = Date.now();
-    if (now - lastTapRef.current < 320) {
+    if (now - lastTapRef.current < PRIME_WINDOW_MS) {
       if (primeTimerRef.current != null) {
         clearTimeout(primeTimerRef.current);
         primeTimerRef.current = null;
@@ -95,7 +96,7 @@ export function ShopItemCard({
     primeTimerRef.current = setTimeout(() => {
       setPrimed(false);
       primeTimerRef.current = null;
-    }, 320);
+    }, PRIME_WINDOW_MS);
   };
 
   const locked = !canAfford || atCap;
@@ -127,7 +128,12 @@ export function ShopItemCard({
         pressed && !locked && styles.pressed,
       ]}
     >
-      {primed ? <View pointerEvents="none" style={styles.primeRing} /> : null}
+      {primed ? (
+        <>
+          <View pointerEvents="none" style={styles.primeHilite} />
+          <View pointerEvents="none" style={styles.primeRing} />
+        </>
+      ) : null}
       <View style={styles.mark}>
         <ShopCharmMark itemId={item.id} />
         {atCap ? <View pointerEvents="none" style={styles.ownedPip} /> : null}
@@ -177,6 +183,14 @@ export function ShopGoodsDisplay({
   const [instantBuy, setInstantBuy] = useState(false);
 
   useEffect(() => {
+    // react-native-web always resolves isScreenReaderEnabled to true, which would
+    // skip the double-tap confirm on every desktop preview. Native VoiceOver /
+    // TalkBack still use the instant-buy path below.
+    if (Platform.OS === "web") {
+      setInstantBuy(false);
+      return;
+    }
+
     let cancelled = false;
 
     void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
@@ -250,11 +264,19 @@ const styles = StyleSheet.create({
   },
   tilePrimed: {
     borderColor: theme.colors.accent,
-    backgroundColor: "rgba(230, 195, 92, 0.18)",
+    backgroundColor: "rgba(230, 195, 92, 0.22)",
   },
   tileBought: {
     borderColor: theme.colors.accent,
     backgroundColor: "rgba(230, 195, 92, 0.28)",
+  },
+  primeHilite: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: theme.pixel.inset,
+    backgroundColor: theme.button3d.highlight,
   },
   primeRing: {
     ...StyleSheet.absoluteFillObject,
