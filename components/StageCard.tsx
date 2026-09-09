@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   tileQuiet: {
     borderColor: theme.colors.idleBorder,
-    backgroundColor: theme.button3d.ghostFace,
+    backgroundColor: theme.colors.backgroundElevated,
   },
   pixelHilite: {
     position: "absolute",
