@@ -5,6 +5,9 @@ import {
   CROWN_HIDDEN_STATUS_NOTE,
   CROWN_INPUT_HOLD_MS,
   CROWN_SHOWN_STATUS_NOTE,
+  EMBER_BRIDGE_STATUS_NOTE,
+  EMBER_FADE_STATUS_NOTE,
+  EMBER_FADE_SWAP_MS,
   GATE_PULSE_HOLD_MS,
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
@@ -21,9 +24,11 @@ import {
   emberFadeAtMs,
   flightStatusNote,
   mirroredCellId,
+  pickEmberFadeSwap,
   pickFacetGlints,
   pickGrantedCell,
   pickRipenRotSwap,
+  resolveEmberFadeSwap,
   resolveStageRules,
   roundPreviewStatusNote,
   sortByBoardY,
@@ -90,6 +95,19 @@ describe("resolveStageRules", () => {
     expect(resolveStageRules(71, "calm").crownGrant).toBe("shown");
     expect(resolveStageRules(71, "standard").crownGrant).toBe("shown");
     expect(resolveStageRules(71, "harsh").crownGrant).toBe("hiddenUntilInput");
+  });
+
+  it("cools Ember Bridge on every path and only swaps answers on Harsh", () => {
+    const calm = resolveStageRules(41, "calm");
+    const standard = resolveStageRules(41, "standard");
+    const harsh = resolveStageRules(41, "harsh");
+    expect(calm.emberFade).toBe(true);
+    expect(standard.emberFade).toBe(true);
+    expect(harsh.emberFade).toBe(true);
+    expect(calm.emberFadeSwap).toBe(false);
+    expect(standard.emberFadeSwap).toBe(false);
+    expect(harsh.emberFadeSwap).toBe(true);
+    expect(resolveStageRules(1, "harsh").emberFadeSwap).toBe(false);
   });
 
   it("splits The Tower and the Lantern Trial into two flights", () => {
@@ -302,6 +320,26 @@ describe("preview presentation", () => {
     expect(emberFadeAtMs()).toBe(2400);
   });
 
+  it("telegraphs Harsh Ember swaps for about 400ms", () => {
+    expect(EMBER_FADE_SWAP_MS).toBe(400);
+  });
+
+  it("skips Ember target swaps on Calm and Standard and keeps them on Harsh", () => {
+    const remaining = [0, 1, 2];
+    const rng = () => 0;
+    const expected = pickEmberFadeSwap(remaining, diamond.points, rng);
+    expect(expected).not.toBeNull();
+    expect(
+      resolveEmberFadeSwap(resolveStageRules(41, "calm"), remaining, diamond.points, rng)
+    ).toBeNull();
+    expect(
+      resolveEmberFadeSwap(resolveStageRules(41, "standard"), remaining, diamond.points, rng)
+    ).toBeNull();
+    expect(
+      resolveEmberFadeSwap(resolveStageRules(41, "harsh"), remaining, diamond.points, rng)
+    ).toEqual(expected);
+  });
+
   it("does not replay sequential pulse during Second Sight", () => {
     const rules = resolveStageRules(11, "standard");
     const plan = buildRoundPresentation({
@@ -373,7 +411,21 @@ describe("preview status notes", () => {
     );
   });
 
-  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, and Crown copy", () => {
+  it("teaches Ember Bridge on every difficulty during preview", () => {
+    expect(EMBER_BRIDGE_STATUS_NOTE).toBe("Ember Bridge — hold the heat.");
+    expect(EMBER_FADE_STATUS_NOTE).toBe("Embers fade…");
+    expect(roundPreviewStatusNote(resolveStageRules(41, "calm"), 0, 1)).toBe(
+      EMBER_BRIDGE_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBe(
+      EMBER_BRIDGE_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(41, "harsh"), 0, 1)).toBe(
+      EMBER_BRIDGE_STATUS_NOTE
+    );
+  });
+
+  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, Crown, and Ember copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -385,7 +437,15 @@ describe("preview status notes", () => {
       flightStatusNote(0, 2)
     );
     expect(roundPreviewStatusNote(resolveStageRules(11, "standard"), 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
-    expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBe(
+      EMBER_BRIDGE_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote({ ...resolveStageRules(41, "standard"), lanternTrial: true }, 0, 1)).toBe(
+      "Lantern Trial."
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
     expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBe(
       CROWN_SHOWN_STATUS_NOTE
     );

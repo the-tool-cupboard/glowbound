@@ -19,14 +19,15 @@ import {
 import {
   CROWN_CLAIMED_INPUT_NOTE,
   CROWN_INPUT_HOLD_MS,
+  EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
   applyCalmPreviewBonus,
   applyTargetSwap,
   buildRoundPresentation,
   emberFadeAtMs,
   flightStatusNote,
-  pickEmberFadeSwap,
   pickGrantedCell,
+  resolveEmberFadeSwap,
   resolveStageRules,
   roundPreviewStatusNote,
   splitTwoFlight,
@@ -169,12 +170,17 @@ export function useMemoryGame() {
           return;
         }
 
-        const remaining = targetRef.current.filter((id) => !selectedRef.current.includes(id));
-        const swap = pickEmberFadeSwap(remaining, layoutRef.current.points, Math.random);
         emberFadedRef.current = true;
-        setStatusNote("Embers fade…");
+        setStatusNote(EMBER_FADE_STATUS_NOTE);
         setCooledBoard(true);
 
+        const remaining = targetRef.current.filter((id) => !selectedRef.current.includes(id));
+        const swap = resolveEmberFadeSwap(
+          rulesRef.current,
+          remaining,
+          layoutRef.current.points,
+          Math.random
+        );
         if (swap == null) {
           return;
         }
