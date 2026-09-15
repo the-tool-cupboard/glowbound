@@ -1,16 +1,21 @@
 import { CHECKPOINTS, getLevelConfig } from "../lib/gameConfig";
 import { getLayout } from "../lib/runeLayouts";
 import {
+  GATE_PULSE_HOLD_MS,
+  GATE_PULSE_MIN_MS,
+  GATE_PULSE_STATUS_NOTE,
   MIRROR_GHOST_MS,
   applyCalmPreviewBonus,
   applyTargetSwap,
   buildRoundPresentation,
   emberFadeAtMs,
+  flightStatusNote,
   mirroredCellId,
   pickFacetGlints,
   pickGrantedCell,
   pickRipenRotSwap,
   resolveStageRules,
+  roundPreviewStatusNote,
   sortByBoardY,
   splitTwoFlight,
 } from "../lib/stageModifiers";
@@ -51,7 +56,7 @@ describe("resolveStageRules", () => {
 
   it("pulses Castle Gate for every path without Simon-strict input", () => {
     const rules = resolveStageRules(11, "standard");
-    expect(rules.sequentialPreview).toBe("bottomToTop");
+    expect(rules.sequentialPreview).toBe("accumulateBottomToTop");
     expect(rules.orderedInput).toBe(false);
     expect(resolveStageRules(11, "harsh").orderedInput).toBe(false);
   });
@@ -96,20 +101,65 @@ describe("splitTwoFlight", () => {
 describe("preview presentation", () => {
   const diamond = getLayout("diamond", 9);
 
-  it("flashes Castle Gate targets from the bottom of the triad upward", () => {
+  it("accumulates Castle Gate from the bottom, then holds the full shape", () => {
     const rules = resolveStageRules(11, "standard");
     const targets = [0, 1, 2];
+    const layout = getLayout("triangle", 9);
     const plan = buildRoundPresentation({
       rules,
       targets,
-      layout: getLayout("triangle", 9),
+      layout,
       previewMs: 900,
       kind: "round",
       rng: () => 0,
     });
-    const ordered = sortByBoardY(targets, getLayout("triangle", 9).points, "bottomFirst");
-    expect(plan.steps.map((step) => step.previewCellIds)).toEqual(ordered.map((id) => [id]));
+    const ordered = sortByBoardY(targets, layout.points, "bottomFirst");
+    expect(plan.steps).toHaveLength(ordered.length + 1);
+    expect(plan.steps.slice(0, ordered.length).map((step) => step.previewCellIds)).toEqual(
+      ordered.map((_, index) => ordered.slice(0, index + 1))
+    );
+    expect(plan.steps[0]?.durationMs).toBe(300);
+    expect(plan.steps[ordered.length]?.previewCellIds).toEqual(ordered);
+    expect(plan.steps[ordered.length]?.durationMs).toBe(GATE_PULSE_HOLD_MS);
     expect(plan.inputTargets).toEqual(targets);
+  });
+
+  it("keeps each Gate pulse at least GATE_PULSE_MIN_MS", () => {
+    const rules = resolveStageRules(11, "calm");
+    const targets = [0, 1, 2];
+    const layout = getLayout("triangle", 9);
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout,
+      previewMs: 300,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(GATE_PULSE_MIN_MS).toBe(170);
+    expect(GATE_PULSE_HOLD_MS).toBe(220);
+    expect(plan.steps.slice(0, targets.length).every((step) => step.durationMs === GATE_PULSE_MIN_MS)).toBe(
+      true
+    );
+  });
+
+  it("accumulates Starfall from the top without a full-shape hold", () => {
+    const rules = resolveStageRules(61, "standard");
+    const targets = [0, 1, 2];
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout: diamond,
+      previewMs: 900,
+      kind: "round",
+      rng: () => 0,
+    });
+    const ordered = sortByBoardY(targets, diamond.points, "topFirst");
+    expect(plan.steps).toHaveLength(ordered.length);
+    expect(plan.steps.map((step) => step.previewCellIds)).toEqual(
+      ordered.map((_, index) => ordered.slice(0, index + 1))
+    );
+    expect(plan.inputTargets).toEqual(ordered);
   });
 
   it("adds a mirrored ghost after Moonwell preview on Standard", () => {
@@ -164,6 +214,20 @@ describe("preview presentation", () => {
     expect(emberFadeAtMs()).toBe(2400);
   });
 
+  it("does not replay sequential pulse during Second Sight", () => {
+    const rules = resolveStageRules(11, "standard");
+    const plan = buildRoundPresentation({
+      rules,
+      targets: [0, 1, 2],
+      layout: getLayout("triangle", 9),
+      previewMs: 900,
+      kind: "sight",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]?.previewCellIds).toEqual([0, 1, 2]);
+  });
+
   it("does not replay mirror or glare during Second Sight", () => {
     const rules = resolveStageRules(21, "standard");
     const plan = buildRoundPresentation({
@@ -176,6 +240,24 @@ describe("preview presentation", () => {
     });
     expect(plan.steps).toHaveLength(1);
     expect(plan.steps[0]?.ghostCellIds).toEqual([]);
+  });
+});
+
+describe("preview status notes", () => {
+  it("teaches Gate pulse during preview and leaves Woods on the generic line", () => {
+    const gate = resolveStageRules(11, "standard");
+    expect(roundPreviewStatusNote(gate, 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
+    expect(roundPreviewStatusNote(resolveStageRules(1, "standard"), 0, 1)).toBeNull();
+  });
+
+  it("keeps lantern trial, two-flight, and granted-path notes ahead of Gate copy", () => {
+    expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
+    expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(61, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBeNull();
   });
 });
 

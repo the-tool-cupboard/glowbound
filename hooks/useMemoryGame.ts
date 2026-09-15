@@ -26,6 +26,7 @@ import {
   pickEmberFadeSwap,
   pickGrantedCell,
   resolveStageRules,
+  roundPreviewStatusNote,
   splitTwoFlight,
   type PreviewStep,
   type StageRules,
@@ -310,9 +311,11 @@ export function useMemoryGame() {
       setCooledBoard(false);
       setLanternTrial(rules.lanternTrial);
       setStatusNote(
-        rules.lanternTrial
-          ? "Lantern Trial."
-          : flightStatusNote(flightIndexRef.current, flightsRef.current != null ? 2 : 1)
+        roundPreviewStatusNote(
+          rules,
+          flightIndexRef.current,
+          flightsRef.current != null ? 2 : 1
+        )
       );
       setPhase("preview");
 
