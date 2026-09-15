@@ -13,11 +13,13 @@ export const RIPEN_ROT_SWAP_MS = 420;
 export const EMBER_FADE_WINDOW_MS = 6000;
 export const EMBER_FADE_RATIO = 0.4;
 export const EMBER_FADE_SWAP_MS = 280;
-export const GATE_PULSE_MIN_MS = 120;
+export const GATE_PULSE_MIN_MS = 170;
+export const GATE_PULSE_HOLD_MS = 220;
+export const GATE_PULSE_STATUS_NOTE = "Gate pulse — watch it rise.";
 export const STARFALL_STEP_MIN_MS = 140;
 
 export type CrownGrantMode = "none" | "shown" | "hiddenUntilInput";
-export type SequentialPreview = "none" | "bottomToTop" | "accumulateTopToBottom";
+export type SequentialPreview = "none" | "accumulateBottomToTop" | "accumulateTopToBottom";
 
 export interface StageRules {
   modifier: StageModifierId;
@@ -56,7 +58,7 @@ export function resolveStageRules(level: number, difficulty: DifficultyId): Stag
     modifier,
     sequentialPreview:
       modifier === "gatePulse"
-        ? "bottomToTop"
+        ? "accumulateBottomToTop"
         : modifier === "fallingOrder"
           ? "accumulateTopToBottom"
           : "none",
@@ -278,6 +280,26 @@ function pulseDuration(totalMs: number, count: number, minMs: number): number {
   return Math.max(minMs, Math.floor(totalMs / count));
 }
 
+function plainPreviewStep(previewCellIds: readonly CellId[], durationMs: number): PreviewStep {
+  return {
+    previewCellIds,
+    glintCellIds: [],
+    ghostCellIds: [],
+    durationMs,
+  };
+}
+
+function accumulatePreviewSteps(
+  ordered: readonly CellId[],
+  stepMs: number
+): PreviewStep[] {
+  const steps: PreviewStep[] = [];
+  for (let i = 1; i <= ordered.length; i += 1) {
+    steps.push(plainPreviewStep(ordered.slice(0, i), stepMs));
+  }
+  return steps;
+}
+
 export function buildRoundPresentation(args: {
   rules: StageRules;
   targets: readonly CellId[];
@@ -306,29 +328,16 @@ export function buildRoundPresentation(args: {
   let inputTargets: readonly CellId[] = targets;
   const steps: PreviewStep[] = [];
 
-  if (rules.sequentialPreview === "bottomToTop") {
+  if (rules.sequentialPreview === "accumulateBottomToTop") {
     const ordered = sortByBoardY(targets, layout.points, "bottomFirst");
     const pulseMs = pulseDuration(safePreview, ordered.length, GATE_PULSE_MIN_MS);
-    for (const cellId of ordered) {
-      steps.push({
-        previewCellIds: [cellId],
-        glintCellIds: [],
-        ghostCellIds: [],
-        durationMs: pulseMs,
-      });
-    }
+    steps.push(...accumulatePreviewSteps(ordered, pulseMs));
+    steps.push(plainPreviewStep(ordered, GATE_PULSE_HOLD_MS));
   } else if (rules.sequentialPreview === "accumulateTopToBottom") {
     const ordered = sortByBoardY(targets, layout.points, "topFirst");
     inputTargets = ordered;
     const stepMs = pulseDuration(safePreview, ordered.length, STARFALL_STEP_MIN_MS);
-    for (let i = 1; i <= ordered.length; i += 1) {
-      steps.push({
-        previewCellIds: ordered.slice(0, i),
-        glintCellIds: [],
-        ghostCellIds: [],
-        durationMs: stepMs,
-      });
-    }
+    steps.push(...accumulatePreviewSteps(ordered, stepMs));
   } else if (rules.facetGlare) {
     const glints = pickFacetGlints(layout.runeCount, targets, rng);
     const glintMs = Math.min(FACET_GLINT_MS, Math.max(80, Math.floor(safePreview * 0.35)));
@@ -399,4 +408,25 @@ export function flightStatusNote(flightIndex: number, flightCount: number): stri
   }
 
   return `Flight ${flightIndex + 1} of ${flightCount}.`;
+}
+
+export function roundPreviewStatusNote(
+  rules: StageRules,
+  flightIndex: number,
+  flightCount: number
+): string | null {
+  if (rules.lanternTrial) {
+    return "Lantern Trial.";
+  }
+
+  const flightNote = flightStatusNote(flightIndex, flightCount);
+  if (flightNote != null) {
+    return flightNote;
+  }
+
+  if (rules.modifier === "gatePulse") {
+    return GATE_PULSE_STATUS_NOTE;
+  }
+
+  return null;
 }
