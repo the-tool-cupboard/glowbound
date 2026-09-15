@@ -107,6 +107,7 @@ export default function GameScreen() {
   const prevSelectedCountRef = useRef(selectedCellIds.length);
   const prevWardArmedRef = useRef(wardArmed);
   const wrongPlayedRef = useRef(false);
+  const chapterUnlockCueAtRef = useRef(0);
 
   useEffect(() => {
     const prevPhase = prevPhaseRef.current;
@@ -117,10 +118,10 @@ export default function GameScreen() {
       playSfx("stageClear");
     }
     if (phase === "levelComplete" && prevPhase !== "levelComplete") {
-      playSfx("levelClear");
-      if (lanternTrial) {
-        playSfx("emberGain");
-      }
+      playSfx(lanternTrial ? "lanternTrialClear" : "levelClear");
+    }
+    if (phase === "lastChance" && prevPhase !== "lastChance") {
+      playSfx("lastChanceSting");
     }
     if (phase === "gameOver" && prevPhase !== "gameOver") {
       playSfx("gameOver");
@@ -188,8 +189,14 @@ export default function GameScreen() {
       return;
     }
 
-    void recordReachedLevel(level);
-  }, [level, phase, recordReachedLevel]);
+    void recordReachedLevel(level).then((result) => {
+      if (!result.unlockedCheckpoint || result.stored === chapterUnlockCueAtRef.current) {
+        return;
+      }
+      chapterUnlockCueAtRef.current = result.stored;
+      playSfx("chapterUnlock");
+    });
+  }, [level, phase, playSfx, recordReachedLevel]);
 
   useEffect(() => {
     if (phase !== "levelComplete" || shardsAwardedRef.current) {
