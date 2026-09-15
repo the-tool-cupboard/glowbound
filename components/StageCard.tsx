@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, type ImageProps } from "expo-image";
 
 import { theme } from "@/lib/theme";
 
@@ -7,6 +8,7 @@ interface StageCardProps {
   stageNumber: number;
   levelRange: string;
   twistLine: string;
+  thumbnail: ImageProps["source"];
   unlocked: boolean;
   pending: boolean;
   onPress: () => void;
@@ -17,6 +19,7 @@ export function StageCard({
   stageNumber,
   levelRange,
   twistLine,
+  thumbnail,
   unlocked,
   pending,
   onPress,
@@ -35,6 +38,16 @@ export function StageCard({
     >
       <View style={styles.tile}>
         <View style={[styles.pixelHilite, unlocked && styles.pixelHiliteOn]} />
+        <View style={[styles.thumbWrap, !unlocked && styles.thumbLocked]}>
+          <Image
+            source={thumbnail}
+            style={styles.thumb}
+            contentFit="cover"
+            contentPosition="center"
+            cachePolicy="memory-disk"
+            accessible={false}
+          />
+        </View>
         <View style={styles.copy}>
           <Text style={styles.name}>{title}</Text>
           <Text style={styles.meta}>
@@ -84,6 +97,22 @@ const styles = StyleSheet.create({
   },
   pixelHiliteOn: {
     backgroundColor: theme.button3d.highlight,
+  },
+  thumbWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: theme.radius.pixel,
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
+    overflow: "hidden",
+    backgroundColor: theme.colors.background,
+  },
+  thumb: {
+    width: "100%",
+    height: "100%",
+  },
+  thumbLocked: {
+    opacity: 0.38,
   },
   copy: {
     flex: 1,

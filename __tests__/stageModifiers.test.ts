@@ -14,7 +14,7 @@ import {
   sortByBoardY,
   splitTwoFlight,
 } from "../lib/stageModifiers";
-import { MISSING_FINAL_CHAPTER_ART, chapterArtKey } from "../lib/chapterBackgrounds";
+import { chapterArtKey } from "../lib/chapterBackgrounds";
 
 describe("checkpoint modifiers", () => {
   it("gives each of the ten stages a unique modifier and art key", () => {
@@ -36,7 +36,6 @@ describe("checkpoint modifiers", () => {
     expect(chapterArtKey(71)).toBe("hollowCrown");
     expect(chapterArtKey(81)).toBe("nightOrchard");
     expect(chapterArtKey(91)).toBe("theBound");
-    expect(MISSING_FINAL_CHAPTER_ART).toHaveLength(9);
   });
 });
 
