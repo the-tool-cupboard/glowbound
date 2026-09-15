@@ -11,7 +11,7 @@ import { useScreenMusic } from "@/hooks/useGameAudio";
 import {
   CHECKPOINTS,
   getCheckpointLevelRange,
-  getCheckpointShapeName,
+  getCheckpointTwistLine,
   isCheckpointUnlocked,
 } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
@@ -67,7 +67,7 @@ export default function LevelsScreen() {
               title={checkpoint.title}
               stageNumber={index + 1}
               levelRange={getCheckpointLevelRange(checkpoint)}
-              shapeName={getCheckpointShapeName(checkpoint)}
+              twistLine={getCheckpointTwistLine(checkpoint)}
               unlocked={unlocked}
               pending={pending}
               onPress={() =>

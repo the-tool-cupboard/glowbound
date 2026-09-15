@@ -118,6 +118,12 @@ describe("calculateLanternShards", () => {
     expect(calculateLanternShards(20, "standard")).toBe(48);
     expect(calculateLanternShards(50, "standard")).toBe(108);
   });
+
+  it("adds a lantern trial ember bump on level 100", () => {
+    expect(calculateLanternShards(100, "standard")).toBe(258);
+    expect(calculateLanternShards(100, "harsh")).toBe(362);
+    expect(calculateLanternShards(99, "standard")).toBe(206);
+  });
 });
 
 describe("calculateEmbersEarned", () => {
@@ -138,6 +144,7 @@ describe("applyDifficultyToConfig", () => {
     runeCount: 9,
     targetCount: 3,
     previewDurationMs: 1600,
+    modifier: "none" as const,
   };
 
   it("softens calm and hardens harsh without exceeding the board", () => {
@@ -146,6 +153,7 @@ describe("applyDifficultyToConfig", () => {
       runeCount: 9,
       targetCount: 2,
       previewDurationMs: 2000,
+      modifier: "none",
     });
     expect(applyDifficultyToConfig(base, "harsh").targetCount).toBe(4);
     expect(
@@ -156,13 +164,25 @@ describe("applyDifficultyToConfig", () => {
   it("never shortens harsh previews below the 850ms config floor", () => {
     expect(
       applyDifficultyToConfig(
-        { layoutId: "spiral", runeCount: 36, targetCount: 20, previewDurationMs: 850 },
+        {
+          layoutId: "spiral",
+          runeCount: 36,
+          targetCount: 20,
+          previewDurationMs: 850,
+          modifier: "bound",
+        },
         "harsh"
       ).previewDurationMs
     ).toBe(MIN_PREVIEW_MS);
     expect(
       applyDifficultyToConfig(
-        { layoutId: "spiral", runeCount: 36, targetCount: 20, previewDurationMs: 600 },
+        {
+          layoutId: "spiral",
+          runeCount: 36,
+          targetCount: 20,
+          previewDurationMs: 600,
+          modifier: "bound",
+        },
         "harsh"
       ).previewDurationMs
     ).toBe(MIN_PREVIEW_MS);

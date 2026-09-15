@@ -6,7 +6,7 @@ interface StageCardProps {
   title: string;
   stageNumber: number;
   levelRange: string;
-  shapeName: string;
+  twistLine: string;
   unlocked: boolean;
   pending: boolean;
   onPress: () => void;
@@ -16,7 +16,7 @@ export function StageCard({
   title,
   stageNumber,
   levelRange,
-  shapeName,
+  twistLine,
   unlocked,
   pending,
   onPress,
@@ -27,7 +27,7 @@ export function StageCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Stage ${stageNumber}, ${title}, ${levelRange}, ${shapeName}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
+      accessibilityLabel={`Stage ${stageNumber}, ${title}, ${levelRange}, ${twistLine}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
       accessibilityState={{ disabled: !unlocked, busy: pending }}
       disabled={!unlocked}
       onPress={onPress}
@@ -40,6 +40,7 @@ export function StageCard({
           <Text style={styles.meta}>
             Stage {stageNumber} · {levelRange}
           </Text>
+          <Text style={styles.twist}>{twistLine}</Text>
         </View>
         <View style={styles.status} accessibilityElementsHidden>
           {showLockPip ? <View style={styles.lockPip} /> : null}
@@ -96,6 +97,10 @@ const styles = StyleSheet.create({
   meta: {
     color: theme.colors.textMuted,
     ...theme.typography.caption,
+  },
+  twist: {
+    color: theme.colors.accent,
+    ...theme.typography.overline,
   },
   status: {
     alignItems: "flex-end",

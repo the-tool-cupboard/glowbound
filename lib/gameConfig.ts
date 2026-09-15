@@ -1,10 +1,26 @@
-import type { LayoutId, LevelConfig, RuneLayout } from "../types/game";
+import type {
+  ChapterArtKey,
+  LayoutId,
+  LevelConfig,
+  RuneLayout,
+  StageModifierId,
+} from "../types/game";
 import { LAYOUT_NAMES, getLayout, layoutIdForStage } from "./runeLayouts";
 
 export interface Checkpoint {
   startLevel: number;
   title: string;
   layoutId: LayoutId;
+  modifier: StageModifierId;
+  artKey: ChapterArtKey;
+  twistLabel: string;
+}
+
+interface StageSpec {
+  title: string;
+  modifier: StageModifierId;
+  artKey: ChapterArtKey;
+  twistLabel: string;
 }
 
 export const STAGE_COUNT = 10;
@@ -25,27 +41,36 @@ export const MIN_TARGET_COUNT = 5;
 export const BASE_PREVIEW_MS = 1600;
 export const MIN_PREVIEW_MS = 800;
 export const PREVIEW_STEP_MS = 8;
+/** Extra preview shortening per level-in-stage on The Bound. */
+export const BOUND_PREVIEW_STEP_MS = 10;
+export const CALM_WOODS_PREVIEW_BONUS_MS = 100;
+export const LANTERN_TRIAL_LEVEL = MAX_LEVEL;
+export const LANTERN_TRIAL_EXTRA_TARGETS = 2;
+export const LANTERN_TRIAL_EMBER_BONUS = 50;
 
 export const LEVEL_COMPLETE_DELAY_MS = 800;
 export const GAME_OVER_REVEAL_MS = 700;
 
-const STAGE_TITLES = [
-  "Sleeping Woods",
-  "Castle Gate",
-  "Moonwell",
-  "Crystal Ascent",
-  "Ember Bridge",
-  "The Tower",
-  "Starfall",
-  "Hollow Crown",
-  "Night Orchard",
-  "The Bound",
-] as const;
+const STAGE_SPECS: readonly StageSpec[] = [
+  { title: "Sleeping Woods", modifier: "none", artKey: "sleepingWoods", twistLabel: "Stillness" },
+  { title: "Castle Gate", modifier: "gatePulse", artKey: "castleGate", twistLabel: "Gate pulse" },
+  { title: "Moonwell", modifier: "reflection", artKey: "moonwell", twistLabel: "Reflection" },
+  { title: "Crystal Ascent", modifier: "facetGlare", artKey: "crystalAscent", twistLabel: "Facet glare" },
+  { title: "Ember Bridge", modifier: "emberFade", artKey: "emberBridge", twistLabel: "Ember fade" },
+  { title: "The Tower", modifier: "twoFlight", artKey: "theTower", twistLabel: "Two-flight" },
+  { title: "Starfall", modifier: "fallingOrder", artKey: "starfall", twistLabel: "Falling order" },
+  { title: "Hollow Crown", modifier: "crownWeight", artKey: "hollowCrown", twistLabel: "Crown weight" },
+  { title: "Night Orchard", modifier: "ripenRot", artKey: "nightOrchard", twistLabel: "Ripen-rot" },
+  { title: "The Bound", modifier: "bound", artKey: "theBound", twistLabel: "Lantern trial" },
+];
 
-export const CHECKPOINTS: readonly Checkpoint[] = STAGE_TITLES.map((title, index) => ({
+export const CHECKPOINTS: readonly Checkpoint[] = STAGE_SPECS.map((spec, index) => ({
   startLevel: index * LEVELS_PER_STAGE + 1,
-  title,
+  title: spec.title,
   layoutId: layoutIdForStage(index + 1),
+  modifier: spec.modifier,
+  artKey: spec.artKey,
+  twistLabel: spec.twistLabel,
 }));
 
 function safePlayLevel(level: number): number {
@@ -87,12 +112,20 @@ export function getTargetCount(level: number, runeCount: number): number {
     BASE_TARGET_RATIO + (safeLevel - 1) * TARGET_RATIO_PER_LEVEL
   );
   const raw = Math.round(capacity * ratio);
-  return Math.min(capacity - 1, Math.max(Math.min(MIN_TARGET_COUNT, capacity - 1), raw));
+  let count = Math.min(capacity - 1, Math.max(Math.min(MIN_TARGET_COUNT, capacity - 1), raw));
+  if (isLanternTrial(safeLevel)) {
+    count = Math.min(capacity - 1, count + LANTERN_TRIAL_EXTRA_TARGETS);
+  }
+  return count;
 }
 
 export function getPreviewDurationMs(level: number): number {
   const safeLevel = safePlayLevel(level);
-  return Math.max(MIN_PREVIEW_MS, BASE_PREVIEW_MS - (safeLevel - 1) * PREVIEW_STEP_MS);
+  let previewMs = BASE_PREVIEW_MS - (safeLevel - 1) * PREVIEW_STEP_MS;
+  if (getStageIndex(safeLevel) === STAGE_COUNT) {
+    previewMs -= getLevelInStage(safeLevel) * BOUND_PREVIEW_STEP_MS;
+  }
+  return Math.max(MIN_PREVIEW_MS, previewMs);
 }
 
 export function getLayoutForLevel(level: number): RuneLayout {
@@ -109,6 +142,7 @@ export function getLevelConfig(level: number): LevelConfig {
     runeCount: layout.runeCount,
     targetCount: getTargetCount(safeLevel, layout.runeCount),
     previewDurationMs: getPreviewDurationMs(safeLevel),
+    modifier: getCheckpointForLevel(safeLevel).modifier,
   };
 }
 
@@ -125,12 +159,19 @@ export function isCheckpointUnlocked(startLevel: number, highestReachedLevel: nu
   return Math.max(0, Math.floor(highestReachedLevel)) >= safeStart;
 }
 
+export function isLanternTrial(level: number): boolean {
+  return safePlayLevel(level) === LANTERN_TRIAL_LEVEL;
+}
+
 export function getCheckpointForLevel(level: number): Checkpoint {
   const safeLevel = safePlayLevel(level);
   const fallback: Checkpoint = CHECKPOINTS[0] ?? {
     startLevel: 1,
     title: "Sleeping Woods",
     layoutId: "grid",
+    modifier: "none",
+    artKey: "sleepingWoods",
+    twistLabel: "Stillness",
   };
 
   return CHECKPOINTS.reduce(
@@ -141,6 +182,10 @@ export function getCheckpointForLevel(level: number): Checkpoint {
 
 export function getCheckpointShapeName(checkpoint: Checkpoint): string {
   return LAYOUT_NAMES[checkpoint.layoutId];
+}
+
+export function getCheckpointTwistLine(checkpoint: Checkpoint): string {
+  return `${LAYOUT_NAMES[checkpoint.layoutId]} · ${checkpoint.twistLabel}`;
 }
 
 export function getCheckpointLevelRange(checkpoint: Checkpoint): string {

@@ -130,6 +130,11 @@ export const AUDIO_OPPORTUNITIES: readonly AudioOpportunity[] = [
     when: "Player attempts a purchase with embers near item cost",
     priority: "medium",
   },
+  {
+    id: "lanternTrialClear",
+    when: "Level 100 Lantern Trial is cleared — distinct sting in the Phase 2/3 audio kit",
+    priority: "high",
+  },
 ] as const;
 
 export type AudioSource = number | string | null;

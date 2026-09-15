@@ -1,6 +1,8 @@
 import {
   calculateScoreForLevel,
+  evaluateRuneTap,
   generateUniqueTargetCellIds,
+  getRuneVisualState,
   hasCompletedPattern,
   isCorrectSelection,
   patternKey,
@@ -8,12 +10,14 @@ import {
 import {
   CHECKPOINTS,
   getCheckpointForLevel,
+  getCheckpointTwistLine,
   getLevelConfig,
   getLevelInStage,
   getRuneCountForLevel,
   getStageIndex,
   getStagesForLevel,
   isCheckpointUnlocked,
+  isLanternTrial,
 } from "../lib/gameConfig";
 
 describe("generateUniqueTargetCellIds", () => {
@@ -108,6 +112,7 @@ describe("getLevelConfig", () => {
     expect(config.runeCount).toBe(9);
     expect(config.targetCount).toBe(5);
     expect(config.previewDurationMs).toBe(1600);
+    expect(config.modifier).toBe("none");
   });
 
   it("uses a formula: +1 rune per level, +2 at each new stage", () => {
@@ -126,11 +131,11 @@ describe("getLevelConfig", () => {
   it("increases targets with a rising fill ratio and never exceeds capacity", () => {
     expect(getLevelConfig(10).targetCount).toBe(10);
     expect(getLevelConfig(100).targetCount).toBeLessThan(getLevelConfig(100).runeCount);
-    expect(getLevelConfig(100).targetCount).toBe(27);
+    expect(getLevelConfig(100).targetCount).toBe(29);
   });
 
   it("never shortens preview below 800ms", () => {
-    expect(getLevelConfig(100).previewDurationMs).toBe(808);
+    expect(getLevelConfig(100).previewDurationMs).toBe(800);
     expect(getLevelConfig(30).previewDurationMs).toBeGreaterThanOrEqual(800);
   });
 
@@ -150,13 +155,16 @@ describe("getLevelConfig", () => {
       runeCount: 18,
       targetCount: 10,
       previewDurationMs: 1528,
+      modifier: "none",
     });
     expect(level50.layoutId).toBe("hex");
     expect(level50.runeCount).toBe(26);
     expect(level50.targetCount).toBe(17);
+    expect(level50.modifier).toBe("emberFade");
     expect(level100.layoutId).toBe("spiral");
     expect(level100.runeCount).toBe(36);
-    expect(level100.targetCount).toBe(27);
+    expect(level100.targetCount).toBe(29);
+    expect(level100.modifier).toBe("bound");
     expect(getLevelConfig(140)).toEqual(level100);
   });
 
@@ -206,5 +214,67 @@ describe("getCheckpointForLevel", () => {
   it("moves to Castle Gate at level 11", () => {
     expect(getCheckpointForLevel(11).title).toBe("Castle Gate");
     expect(getCheckpointForLevel(20).title).toBe("Castle Gate");
+    expect(getCheckpointForLevel(11).modifier).toBe("gatePulse");
+  });
+
+  it("exposes a layout · twist subline for the Stages list", () => {
+    expect(getCheckpointTwistLine(getCheckpointForLevel(1))).toBe("Lattice · Stillness");
+    expect(getCheckpointTwistLine(getCheckpointForLevel(21))).toBe("Diamond · Reflection");
+    expect(getCheckpointTwistLine(getCheckpointForLevel(100))).toBe("Spiral · Lantern trial");
   });
 });
+
+describe("evaluateRuneTap", () => {
+  it("accepts any remaining target when input is a set match", () => {
+    expect(evaluateRuneTap(5, [1, 2, 5], [1], false)).toBe("correct");
+    expect(evaluateRuneTap(8, [1, 2, 5], [1], false)).toBe("wrong");
+  });
+
+  it("requires falling-order taps on Harsh Starfall", () => {
+    expect(evaluateRuneTap(1, [1, 2, 5], [], true)).toBe("correct");
+    expect(evaluateRuneTap(5, [1, 2, 5], [], true)).toBe("wrong");
+    expect(evaluateRuneTap(2, [1, 2, 5], [1], true)).toBe("correct");
+  });
+});
+
+describe("getRuneVisualState", () => {
+  const base = {
+    phase: "preview" as const,
+    targetCellIds: [1, 4],
+    selectedCellIds: [] as number[],
+    wrongCellId: null,
+  };
+
+  it("lights only the current pulse during an ordered preview", () => {
+    expect(getRuneVisualState(1, { ...base, previewCellIds: [1] })).toBe("previewTarget");
+    expect(getRuneVisualState(4, { ...base, previewCellIds: [1] })).toBe("inactive");
+  });
+
+  it("shows dim glints and mirrored ghosts on top of the idle board", () => {
+    expect(getRuneVisualState(7, { ...base, glintCellIds: [7] })).toBe("previewGlint");
+    expect(getRuneVisualState(3, { ...base, ghostCellIds: [3], previewCellIds: [] })).toBe(
+      "previewGhost"
+    );
+  });
+
+  it("cools the whole idle board after embers fade", () => {
+    expect(
+      getRuneVisualState(2, {
+        phase: "playerInput",
+        targetCellIds: [1, 4],
+        selectedCellIds: [],
+        wrongCellId: null,
+        cooledBoard: true,
+      })
+    ).toBe("emberCooled");
+  });
+});
+
+describe("isLanternTrial", () => {
+  it("is only the final Bound level", () => {
+    expect(isLanternTrial(99)).toBe(false);
+    expect(isLanternTrial(100)).toBe(true);
+    expect(isLanternTrial(140)).toBe(true);
+  });
+});
+

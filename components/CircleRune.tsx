@@ -16,6 +16,9 @@ const GEM_SCALE = 0.78;
 const FILL_BY_STATE: Record<RuneVisualState, string> = {
   inactive: theme.colors.idle,
   previewTarget: theme.colors.preview,
+  previewGlint: theme.colors.previewGlint,
+  previewGhost: theme.colors.previewGhost,
+  emberCooled: theme.colors.idleCooled,
   selected: theme.colors.selected,
   correct: theme.colors.correct,
   incorrect: theme.colors.wrong,
@@ -24,6 +27,9 @@ const FILL_BY_STATE: Record<RuneVisualState, string> = {
 const BORDER_BY_STATE: Record<RuneVisualState, string> = {
   inactive: theme.colors.idleBorder,
   previewTarget: theme.button3d.rim,
+  previewGlint: "rgba(42, 31, 10, 0.55)",
+  previewGhost: "rgba(110, 138, 168, 0.7)",
+  emberCooled: theme.colors.idleCooledBorder,
   selected: "#1A5C42",
   correct: "#1A5C42",
   incorrect: "#6B2E28",
@@ -33,6 +39,12 @@ function stateLabel(visualState: RuneVisualState): string {
   switch (visualState) {
     case "previewTarget":
       return "glowing";
+    case "previewGlint":
+      return "glinting";
+    case "previewGhost":
+      return "ghost";
+    case "emberCooled":
+      return "cooled";
     case "selected":
       return "chosen";
     case "correct":
@@ -55,7 +67,7 @@ export function CircleRune({
   const runeNumber = cellId + 1;
   const gemSize = size * GEM_SCALE;
   const gemRadius = theme.radius.pixel;
-  const lit = visualState !== "inactive";
+  const lit = visualState !== "inactive" && visualState !== "emberCooled";
 
   return (
     <Pressable

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { ImageProps } from "expo-image";
 
 import { GameHeader } from "@/components/GameHeader";
 import { LastChanceMenu } from "@/components/LastChanceMenu";
@@ -14,21 +13,12 @@ import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
+import { chapterBackground } from "@/lib/chapterBackgrounds";
 import { calculateLanternShards, isDifficultyId } from "@/lib/economyEngine";
-import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS, getCheckpointForLevel } from "@/lib/gameConfig";
+import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
-
-const SLEEPING_WOODS_BACKGROUND: ImageProps["source"] = require("../assets/images/game images/GB_SleepingWoods-2.png");
-
-function chapterBackground(level: number): ImageProps["source"] | undefined {
-  if (getCheckpointForLevel(level).startLevel !== 1) {
-    return undefined;
-  }
-
-  return SLEEPING_WOODS_BACKGROUND;
-}
 
 function asCount(value: string | string[] | undefined): number {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -88,12 +78,17 @@ export default function GameScreen() {
     targetCellIds,
     selectedCellIds,
     hintCellIds,
+    previewCellIds,
+    glintCellIds,
+    ghostCellIds,
     wrongCellId,
     remainingCount,
     stage,
     stagesRequired,
     wardArmed,
     statusNote,
+    cooledBoard,
+    lanternTrial,
     startGame,
     applySecondSight,
     applyLanternOil,
@@ -123,6 +118,9 @@ export default function GameScreen() {
     }
     if (phase === "levelComplete" && prevPhase !== "levelComplete") {
       playSfx("levelClear");
+      if (lanternTrial) {
+        playSfx("emberGain");
+      }
     }
     if (phase === "gameOver" && prevPhase !== "gameOver") {
       playSfx("gameOver");
@@ -131,7 +129,7 @@ export default function GameScreen() {
       wrongPlayedRef.current = false;
     }
     prevPhaseRef.current = phase;
-  }, [phase, playSfx]);
+  }, [lanternTrial, phase, playSfx]);
 
   useEffect(() => {
     if (phase === "playerInput" && selectedCellIds.length > prevSelectedCountRef.current) {
@@ -292,7 +290,7 @@ export default function GameScreen() {
 
   const showRemaining = phase === "playerInput";
   const backgroundSource = chapterBackground(phase === "idle" ? startLevel : level);
-  const onArt = backgroundSource != null;
+  const onArt = true;
 
   return (
     <ScreenContainer style={styles.screen} backgroundSource={backgroundSource}>
@@ -315,7 +313,11 @@ export default function GameScreen() {
           targetCellIds={targetCellIds}
           selectedCellIds={selectedCellIds}
           hintCellIds={hintCellIds}
+          previewCellIds={previewCellIds}
+          glintCellIds={glintCellIds}
+          ghostCellIds={ghostCellIds}
           wrongCellId={wrongCellId}
+          cooledBoard={cooledBoard}
           onRunePress={handleRunePress}
         />
       </View>
