@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { ShopCharmMark } from "@/components/ShopCharmMark";
 import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { theme } from "@/lib/theme";
 import type { Inventory, PowerUpId } from "@/types/economy";
@@ -10,13 +11,6 @@ interface PowerUpBarProps {
   wardArmed: boolean;
   onUse: (id: PowerUpId) => void;
 }
-
-const SHORT_LABEL: Record<PowerUpId, string> = {
-  pathHint: "Hint",
-  lanternOil: "Oil",
-  secondSight: "Sight",
-  ward: "Ward",
-};
 
 export function PowerUpBar({ inventory, disabled, wardArmed, onUse }: PowerUpBarProps) {
   return (
@@ -39,10 +33,8 @@ export function PowerUpBar({ inventory, disabled, wardArmed, onUse }: PowerUpBar
               pressed && !itemDisabled && styles.pressed,
             ]}
           >
-            <Text numberOfLines={1} style={[styles.label, itemDisabled && styles.labelOff]}>
-              {SHORT_LABEL[item.id]}
-            </Text>
-            <Text style={[styles.count, itemDisabled && styles.labelOff]}>{count}</Text>
+            <ShopCharmMark itemId={item.id} size={24} />
+            <Text style={[styles.count, itemDisabled && styles.countOff]}>{count}</Text>
           </Pressable>
         );
       })}
@@ -63,12 +55,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: theme.minTapTarget,
     paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
     borderRadius: theme.radius.pixel,
     borderWidth: theme.pixel.outline,
     borderColor: theme.button3d.rim,
     backgroundColor: theme.colors.backgroundElevated,
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
     overflow: "hidden",
   },
   chipOff: {
@@ -78,15 +72,11 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ translateY: theme.pixel.inset }],
   },
-  label: {
-    color: theme.colors.text,
-    ...theme.typography.overline,
-  },
   count: {
     color: theme.colors.accent,
     ...theme.typography.overline,
   },
-  labelOff: {
+  countOff: {
     color: theme.colors.textMuted,
   },
 });

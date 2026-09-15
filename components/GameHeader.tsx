@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { CampMark } from "@/components/CampMark";
+import { useGameAudio } from "@/hooks/useGameAudio";
 import { theme } from "@/lib/theme";
 
 interface GameHeaderProps {
@@ -8,12 +10,21 @@ interface GameHeaderProps {
   stage?: number;
   stagesRequired?: number;
   onArt?: boolean;
+  onReturnToCamp: () => void;
 }
 
-export function GameHeader({ level, score, stage, stagesRequired, onArt = false }: GameHeaderProps) {
+export function GameHeader({
+  level,
+  score,
+  stage,
+  stagesRequired,
+  onArt = false,
+  onReturnToCamp,
+}: GameHeaderProps) {
   const stageLabel =
     stage != null && stagesRequired != null ? `Pattern ${stage} of ${stagesRequired}` : null;
   const artStyle = onArt ? styles.onArt : undefined;
+  const { playSfx } = useGameAudio();
 
   return (
     <View style={styles.row} accessibilityRole="header">
@@ -33,12 +44,30 @@ export function GameHeader({ level, score, stage, stagesRequired, onArt = false 
           </Text>
         ) : null}
       </View>
-      <View style={styles.side}>
+      <View style={[styles.side, styles.scoreSide]}>
         <Text style={[styles.label, styles.alignRight, artStyle]}>Score</Text>
         <Text style={[styles.value, styles.alignRight, artStyle]} accessibilityLabel={`Score ${score}`}>
           {score}
         </Text>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Return to camp"
+        accessibilityHint="Returns to the start menu at camp"
+        hitSlop={theme.hitSlop}
+        onPress={() => {
+          playSfx("uiTap");
+          onReturnToCamp();
+        }}
+        style={({ pressed }) => [styles.campHit, pressed && styles.campPressed]}
+      >
+        {({ pressed }) => (
+          <View style={[styles.campFace, pressed && styles.campFacePressed]}>
+            <View style={[styles.campHilite, pressed && styles.campHilitePressed]} />
+            <CampMark />
+          </View>
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -47,18 +76,21 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     width: "100%",
+    gap: theme.spacing.xs,
   },
   side: {
     flex: 1,
-    minWidth: 72,
+    minWidth: 56,
+  },
+  scoreSide: {
+    flexShrink: 1,
   },
   center: {
     flex: 1.2,
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 2,
+    justifyContent: "center",
   },
   label: {
     color: theme.colors.accent,
@@ -80,5 +112,49 @@ const styles = StyleSheet.create({
   },
   onArt: {
     ...theme.artTextShadow,
+  },
+  campHit: {
+    width: theme.minTapTarget,
+    height: theme.minTapTarget,
+    minWidth: theme.minTapTarget,
+    minHeight: theme.minTapTarget,
+    flexGrow: 0,
+    flexShrink: 0,
+    borderRadius: theme.radius.pixel,
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
+    overflow: "hidden",
+  },
+  campPressed: {
+    transform: [{ translateY: theme.pixel.inset }],
+  },
+  campFace: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.button3d.ghostFace,
+    borderWidth: theme.pixel.inset,
+    borderTopColor: theme.button3d.ghostRimHighlight,
+    borderLeftColor: theme.button3d.ghostRimHighlight,
+    borderBottomColor: theme.button3d.ghostRimShade,
+    borderRightColor: theme.button3d.ghostRimShade,
+    overflow: "hidden",
+  },
+  campFacePressed: {
+    paddingTop: theme.pixel.inset,
+    borderTopColor: theme.button3d.ghostRimShade,
+    borderLeftColor: theme.button3d.ghostRimShade,
+  },
+  campHilite: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: theme.pixel.inset,
+    backgroundColor: theme.button3d.highlight,
+  },
+  campHilitePressed: {
+    backgroundColor: theme.button3d.shade,
+    opacity: 0.55,
   },
 });
