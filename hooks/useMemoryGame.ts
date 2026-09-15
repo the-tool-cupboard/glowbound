@@ -17,6 +17,8 @@ import {
   patternKey,
 } from "@/lib/gameEngine";
 import {
+  CROWN_CLAIMED_INPUT_NOTE,
+  CROWN_INPUT_HOLD_MS,
   EMBER_FADE_SWAP_MS,
   applyCalmPreviewBonus,
   applyTargetSwap,
@@ -67,6 +69,7 @@ export function useMemoryGame() {
   const wardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const emberTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const crownHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runStartLevelRef = useRef(1);
   const difficultyRef = useRef<DifficultyId>("standard");
   const lanternOilMsRef = useRef(0);
@@ -87,6 +90,7 @@ export function useMemoryGame() {
   const previewPlanRef = useRef<readonly PreviewStep[]>([]);
   const pendingInputTargetsRef = useRef<readonly CellId[] | null>(null);
   const grantedIdRef = useRef<CellId | null>(null);
+  const crownInputLockedRef = useRef(false);
   const flightsRef = useRef<{ a: CellId[]; b: CellId[] } | null>(null);
   const flightIndexRef = useRef(0);
   const charmUsedRef = useRef(false);
@@ -107,11 +111,13 @@ export function useMemoryGame() {
     clearTimer(wardTimerRef);
     clearTimer(emberTimerRef);
     clearTimer(swapTimerRef);
+    clearTimer(crownHoldTimerRef);
+    crownInputLockedRef.current = false;
   }, []);
 
   const inputStatusNote = useCallback((): string | null => {
     if (grantedIdRef.current != null) {
-      return "1 granted";
+      return CROWN_CLAIMED_INPUT_NOTE;
     }
     const flights = flightsRef.current;
     if (flights != null) {
@@ -142,6 +148,18 @@ export function useMemoryGame() {
     setStatusNote(inputStatusNote());
     previewTimerRef.current = null;
     sightTimerRef.current = null;
+
+    clearTimer(crownHoldTimerRef);
+    crownInputLockedRef.current = false;
+    if (grantedId != null) {
+      crownInputLockedRef.current = true;
+      crownHoldTimerRef.current = setTimeout(() => {
+        crownHoldTimerRef.current = null;
+        if (phaseRef.current === "playerInput") {
+          crownInputLockedRef.current = false;
+        }
+      }, CROWN_INPUT_HOLD_MS);
+    }
 
     clearTimer(emberTimerRef);
     if (rulesRef.current.emberFade && !charmUsedRef.current && !emberFadedRef.current) {
@@ -524,7 +542,7 @@ export function useMemoryGame() {
 
   const onRunePress = useCallback(
     (cellId: CellId) => {
-      if (phaseRef.current !== "playerInput" || swapLockedRef.current) {
+      if (phaseRef.current !== "playerInput" || swapLockedRef.current || crownInputLockedRef.current) {
         return;
       }
 
