@@ -9,6 +9,7 @@ import {
 } from "../lib/gameEngine";
 import {
   CHECKPOINTS,
+  didUnlockCheckpoint,
   getCheckpointForLevel,
   getCheckpointTwistLine,
   getLevelConfig,
@@ -202,6 +203,20 @@ describe("isCheckpointUnlocked", () => {
     expect(isCheckpointUnlocked(21, 21)).toBe(true);
     expect(isCheckpointUnlocked(91, 90)).toBe(false);
     expect(CHECKPOINTS).toHaveLength(10);
+  });
+});
+
+describe("didUnlockCheckpoint", () => {
+  it("ignores the always-unlocked first chapter", () => {
+    expect(didUnlockCheckpoint(0, 1)).toBe(false);
+    expect(didUnlockCheckpoint(1, 1)).toBe(false);
+  });
+
+  it("fires once when progress first reaches a later checkpoint", () => {
+    expect(didUnlockCheckpoint(10, 11)).toBe(true);
+    expect(didUnlockCheckpoint(11, 11)).toBe(false);
+    expect(didUnlockCheckpoint(11, 20)).toBe(false);
+    expect(didUnlockCheckpoint(20, 21)).toBe(true);
   });
 });
 

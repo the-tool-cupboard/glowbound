@@ -159,6 +159,20 @@ export function isCheckpointUnlocked(startLevel: number, highestReachedLevel: nu
   return Math.max(0, Math.floor(highestReachedLevel)) >= safeStart;
 }
 
+/** True when progress first crosses a later checkpoint start level. */
+export function didUnlockCheckpoint(previousHighest: number, nextHighest: number): boolean {
+  return CHECKPOINTS.some((checkpoint) => {
+    if (checkpoint.startLevel <= 1) {
+      return false;
+    }
+
+    return (
+      !isCheckpointUnlocked(checkpoint.startLevel, previousHighest) &&
+      isCheckpointUnlocked(checkpoint.startLevel, nextHighest)
+    );
+  });
+}
+
 export function isLanternTrial(level: number): boolean {
   return safePlayLevel(level) === LANTERN_TRIAL_LEVEL;
 }

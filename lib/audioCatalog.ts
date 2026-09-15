@@ -12,7 +12,10 @@ export type SfxId =
   | "wardArm"
   | "purchase"
   | "purchaseFail"
-  | "emberGain";
+  | "emberGain"
+  | "chapterUnlock"
+  | "lastChanceSting"
+  | "lanternTrialClear";
 
 export type BgmId = "menuTheme" | "playTheme" | "resultsTheme";
 
@@ -54,6 +57,9 @@ export const SFX_CATALOG: readonly SfxEntry[] = [
   { id: "purchase", purpose: "Shop purchase success", filename: "purchase.wav" },
   { id: "purchaseFail", purpose: "Cannot afford shop item", filename: "purchase-fail.wav" },
   { id: "emberGain", purpose: "Embers awarded after level complete", filename: "ember-gain.wav" },
+  { id: "chapterUnlock", purpose: "New checkpoint chapter becomes available", filename: "chapter-unlock.wav" },
+  { id: "lastChanceSting", purpose: "Last-chance menu appears after a wrong rune", filename: "last-chance-sting.wav" },
+  { id: "lanternTrialClear", purpose: "Level 100 Lantern Trial cleared", filename: "lantern-trial-clear.wav" },
 ] as const;
 
 /** Background music slots — wired in engine; files optional. */
@@ -86,19 +92,9 @@ export const AUDIO_OPPORTUNITIES: readonly AudioOpportunity[] = [
     priority: "medium",
   },
   {
-    id: "lastChanceSting",
-    when: "Last-chance menu appears after a wrong rune",
-    priority: "high",
-  },
-  {
     id: "shopOpen",
     when: "Shop screen opens from home ember balance",
     priority: "low",
-  },
-  {
-    id: "chapterUnlock",
-    when: "A new checkpoint chapter becomes available",
-    priority: "medium",
   },
   {
     id: "highScoreFanfare",
@@ -130,11 +126,6 @@ export const AUDIO_OPPORTUNITIES: readonly AudioOpportunity[] = [
     when: "Player attempts a purchase with embers near item cost",
     priority: "medium",
   },
-  {
-    id: "lanternTrialClear",
-    when: "Level 100 Lantern Trial is cleared — distinct sting in the Phase 2/3 audio kit",
-    priority: "high",
-  },
 ] as const;
 
 export type AudioSource = number | string | null;
@@ -155,6 +146,9 @@ export const SFX_SOURCES: Record<SfxId, number> = {
   purchase: require("../assets/audio/sfx/purchase.wav"),
   purchaseFail: require("../assets/audio/sfx/purchase-fail.wav"),
   emberGain: require("../assets/audio/sfx/ember-gain.wav"),
+  chapterUnlock: require("../assets/audio/sfx/chapter-unlock.wav"),
+  lastChanceSting: require("../assets/audio/sfx/last-chance-sting.wav"),
+  lanternTrialClear: require("../assets/audio/sfx/lantern-trial-clear.wav"),
 };
 
 /**
