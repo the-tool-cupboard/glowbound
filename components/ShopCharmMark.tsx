@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
@@ -71,26 +71,28 @@ const GLYPHS: Record<PowerUpId, readonly PixelRect[]> = {
 
 interface ShopCharmMarkProps {
   itemId: PowerUpId;
+  size?: number;
 }
 
-export function ShopCharmMark({ itemId }: ShopCharmMarkProps) {
+export function ShopCharmMark({ itemId, size = CANVAS }: ShopCharmMarkProps) {
   const rects = GLYPHS[itemId];
+  const cell = size / GRID;
 
   return (
     <View
       accessible={false}
       importantForAccessibility="no"
-      style={styles.canvas}
+      style={{ width: size, height: size }}
     >
       {rects.map((rect) => (
         <View
           key={`${rect.x}-${rect.y}-${rect.w}-${rect.h}`}
           style={{
             position: "absolute",
-            left: rect.x * CELL,
-            top: rect.y * CELL,
-            width: rect.w * CELL,
-            height: rect.h * CELL,
+            left: rect.x * cell,
+            top: rect.y * cell,
+            width: rect.w * cell,
+            height: rect.h * cell,
             backgroundColor: theme.colors.accent,
           }}
         />
@@ -98,10 +100,3 @@ export function ShopCharmMark({ itemId }: ShopCharmMarkProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  canvas: {
-    width: CANVAS,
-    height: CANVAS,
-  },
-});

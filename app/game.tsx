@@ -7,7 +7,6 @@ import type { ImageProps } from "expo-image";
 import { GameHeader } from "@/components/GameHeader";
 import { LastChanceMenu } from "@/components/LastChanceMenu";
 import { PowerUpBar } from "@/components/PowerUpBar";
-import { PrimaryButton } from "@/components/PrimaryButton";
 import { RuneGrid } from "@/components/RuneGrid";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
@@ -304,6 +303,7 @@ export default function GameScreen() {
           stage={stage}
           stagesRequired={stagesRequired}
           onArt={onArt}
+          onReturnToCamp={onReturnToCamp}
         />
       </View>
       <View style={styles.boardSlot} onLayout={onBoardLayout}>
@@ -350,13 +350,6 @@ export default function GameScreen() {
           disabled={phase !== "playerInput"}
           wardArmed={wardArmed}
           onUse={onUsePowerUp}
-        />
-        <PrimaryButton
-          label="Return to camp"
-          variant="ghost"
-          fullWidth
-          accessibilityHint="Returns to the start menu at camp"
-          onPress={onReturnToCamp}
         />
       </View>
       <LastChanceMenu
