@@ -22,6 +22,10 @@ export const STARFALL_STEP_MIN_MS = 160;
 export const STARFALL_HOLD_MS = 250;
 export const STARFALL_WATCH_STATUS_NOTE = "Starfall — watch them fall.";
 export const STARFALL_ORDER_STATUS_NOTE = "Starfall — match the order.";
+export const CROWN_INPUT_HOLD_MS = 150;
+export const CROWN_SHOWN_STATUS_NOTE = "Hollow Crown — one is already claimed.";
+export const CROWN_HIDDEN_STATUS_NOTE = "Hollow Crown — a claim waits in shadow.";
+export const CROWN_CLAIMED_INPUT_NOTE = "Claimed — tap the rest.";
 
 export type CrownGrantMode = "none" | "shown" | "hiddenUntilInput";
 export type SequentialPreview = "none" | "accumulateBottomToTop" | "accumulateTopToBottom";
@@ -446,6 +450,12 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "reflection") {
     return MOONWELL_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "crownWeight") {
+    return rules.crownGrant === "hiddenUntilInput"
+      ? CROWN_HIDDEN_STATUS_NOTE
+      : CROWN_SHOWN_STATUS_NOTE;
   }
 
   return null;

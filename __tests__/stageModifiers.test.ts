@@ -1,6 +1,10 @@
 import { CHECKPOINTS, getLevelConfig } from "../lib/gameConfig";
 import { getLayout } from "../lib/runeLayouts";
 import {
+  CROWN_CLAIMED_INPUT_NOTE,
+  CROWN_HIDDEN_STATUS_NOTE,
+  CROWN_INPUT_HOLD_MS,
+  CROWN_SHOWN_STATUS_NOTE,
   GATE_PULSE_HOLD_MS,
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
@@ -83,6 +87,7 @@ describe("resolveStageRules", () => {
   });
 
   it("hides the Hollow Crown grant until input on Harsh", () => {
+    expect(resolveStageRules(71, "calm").crownGrant).toBe("shown");
     expect(resolveStageRules(71, "standard").crownGrant).toBe("shown");
     expect(resolveStageRules(71, "harsh").crownGrant).toBe("hiddenUntilInput");
   });
@@ -288,6 +293,11 @@ describe("preview presentation", () => {
     expect(granted).toBe(top);
   });
 
+  it("holds Hollow Crown input briefly so the claim can land", () => {
+    expect(CROWN_INPUT_HOLD_MS).toBe(150);
+    expect(CROWN_CLAIMED_INPUT_NOTE).toBe("Claimed — tap the rest.");
+  });
+
   it("fades embers after 40% of the soft input window", () => {
     expect(emberFadeAtMs()).toBe(2400);
   });
@@ -351,7 +361,19 @@ describe("preview status notes", () => {
     expect(roundPreviewStatusNote(resolveStageRules(21, "harsh"), 0, 1)).toBe(MOONWELL_STATUS_NOTE);
   });
 
-  it("keeps lantern trial and two-flight notes ahead of Gate and Starfall copy", () => {
+  it("teaches Hollow Crown by grant mode during preview", () => {
+    expect(CROWN_SHOWN_STATUS_NOTE).toBe("Hollow Crown — one is already claimed.");
+    expect(CROWN_HIDDEN_STATUS_NOTE).toBe("Hollow Crown — a claim waits in shadow.");
+    expect(roundPreviewStatusNote(resolveStageRules(71, "calm"), 0, 1)).toBe(CROWN_SHOWN_STATUS_NOTE);
+    expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBe(
+      CROWN_SHOWN_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(71, "harsh"), 0, 1)).toBe(
+      CROWN_HIDDEN_STATUS_NOTE
+    );
+  });
+
+  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, and Crown copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -364,7 +386,15 @@ describe("preview status notes", () => {
     );
     expect(roundPreviewStatusNote(resolveStageRules(11, "standard"), 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
     expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBeNull();
-    expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBe(
+      CROWN_SHOWN_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote({ ...resolveStageRules(71, "harsh"), lanternTrial: true }, 0, 1)).toBe(
+      "Lantern Trial."
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(71, "harsh"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
     expect(roundPreviewStatusNote({ ...resolveStageRules(21, "standard"), lanternTrial: true }, 0, 1)).toBe(
       "Lantern Trial."
     );
