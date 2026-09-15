@@ -5,6 +5,8 @@ import {
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
   MIRROR_GHOST_MS,
+  MIRROR_SETTLE_MS,
+  MOONWELL_STATUS_NOTE,
   STARFALL_HOLD_MS,
   STARFALL_ORDER_STATUS_NOTE,
   STARFALL_STEP_MIN_MS,
@@ -68,6 +70,7 @@ describe("resolveStageRules", () => {
   it("skips Moonwell reflection and Crystal glare on Calm", () => {
     expect(resolveStageRules(21, "calm").mirrorGhost).toBe(false);
     expect(resolveStageRules(21, "standard").mirrorGhost).toBe(true);
+    expect(resolveStageRules(21, "harsh").mirrorGhost).toBe(true);
     expect(resolveStageRules(31, "calm").facetGlare).toBe(false);
     expect(resolveStageRules(31, "harsh").facetGlare).toBe(true);
   });
@@ -187,7 +190,7 @@ describe("preview presentation", () => {
     expect(plan.steps[targets.length]?.durationMs).toBe(STARFALL_HOLD_MS);
   });
 
-  it("adds a mirrored ghost after Moonwell preview on Standard", () => {
+  it("adds a settle beat then a mirrored ghost after Moonwell preview on Standard", () => {
     const rules = resolveStageRules(21, "standard");
     const targets = [0, 3];
     const plan = buildRoundPresentation({
@@ -198,9 +201,59 @@ describe("preview presentation", () => {
       kind: "round",
       rng: () => 0,
     });
-    expect(plan.steps).toHaveLength(2);
-    expect(plan.steps[1]?.durationMs).toBe(MIRROR_GHOST_MS);
-    expect(plan.steps[1]?.ghostCellIds).toEqual(
+    expect(MIRROR_SETTLE_MS).toBe(120);
+    expect(MIRROR_GHOST_MS).toBe(380);
+    expect(plan.steps).toHaveLength(3);
+    expect(plan.steps[0]?.previewCellIds).toEqual(targets);
+    expect(plan.steps[0]?.ghostCellIds).toEqual([]);
+    expect(plan.steps[1]).toEqual({
+      previewCellIds: [],
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: MIRROR_SETTLE_MS,
+    });
+    expect(plan.steps[2]?.durationMs).toBe(MIRROR_GHOST_MS);
+    expect(plan.steps[2]?.previewCellIds).toEqual([]);
+    expect(plan.steps[2]?.glintCellIds).toEqual([]);
+    expect(plan.steps[2]?.ghostCellIds).toEqual(
+      targets.map((id) => mirroredCellId(id, diamond.points))
+    );
+    expect(plan.inputTargets).toEqual(targets);
+  });
+
+  it("keeps Moonwell Calm without a mirror ghost or settle beat", () => {
+    const rules = resolveStageRules(21, "calm");
+    expect(rules.mirrorGhost).toBe(false);
+    const targets = [0, 3];
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout: diamond,
+      previewMs: 1000,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]?.previewCellIds).toEqual(targets);
+    expect(plan.steps[0]?.ghostCellIds).toEqual([]);
+    expect(plan.inputTargets).toEqual(targets);
+  });
+
+  it("keeps Moonwell Harsh on the same real-then-ghost path as Standard", () => {
+    const rules = resolveStageRules(21, "harsh");
+    expect(rules.mirrorGhost).toBe(true);
+    const targets = [1, 2];
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout: diamond,
+      previewMs: 900,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(3);
+    expect(plan.steps[1]?.durationMs).toBe(MIRROR_SETTLE_MS);
+    expect(plan.steps[2]?.ghostCellIds).toEqual(
       targets.map((id) => mirroredCellId(id, diamond.points))
     );
     expect(plan.inputTargets).toEqual(targets);
@@ -289,6 +342,15 @@ describe("preview status notes", () => {
     expect(STARFALL_ORDER_STATUS_NOTE).toBe("Starfall — match the order.");
   });
 
+  it("teaches Moonwell on every difficulty during preview", () => {
+    expect(MOONWELL_STATUS_NOTE).toBe("Moonwell — the water lies.");
+    expect(roundPreviewStatusNote(resolveStageRules(21, "calm"), 0, 1)).toBe(MOONWELL_STATUS_NOTE);
+    expect(roundPreviewStatusNote(resolveStageRules(21, "standard"), 0, 1)).toBe(
+      MOONWELL_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(21, "harsh"), 0, 1)).toBe(MOONWELL_STATUS_NOTE);
+  });
+
   it("keeps lantern trial and two-flight notes ahead of Gate and Starfall copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
@@ -303,6 +365,12 @@ describe("preview status notes", () => {
     expect(roundPreviewStatusNote(resolveStageRules(11, "standard"), 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
     expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBeNull();
     expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote({ ...resolveStageRules(21, "standard"), lanternTrial: true }, 0, 1)).toBe(
+      "Lantern Trial."
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(21, "standard"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
   });
 });
 

@@ -7,7 +7,9 @@ import {
 } from "./gameConfig";
 import type { Rng } from "./gameEngine";
 
-export const MIRROR_GHOST_MS = 300;
+export const MIRROR_GHOST_MS = 380;
+export const MIRROR_SETTLE_MS = 120;
+export const MOONWELL_STATUS_NOTE = "Moonwell — the water lies.";
 export const FACET_GLINT_MS = 280;
 export const RIPEN_ROT_SWAP_MS = 420;
 export const EMBER_FADE_WINDOW_MS = 6000;
@@ -368,6 +370,12 @@ export function buildRoundPresentation(args: {
   }
 
   if (rules.mirrorGhost) {
+    steps.push({
+      previewCellIds: [],
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: MIRROR_SETTLE_MS,
+    });
     const ghosts = targets.map((id) => mirroredCellId(id, layout.points));
     steps.push({
       previewCellIds: [],
@@ -434,6 +442,10 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "fallingOrder") {
     return rules.orderedInput ? STARFALL_ORDER_STATUS_NOTE : STARFALL_WATCH_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "reflection") {
+    return MOONWELL_STATUS_NOTE;
   }
 
   return null;
