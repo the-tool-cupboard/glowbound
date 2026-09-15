@@ -15,7 +15,7 @@ import {
   getDifficulty,
   getShopItem,
 } from "./economyConfig";
-import { MIN_PREVIEW_MS } from "./gameConfig";
+import { LANTERN_TRIAL_EMBER_BONUS, MIN_PREVIEW_MS, isLanternTrial } from "./gameConfig";
 
 function sanitizeCount(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -66,7 +66,8 @@ export function calculateLanternShards(
 ): number {
   const safeLevel = Math.max(1, Math.floor(completedLevel));
   const multiplier = getDifficulty(difficulty).emberMultiplier;
-  return Math.max(1, Math.floor((8 + safeLevel * 2) * multiplier));
+  const base = Math.max(1, Math.floor((8 + safeLevel * 2) * multiplier));
+  return base + (isLanternTrial(safeLevel) ? LANTERN_TRIAL_EMBER_BONUS : 0);
 }
 
 export function calculateEmbersEarned(

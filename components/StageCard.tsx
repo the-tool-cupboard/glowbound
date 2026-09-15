@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, type ImageProps } from "expo-image";
 
 import { theme } from "@/lib/theme";
 
@@ -6,7 +7,8 @@ interface StageCardProps {
   title: string;
   stageNumber: number;
   levelRange: string;
-  shapeName: string;
+  twistLine: string;
+  thumbnail: ImageProps["source"];
   unlocked: boolean;
   pending: boolean;
   onPress: () => void;
@@ -16,7 +18,8 @@ export function StageCard({
   title,
   stageNumber,
   levelRange,
-  shapeName,
+  twistLine,
+  thumbnail,
   unlocked,
   pending,
   onPress,
@@ -27,7 +30,7 @@ export function StageCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Stage ${stageNumber}, ${title}, ${levelRange}, ${shapeName}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
+      accessibilityLabel={`Stage ${stageNumber}, ${title}, ${levelRange}, ${twistLine}${pending ? ", loading" : unlocked ? "" : ", locked"}`}
       accessibilityState={{ disabled: !unlocked, busy: pending }}
       disabled={!unlocked}
       onPress={onPress}
@@ -35,11 +38,22 @@ export function StageCard({
     >
       <View style={styles.tile}>
         <View style={[styles.pixelHilite, unlocked && styles.pixelHiliteOn]} />
+        <View style={[styles.thumbWrap, !unlocked && styles.thumbLocked]}>
+          <Image
+            source={thumbnail}
+            style={styles.thumb}
+            contentFit="cover"
+            contentPosition="center"
+            cachePolicy="memory-disk"
+            accessible={false}
+          />
+        </View>
         <View style={styles.copy}>
           <Text style={styles.name}>{title}</Text>
           <Text style={styles.meta}>
             Stage {stageNumber} · {levelRange}
           </Text>
+          <Text style={styles.twist}>{twistLine}</Text>
         </View>
         <View style={styles.status} accessibilityElementsHidden>
           {showLockPip ? <View style={styles.lockPip} /> : null}
@@ -84,6 +98,22 @@ const styles = StyleSheet.create({
   pixelHiliteOn: {
     backgroundColor: theme.button3d.highlight,
   },
+  thumbWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: theme.radius.pixel,
+    borderWidth: theme.pixel.outline,
+    borderColor: theme.button3d.rim,
+    overflow: "hidden",
+    backgroundColor: theme.colors.background,
+  },
+  thumb: {
+    width: "100%",
+    height: "100%",
+  },
+  thumbLocked: {
+    opacity: 0.38,
+  },
   copy: {
     flex: 1,
     gap: 4,
@@ -96,6 +126,10 @@ const styles = StyleSheet.create({
   meta: {
     color: theme.colors.textMuted,
     ...theme.typography.caption,
+  },
+  twist: {
+    color: theme.colors.accent,
+    ...theme.typography.overline,
   },
   status: {
     alignItems: "flex-end",

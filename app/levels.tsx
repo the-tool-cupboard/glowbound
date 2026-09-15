@@ -8,10 +8,11 @@ import { StageCard } from "@/components/StageCard";
 import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useProgress } from "@/hooks/useProgress";
 import { useScreenMusic } from "@/hooks/useGameAudio";
+import { chapterArtSource } from "@/lib/chapterBackgrounds";
 import {
   CHECKPOINTS,
   getCheckpointLevelRange,
-  getCheckpointShapeName,
+  getCheckpointTwistLine,
   isCheckpointUnlocked,
 } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
@@ -67,7 +68,8 @@ export default function LevelsScreen() {
               title={checkpoint.title}
               stageNumber={index + 1}
               levelRange={getCheckpointLevelRange(checkpoint)}
-              shapeName={getCheckpointShapeName(checkpoint)}
+              twistLine={getCheckpointTwistLine(checkpoint)}
+              thumbnail={chapterArtSource(checkpoint.artKey)}
               unlocked={unlocked}
               pending={pending}
               onPress={() =>

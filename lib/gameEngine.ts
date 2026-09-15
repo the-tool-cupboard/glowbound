@@ -67,6 +67,27 @@ export function isCorrectSelection(cellId: number, targetCellIds: readonly numbe
   return targetCellIds.includes(cellId);
 }
 
+export function isNextOrderedSelection(
+  cellId: number,
+  targetCellIds: readonly number[],
+  selectedCellIds: readonly number[]
+): boolean {
+  return targetCellIds[selectedCellIds.length] === cellId;
+}
+
+export function evaluateRuneTap(
+  cellId: number,
+  targetCellIds: readonly number[],
+  selectedCellIds: readonly number[],
+  ordered: boolean
+): "correct" | "wrong" {
+  if (ordered) {
+    return isNextOrderedSelection(cellId, targetCellIds, selectedCellIds) ? "correct" : "wrong";
+  }
+
+  return isCorrectSelection(cellId, targetCellIds) ? "correct" : "wrong";
+}
+
 export function hasCompletedPattern(
   selectedCellIds: readonly number[],
   targetCellIds: readonly number[]
@@ -82,16 +103,19 @@ export function calculateScoreForLevel(level: number): number {
   return Math.max(0, Math.floor(level)) * 10;
 }
 
-export function getRuneVisualState(
-  cellId: CellId,
-  snapshot: {
-    phase: GamePhase;
-    targetCellIds: readonly CellId[];
-    selectedCellIds: readonly CellId[];
-    wrongCellId: CellId | null;
-    hintCellIds?: readonly CellId[];
-  }
-): RuneVisualState {
+export interface RuneVisualSnapshot {
+  phase: GamePhase;
+  targetCellIds: readonly CellId[];
+  selectedCellIds: readonly CellId[];
+  wrongCellId: CellId | null;
+  hintCellIds?: readonly CellId[];
+  previewCellIds?: readonly CellId[];
+  glintCellIds?: readonly CellId[];
+  ghostCellIds?: readonly CellId[];
+  cooledBoard?: boolean;
+}
+
+export function getRuneVisualState(cellId: CellId, snapshot: RuneVisualSnapshot): RuneVisualState {
   if (snapshot.wrongCellId === cellId) {
     return "incorrect";
   }
@@ -102,8 +126,19 @@ export function getRuneVisualState(
       : "selected";
   }
 
-  if (snapshot.phase === "preview" && snapshot.targetCellIds.includes(cellId)) {
-    return "previewTarget";
+  if (snapshot.ghostCellIds?.includes(cellId)) {
+    return "previewGhost";
+  }
+
+  if (snapshot.phase === "preview") {
+    const lit = snapshot.previewCellIds ?? snapshot.targetCellIds;
+    if (lit.includes(cellId)) {
+      return "previewTarget";
+    }
+    if (snapshot.glintCellIds?.includes(cellId)) {
+      return "previewGlint";
+    }
+    return "inactive";
   }
 
   if (
@@ -112,6 +147,10 @@ export function getRuneVisualState(
     snapshot.targetCellIds.includes(cellId)
   ) {
     return "previewTarget";
+  }
+
+  if (snapshot.cooledBoard && snapshot.phase === "playerInput") {
+    return "emberCooled";
   }
 
   return "inactive";

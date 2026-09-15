@@ -14,7 +14,11 @@ interface RuneGridProps {
   targetCellIds: readonly CellId[];
   selectedCellIds: readonly CellId[];
   hintCellIds?: readonly CellId[];
+  previewCellIds?: readonly CellId[];
+  glintCellIds?: readonly CellId[];
+  ghostCellIds?: readonly CellId[];
   wrongCellId: CellId | null;
+  cooledBoard?: boolean;
   onRunePress: (cellId: CellId) => void;
 }
 
@@ -30,7 +34,11 @@ export function RuneGrid({
   targetCellIds,
   selectedCellIds,
   hintCellIds = [],
+  previewCellIds,
+  glintCellIds = [],
+  ghostCellIds = [],
   wrongCellId,
+  cooledBoard = false,
   onRunePress,
 }: RuneGridProps) {
   const boardSize = Math.max(0, Math.min(slotWidth, slotHeight));
@@ -62,7 +70,11 @@ export function RuneGrid({
               targetCellIds,
               selectedCellIds,
               hintCellIds,
+              previewCellIds,
+              glintCellIds,
+              ghostCellIds,
               wrongCellId,
+              cooledBoard,
             })}
             disabled={!inputEnabled}
             onPress={onRunePress}
