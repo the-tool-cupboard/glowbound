@@ -16,7 +16,10 @@ export const EMBER_FADE_SWAP_MS = 280;
 export const GATE_PULSE_MIN_MS = 170;
 export const GATE_PULSE_HOLD_MS = 220;
 export const GATE_PULSE_STATUS_NOTE = "Gate pulse — watch it rise.";
-export const STARFALL_STEP_MIN_MS = 140;
+export const STARFALL_STEP_MIN_MS = 160;
+export const STARFALL_HOLD_MS = 250;
+export const STARFALL_WATCH_STATUS_NOTE = "Starfall — watch them fall.";
+export const STARFALL_ORDER_STATUS_NOTE = "Starfall — match the order.";
 
 export type CrownGrantMode = "none" | "shown" | "hiddenUntilInput";
 export type SequentialPreview = "none" | "accumulateBottomToTop" | "accumulateTopToBottom";
@@ -338,6 +341,7 @@ export function buildRoundPresentation(args: {
     inputTargets = ordered;
     const stepMs = pulseDuration(safePreview, ordered.length, STARFALL_STEP_MIN_MS);
     steps.push(...accumulatePreviewSteps(ordered, stepMs));
+    steps.push(plainPreviewStep(ordered, STARFALL_HOLD_MS));
   } else if (rules.facetGlare) {
     const glints = pickFacetGlints(layout.runeCount, targets, rng);
     const glintMs = Math.min(FACET_GLINT_MS, Math.max(80, Math.floor(safePreview * 0.35)));
@@ -426,6 +430,10 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "gatePulse") {
     return GATE_PULSE_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "fallingOrder") {
+    return rules.orderedInput ? STARFALL_ORDER_STATUS_NOTE : STARFALL_WATCH_STATUS_NOTE;
   }
 
   return null;

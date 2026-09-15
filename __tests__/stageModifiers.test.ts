@@ -5,6 +5,10 @@ import {
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
   MIRROR_GHOST_MS,
+  STARFALL_HOLD_MS,
+  STARFALL_ORDER_STATUS_NOTE,
+  STARFALL_STEP_MIN_MS,
+  STARFALL_WATCH_STATUS_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
   buildRoundPresentation,
@@ -143,7 +147,7 @@ describe("preview presentation", () => {
     );
   });
 
-  it("accumulates Starfall from the top without a full-shape hold", () => {
+  it("accumulates Starfall from the top, then holds the constellation", () => {
     const rules = resolveStageRules(61, "standard");
     const targets = [0, 1, 2];
     const plan = buildRoundPresentation({
@@ -155,11 +159,32 @@ describe("preview presentation", () => {
       rng: () => 0,
     });
     const ordered = sortByBoardY(targets, diamond.points, "topFirst");
-    expect(plan.steps).toHaveLength(ordered.length);
-    expect(plan.steps.map((step) => step.previewCellIds)).toEqual(
+    expect(plan.steps).toHaveLength(ordered.length + 1);
+    expect(plan.steps.slice(0, ordered.length).map((step) => step.previewCellIds)).toEqual(
       ordered.map((_, index) => ordered.slice(0, index + 1))
     );
+    expect(plan.steps[ordered.length]?.previewCellIds).toEqual(ordered);
+    expect(plan.steps[ordered.length]?.durationMs).toBe(STARFALL_HOLD_MS);
     expect(plan.inputTargets).toEqual(ordered);
+  });
+
+  it("keeps each Starfall step at least STARFALL_STEP_MIN_MS", () => {
+    const rules = resolveStageRules(61, "calm");
+    const targets = [0, 1, 2];
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout: diamond,
+      previewMs: 300,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(STARFALL_STEP_MIN_MS).toBe(160);
+    expect(STARFALL_HOLD_MS).toBe(250);
+    expect(plan.steps.slice(0, targets.length).every((step) => step.durationMs === STARFALL_STEP_MIN_MS)).toBe(
+      true
+    );
+    expect(plan.steps[targets.length]?.durationMs).toBe(STARFALL_HOLD_MS);
   });
 
   it("adds a mirrored ghost after Moonwell preview on Standard", () => {
@@ -250,12 +275,32 @@ describe("preview status notes", () => {
     expect(roundPreviewStatusNote(resolveStageRules(1, "standard"), 0, 1)).toBeNull();
   });
 
-  it("keeps lantern trial, two-flight, and granted-path notes ahead of Gate copy", () => {
+  it("teaches Starfall by difficulty during preview", () => {
+    expect(roundPreviewStatusNote(resolveStageRules(61, "calm"), 0, 1)).toBe(
+      STARFALL_WATCH_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(61, "standard"), 0, 1)).toBe(
+      STARFALL_WATCH_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(61, "harsh"), 0, 1)).toBe(
+      STARFALL_ORDER_STATUS_NOTE
+    );
+    expect(STARFALL_WATCH_STATUS_NOTE).toBe("Starfall — watch them fall.");
+    expect(STARFALL_ORDER_STATUS_NOTE).toBe("Starfall — match the order.");
+  });
+
+  it("keeps lantern trial and two-flight notes ahead of Gate and Starfall copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
-    expect(roundPreviewStatusNote(resolveStageRules(61, "standard"), 0, 1)).toBeNull();
+    expect(roundPreviewStatusNote({ ...resolveStageRules(61, "harsh"), lanternTrial: true }, 0, 1)).toBe(
+      "Lantern Trial."
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(61, "harsh"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(11, "standard"), 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
     expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 1)).toBeNull();
     expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBeNull();
   });
