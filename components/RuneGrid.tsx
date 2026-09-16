@@ -83,6 +83,7 @@ export function RuneGrid({
           <CircleRune
             cellId={cellId}
             size={cellSize}
+            layoutId={layout.id}
             visualState={getRuneVisualState(cellId, {
               phase,
               targetCellIds,

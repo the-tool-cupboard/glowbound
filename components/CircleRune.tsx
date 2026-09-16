@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
+import { GemFace } from "./GemFace";
+import { runeGemShapeForLayout } from "@/lib/runeGemShape";
 import { theme } from "@/lib/theme";
-import type { CellId, RuneVisualState } from "@/types/game";
+import type { CellId, LayoutId, RuneVisualState } from "@/types/game";
 
 interface CircleRuneProps {
   cellId: CellId;
@@ -10,6 +12,7 @@ interface CircleRuneProps {
   disabled: boolean;
   onPress: (cellId: CellId) => void;
   hitSlop?: number;
+  layoutId?: LayoutId;
 }
 
 /** Visible gem as a fraction of the layout cell. 0.88 reads larger than 0.78 without filling the cell. */
@@ -71,12 +74,13 @@ export function CircleRune({
   disabled,
   onPress,
   hitSlop = 0,
+  layoutId = "grid",
 }: CircleRuneProps) {
   const fill = FILL_BY_STATE[visualState];
   const runeNumber = cellId + 1;
   const gemSize = size * GEM_SCALE;
-  const gemRadius = theme.radius.pixel;
   const resting = isResting(visualState);
+  const shape = runeGemShapeForLayout(layoutId);
 
   return (
     <Pressable
@@ -95,26 +99,15 @@ export function CircleRune({
         pressed && !disabled && styles.pressed,
       ]}
     >
-      <View
-        style={[
-          styles.gem,
-          {
-            width: gemSize,
-            height: gemSize,
-            borderRadius: gemRadius,
-            backgroundColor: fill,
-            borderColor: BORDER_BY_STATE[visualState],
-            borderWidth: resting ? IDLE_OUTLINE : theme.pixel.outline,
-          },
-        ]}
-      >
-        {resting ? null : (
-          <>
-            <View style={styles.pixelHilite} />
-            <View style={styles.pixelShade} />
-          </>
-        )}
-      </View>
+      <GemFace
+        shape={shape}
+        size={gemSize}
+        fill={fill}
+        borderColor={BORDER_BY_STATE[visualState]}
+        borderWidth={resting ? IDLE_OUTLINE : theme.pixel.outline}
+        resting={resting}
+        clipId={`rune-gem-${cellId}`}
+      />
     </Pressable>
   );
 }
@@ -123,25 +116,6 @@ const styles = StyleSheet.create({
   hitTarget: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  gem: {
-    overflow: "hidden",
-  },
-  pixelHilite: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: theme.pixel.inset,
-    backgroundColor: "rgba(255, 245, 204, 0.45)",
-  },
-  pixelShade: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: theme.pixel.shade,
-    backgroundColor: "rgba(10, 11, 15, 0.28)",
   },
   pressed: {
     transform: [{ translateY: 1 }],
