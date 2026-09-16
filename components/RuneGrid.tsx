@@ -1,7 +1,8 @@
 import { StyleSheet, View } from "react-native";
 
 import { getRuneVisualState, isInputEnabled } from "@/lib/gameEngine";
-import { runeCellSize } from "@/lib/runeLayouts";
+import { runeCellSize, runeHitSlop, runeNeighborGap } from "@/lib/runeLayouts";
+import { theme } from "@/lib/theme";
 import type { CellId, GamePhase, RuneLayout } from "@/types/game";
 
 import { CircleRune } from "./CircleRune";
@@ -45,12 +46,29 @@ export function RuneGrid({
   const cellSize = cellSizeForBoard(layout, boardSize);
   const usable = Math.max(0, boardSize - cellSize);
   const inputEnabled = isInputEnabled(phase);
+  const neighborGap = runeNeighborGap(layout.points, boardSize);
+  const hitSlop = runeHitSlop(cellSize, neighborGap, theme.minTapTarget);
+  const platePad = theme.boardPlate.padding;
 
   return (
     <View
       style={[styles.board, { width: boardSize, height: boardSize }]}
       accessibilityLabel={`${layout.name} rune board`}
     >
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.plate,
+          {
+            top: -platePad,
+            right: -platePad,
+            bottom: -platePad,
+            left: -platePad,
+          },
+        ]}
+      />
       {layout.points.map((point, cellId) => (
         <View
           key={cellId}
@@ -77,6 +95,7 @@ export function RuneGrid({
               cooledBoard,
             })}
             disabled={!inputEnabled}
+            hitSlop={hitSlop}
             onPress={onRunePress}
           />
         </View>
@@ -88,5 +107,12 @@ export function RuneGrid({
 const styles = StyleSheet.create({
   board: {
     position: "relative",
+  },
+  plate: {
+    position: "absolute",
+    backgroundColor: theme.overlay.board,
+    borderRadius: theme.radius.lg,
+    borderWidth: theme.pixel.inset,
+    borderColor: theme.overlay.boardRim,
   },
 });

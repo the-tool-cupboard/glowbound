@@ -1,7 +1,13 @@
 import type { LayoutId, RuneLayout, RunePoint } from "../types/game";
 
-/** Fraction of the no-overlap cell size left as air between orbs. */
-export const RUNE_SPACING_GAP = 0.82;
+/**
+ * Fraction of the no-overlap fit used for the layout cell.
+ * 0.88 keeps a little air between cells while reading larger than 0.82.
+ */
+export const RUNE_SPACING_GAP = 0.88;
+
+/** Prefer this pixel floor when the gapped fit would shrink below it, never past no-overlap. */
+export const MIN_RUNE_CELL_SIZE = 32;
 
 const AXIAL_DIRS: readonly [number, number][] = [
   [1, 0],
@@ -385,12 +391,42 @@ export function minNormalizedDistance(points: readonly RunePoint[]): number {
   return Number.isFinite(min) ? min : 1;
 }
 
-export function runeCellSize(points: readonly RunePoint[], boardSize: number): number {
+export function fittedRuneCellSize(points: readonly RunePoint[], boardSize: number): number {
   if (boardSize <= 0 || points.length === 0) {
     return 0;
   }
 
   const minDist = minNormalizedDistance(points);
-  const fitted = (minDist * boardSize) / (1 + minDist);
-  return Math.max(0, fitted * RUNE_SPACING_GAP);
+  return (minDist * boardSize) / (1 + minDist);
+}
+
+export function runeCellSize(points: readonly RunePoint[], boardSize: number): number {
+  const fitted = fittedRuneCellSize(points, boardSize);
+  if (fitted <= 0) {
+    return 0;
+  }
+
+  const gapped = fitted * RUNE_SPACING_GAP;
+  return Math.min(fitted, Math.max(gapped, MIN_RUNE_CELL_SIZE));
+}
+
+export function runeNeighborGap(points: readonly RunePoint[], boardSize: number): number {
+  const cellSize = runeCellSize(points, boardSize);
+  const minDist = minNormalizedDistance(points);
+  const usable = Math.max(0, boardSize - cellSize);
+  return Math.max(0, minDist * usable - cellSize);
+}
+
+export function runeHitSlop(
+  cellSize: number,
+  neighborGap: number,
+  minTapTarget: number
+): number {
+  if (cellSize <= 0 || minTapTarget <= cellSize) {
+    return 0;
+  }
+
+  const needed = (minTapTarget - cellSize) / 2;
+  const available = Math.max(0, neighborGap / 2);
+  return Math.max(0, Math.min(needed, available));
 }
