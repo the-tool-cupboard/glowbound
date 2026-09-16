@@ -4,10 +4,14 @@ import path from "path";
 import {
   AUDIO_OPPORTUNITIES,
   BGM_CATALOG,
+  CHAPTER_ENTER_SFX_IDS,
+  chapterEnterSfxForLevel,
   SFX_CATALOG,
   SFX_FILENAMES,
   SFX_SOURCES,
+  shouldPlayChapterEnterSfx,
 } from "../lib/audioCatalog";
+import { CHECKPOINTS, STAGE_COUNT } from "../lib/gameConfig";
 
 describe("audioCatalog", () => {
   it("keeps SFX catalog IDs unique", () => {
@@ -47,6 +51,56 @@ describe("audioCatalog", () => {
     expect(SFX_SOURCES.chapterUnlock).toBeDefined();
     expect(SFX_SOURCES.lastChanceSting).toBeDefined();
     expect(SFX_SOURCES.lanternTrialClear).toBeDefined();
+  });
+
+  it("ships one chapter-enter sting per checkpoint stage", () => {
+    expect(CHAPTER_ENTER_SFX_IDS).toHaveLength(STAGE_COUNT);
+    expect(CHAPTER_ENTER_SFX_IDS).toHaveLength(CHECKPOINTS.length);
+    expect(new Set(CHAPTER_ENTER_SFX_IDS).size).toBe(CHAPTER_ENTER_SFX_IDS.length);
+
+    const expected: { level: number; id: (typeof CHAPTER_ENTER_SFX_IDS)[number]; file: string }[] = [
+      { level: 1, id: "chapterEnterSleepingWoods", file: "chapter-enter-sleeping-woods.wav" },
+      { level: 11, id: "chapterEnterCastleGate", file: "chapter-enter-castle-gate.wav" },
+      { level: 21, id: "chapterEnterMoonwell", file: "chapter-enter-moonwell.wav" },
+      { level: 31, id: "chapterEnterCrystalAscent", file: "chapter-enter-crystal-ascent.wav" },
+      { level: 41, id: "chapterEnterEmberBridge", file: "chapter-enter-ember-bridge.wav" },
+      { level: 51, id: "chapterEnterTheTower", file: "chapter-enter-the-tower.wav" },
+      { level: 61, id: "chapterEnterStarfall", file: "chapter-enter-starfall.wav" },
+      { level: 71, id: "chapterEnterHollowCrown", file: "chapter-enter-hollow-crown.wav" },
+      { level: 81, id: "chapterEnterNightOrchard", file: "chapter-enter-night-orchard.wav" },
+      { level: 91, id: "chapterEnterTheBound", file: "chapter-enter-the-bound.wav" },
+    ];
+
+    expected.forEach((entry, index) => {
+      expect(CHECKPOINTS[index]?.startLevel).toBe(entry.level);
+      expect(CHAPTER_ENTER_SFX_IDS[index]).toBe(entry.id);
+      expect(chapterEnterSfxForLevel(entry.level)).toBe(entry.id);
+      expect(chapterEnterSfxForLevel(entry.level + 9)).toBe(entry.id);
+      expect(SFX_FILENAMES[entry.id]).toBe(entry.file);
+      expect(SFX_SOURCES[entry.id]).toBeDefined();
+    });
+  });
+
+  it("plays chapter-enter on run start at a chapter and when stage index increases", () => {
+    expect(shouldPlayChapterEnterSfx(null, 1)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(null, 11)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(null, 91)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(null, 5)).toBe(false);
+    expect(shouldPlayChapterEnterSfx(null, 12)).toBe(false);
+
+    expect(shouldPlayChapterEnterSfx(10, 11)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(20, 21)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(90, 91)).toBe(true);
+    expect(shouldPlayChapterEnterSfx(11, 12)).toBe(false);
+    expect(shouldPlayChapterEnterSfx(1, 10)).toBe(false);
+    expect(shouldPlayChapterEnterSfx(11, 11)).toBe(false);
+  });
+
+  it("keeps chapter unlock, lantern trial, and enter stings as distinct cues", () => {
+    expect(SFX_FILENAMES.chapterUnlock).not.toBe(SFX_FILENAMES.chapterEnterCastleGate);
+    expect(SFX_FILENAMES.lanternTrialClear).not.toBe(SFX_FILENAMES.chapterEnterTheBound);
+    expect(CHAPTER_ENTER_SFX_IDS).not.toContain("chapterUnlock");
+    expect(CHAPTER_ENTER_SFX_IDS).not.toContain("lanternTrialClear");
   });
 
   it("has a wav on disk for every catalog SFX filename", () => {

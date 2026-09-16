@@ -13,9 +13,10 @@ import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
+import { chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
 import { chapterBackground } from "@/lib/chapterBackgrounds";
 import { calculateLanternShards, isDifficultyId } from "@/lib/economyEngine";
-import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS } from "@/lib/gameConfig";
+import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS, getStageIndex } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
@@ -108,6 +109,7 @@ export default function GameScreen() {
   const prevWardArmedRef = useRef(wardArmed);
   const wrongPlayedRef = useRef(false);
   const chapterUnlockCueAtRef = useRef(0);
+  const chapterEnterStageRef = useRef(0);
 
   useEffect(() => {
     const prevPhase = prevPhaseRef.current;
@@ -182,7 +184,29 @@ export default function GameScreen() {
   useEffect(() => {
     resetAwardFlags();
     startGame(startLevel, difficulty, { playLevel, score: resumeScore });
-  }, [difficulty, playLevel, resumeScore, startGame, startLevel]);
+    if (shouldPlayChapterEnterSfx(null, playLevel)) {
+      const enterSfx = chapterEnterSfxForLevel(playLevel);
+      if (enterSfx != null) {
+        playSfx(enterSfx);
+      }
+    }
+    chapterEnterStageRef.current = getStageIndex(playLevel);
+  }, [difficulty, playLevel, playSfx, resumeScore, startGame, startLevel]);
+
+  useEffect(() => {
+    if (phase === "idle") {
+      return;
+    }
+
+    const stageIndex = getStageIndex(level);
+    if (stageIndex > chapterEnterStageRef.current) {
+      const enterSfx = chapterEnterSfxForLevel(level);
+      if (enterSfx != null) {
+        playSfx(enterSfx);
+      }
+    }
+    chapterEnterStageRef.current = Math.max(chapterEnterStageRef.current, stageIndex);
+  }, [level, phase, playSfx]);
 
   useEffect(() => {
     if (phase === "idle") {
