@@ -56,12 +56,12 @@ export function RuneGrid({
       accessibilityLabel={`${layout.name} rune board`}
     >
       <View
-        pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={[
           styles.plate,
           {
+            pointerEvents: "none",
             top: -platePad,
             right: -platePad,
             bottom: -platePad,
