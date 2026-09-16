@@ -21,11 +21,13 @@ import {
   CROWN_INPUT_HOLD_MS,
   EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
+  LANTERN_TRIAL_HOLD_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
+  betweenFlightHoldMs,
   buildRoundPresentation,
   emberFadeAtMs,
-  flightStatusNote,
+  inputStatusFlightNote,
   pickGrantedCell,
   resolveEmberFadeSwap,
   resolveStageRules,
@@ -71,6 +73,7 @@ export function useMemoryGame() {
   const emberTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const crownHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lanternHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runStartLevelRef = useRef(1);
   const difficultyRef = useRef<DifficultyId>("standard");
   const lanternOilMsRef = useRef(0);
@@ -92,6 +95,7 @@ export function useMemoryGame() {
   const pendingInputTargetsRef = useRef<readonly CellId[] | null>(null);
   const grantedIdRef = useRef<CellId | null>(null);
   const crownInputLockedRef = useRef(false);
+  const lanternHoldLockedRef = useRef(false);
   const flightsRef = useRef<{ a: CellId[]; b: CellId[] } | null>(null);
   const flightIndexRef = useRef(0);
   const charmUsedRef = useRef(false);
@@ -113,7 +117,9 @@ export function useMemoryGame() {
     clearTimer(emberTimerRef);
     clearTimer(swapTimerRef);
     clearTimer(crownHoldTimerRef);
+    clearTimer(lanternHoldTimerRef);
     crownInputLockedRef.current = false;
+    lanternHoldLockedRef.current = false;
   }, []);
 
   const inputStatusNote = useCallback((): string | null => {
@@ -121,11 +127,12 @@ export function useMemoryGame() {
       return CROWN_CLAIMED_INPUT_NOTE;
     }
     const flights = flightsRef.current;
-    if (flights != null) {
-      return flightStatusNote(flightIndexRef.current, 2);
-    }
-    if (rulesRef.current.lanternTrial) {
-      return "Lantern Trial.";
+    if (rulesRef.current.lanternTrial || flights != null) {
+      return inputStatusFlightNote(
+        rulesRef.current,
+        flightIndexRef.current,
+        flights != null ? 2 : 1
+      );
     }
     return null;
   }, []);
@@ -280,6 +287,8 @@ export function useMemoryGame() {
       const { nextLevel, nextScore, nextStage, nextLayout, flightTargets, kind, previewMs } = args;
       clearTimer(emberTimerRef);
       clearTimer(swapTimerRef);
+      clearTimer(lanternHoldTimerRef);
+      lanternHoldLockedRef.current = false;
       const rules = rulesRef.current;
       const presentation = buildRoundPresentation({
         rules,
@@ -460,7 +469,7 @@ export function useMemoryGame() {
   }, []);
 
   const applySecondSight = useCallback(() => {
-    if (phaseRef.current !== "playerInput" || swapLockedRef.current) {
+    if (phaseRef.current !== "playerInput" || swapLockedRef.current || lanternHoldLockedRef.current) {
       return false;
     }
 
@@ -494,7 +503,7 @@ export function useMemoryGame() {
   }, []);
 
   const applyWard = useCallback(() => {
-    if (phaseRef.current !== "playerInput" || wardArmedRef.current) {
+    if (phaseRef.current !== "playerInput" || wardArmedRef.current || lanternHoldLockedRef.current) {
       return false;
     }
 
@@ -505,7 +514,7 @@ export function useMemoryGame() {
   }, []);
 
   const applyPathHint = useCallback(() => {
-    if (phaseRef.current !== "playerInput" || swapLockedRef.current) {
+    if (phaseRef.current !== "playerInput" || swapLockedRef.current || lanternHoldLockedRef.current) {
       return false;
     }
 
@@ -548,7 +557,12 @@ export function useMemoryGame() {
 
   const onRunePress = useCallback(
     (cellId: CellId) => {
-      if (phaseRef.current !== "playerInput" || swapLockedRef.current || crownInputLockedRef.current) {
+      if (
+        phaseRef.current !== "playerInput" ||
+        swapLockedRef.current ||
+        crownInputLockedRef.current ||
+        lanternHoldLockedRef.current
+      ) {
         return;
       }
 
@@ -581,15 +595,30 @@ export function useMemoryGame() {
               rules
             ) + lanternOilMsRef.current;
             lanternOilMsRef.current = 0;
-            startFlightPreview({
-              nextLevel: levelRef.current,
-              nextScore: scoreRef.current,
-              nextStage: stageRef.current,
-              nextLayout: layoutRef.current,
-              flightTargets: flights.b,
-              kind: "round",
-              previewMs,
-            });
+            const startSecondFlight = () => {
+              lanternHoldLockedRef.current = false;
+              startFlightPreview({
+                nextLevel: levelRef.current,
+                nextScore: scoreRef.current,
+                nextStage: stageRef.current,
+                nextLayout: layoutRef.current,
+                flightTargets: flights.b,
+                kind: "round",
+                previewMs,
+              });
+            };
+            const holdMs = betweenFlightHoldMs(rules);
+            if (holdMs > 0) {
+              lanternHoldLockedRef.current = true;
+              setStatusNote(LANTERN_TRIAL_HOLD_NOTE);
+              clearTimer(lanternHoldTimerRef);
+              lanternHoldTimerRef.current = setTimeout(() => {
+                lanternHoldTimerRef.current = null;
+                startSecondFlight();
+              }, holdMs);
+              return;
+            }
+            startSecondFlight();
             return;
           }
 
