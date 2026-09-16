@@ -54,10 +54,11 @@ describe("getLayout", () => {
         layout.points.every((point) => point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1)
       ).toBe(true);
       expect(minNormalizedDistance(layout.points)).toBeGreaterThan(0.1);
-      const cell = runeCellSize(layout.points, 1);
-      const gap = minNormalizedDistance(layout.points) * (1 - cell);
-      expect(gap).toBeGreaterThanOrEqual(cell);
-      expect(cell).toBeLessThanOrEqual(fittedRuneCellSize(layout.points, 1));
+      const boardSize = 280;
+      const cell = runeCellSize(layout.points, boardSize);
+      const gap = minNormalizedDistance(layout.points) * (boardSize - cell);
+      expect(gap + 1e-9).toBeGreaterThanOrEqual(cell);
+      expect(cell).toBeLessThanOrEqual(fittedRuneCellSize(layout.points, boardSize));
     }
   });
 });
