@@ -1,6 +1,7 @@
 import { CHECKPOINTS, getLevelConfig } from "../lib/gameConfig";
 import { getLayout } from "../lib/runeLayouts";
 import {
+  BOUND_CHAPTER_STATUS_NOTE,
   CROWN_CLAIMED_INPUT_NOTE,
   CROWN_HIDDEN_STATUS_NOTE,
   CROWN_INPUT_HOLD_MS,
@@ -11,6 +12,10 @@ import {
   GATE_PULSE_HOLD_MS,
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
+  LANTERN_TRIAL_FINAL_SEAL_NOTE,
+  LANTERN_TRIAL_FIRST_SEAL_NOTE,
+  LANTERN_TRIAL_HOLD_MS,
+  LANTERN_TRIAL_HOLD_NOTE,
   MIRROR_GHOST_MS,
   MIRROR_SETTLE_MS,
   MOONWELL_STATUS_NOTE,
@@ -24,9 +29,12 @@ import {
   STARFALL_WATCH_STATUS_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
+  betweenFlightHoldMs,
   buildRoundPresentation,
   emberFadeAtMs,
   flightStatusNote,
+  inputStatusFlightNote,
+  lanternTrialSealNote,
   mirroredCellId,
   pickEmberFadeSwap,
   pickFacetGlints,
@@ -515,13 +523,44 @@ describe("preview status notes", () => {
     );
   });
 
-  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, Crown, Ember, and Orchard copy", () => {
-    expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
+  it("teaches The Bound spiral on 91–99 and seal copy on Lantern Trial", () => {
+    expect(BOUND_CHAPTER_STATUS_NOTE).toBe("The Bound — the spiral tightens.");
+    expect(LANTERN_TRIAL_FIRST_SEAL_NOTE).toBe("The Bound — first seal.");
+    expect(LANTERN_TRIAL_FINAL_SEAL_NOTE).toBe("The Bound — final seal.");
+    expect(LANTERN_TRIAL_HOLD_NOTE).toBe("The lantern holds…");
+    expect(LANTERN_TRIAL_HOLD_MS).toBe(300);
+    expect(roundPreviewStatusNote(resolveStageRules(91, "calm"), 0, 1)).toBe(
+      BOUND_CHAPTER_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(91, "standard"), 0, 1)).toBe(
+      BOUND_CHAPTER_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(99, "harsh"), 0, 1)).toBe(
+      BOUND_CHAPTER_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe(
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 1, 2)).toBe(
+      LANTERN_TRIAL_FINAL_SEAL_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(100, "calm"), 0, 2)).not.toBe(
+      BOUND_CHAPTER_STATUS_NOTE
+    );
+  });
+
+  it("keeps lantern trial seals and two-flight notes ahead of Bound, Gate, Starfall, Moonwell, Crown, Ember, and Orchard copy", () => {
+    expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe(
+      lanternTrialSealNote(0)
+    );
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
+    expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 1, 2)).toBe(
+      flightStatusNote(1, 2)
+    );
     expect(roundPreviewStatusNote({ ...resolveStageRules(61, "harsh"), lanternTrial: true }, 0, 1)).toBe(
-      "Lantern Trial."
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(61, "harsh"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -531,7 +570,7 @@ describe("preview status notes", () => {
       EMBER_BRIDGE_STATUS_NOTE
     );
     expect(roundPreviewStatusNote({ ...resolveStageRules(41, "standard"), lanternTrial: true }, 0, 1)).toBe(
-      "Lantern Trial."
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(41, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -539,14 +578,14 @@ describe("preview status notes", () => {
     expect(roundPreviewStatusNote(resolveStageRules(71, "standard"), 0, 1)).toBe(
       CROWN_SHOWN_STATUS_NOTE
     );
-    expect(roundPreviewStatusNote({ ...resolveStageRules(71, "harsh"), lanternTrial: true }, 0, 1)).toBe(
-      "Lantern Trial."
+    expect(roundPreviewStatusNote({ ...resolveStageRules(71, "harsh"), lanternTrial: true }, 1, 1)).toBe(
+      LANTERN_TRIAL_FINAL_SEAL_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(71, "harsh"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
     expect(roundPreviewStatusNote({ ...resolveStageRules(21, "standard"), lanternTrial: true }, 0, 1)).toBe(
-      "Lantern Trial."
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(21, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -555,11 +594,31 @@ describe("preview status notes", () => {
       NIGHT_ORCHARD_STATUS_NOTE
     );
     expect(roundPreviewStatusNote({ ...resolveStageRules(81, "standard"), lanternTrial: true }, 0, 1)).toBe(
-      "Lantern Trial."
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(81, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
+    expect(roundPreviewStatusNote({ ...resolveStageRules(91, "standard"), twoFlight: true }, 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
+  });
+
+  it("uses Bound seals for Lantern Trial input and keeps Tower on Flight N of 2", () => {
+    const lantern = resolveStageRules(100, "standard");
+    const tower = resolveStageRules(51, "standard");
+    expect(inputStatusFlightNote(lantern, 0, 2)).toBe(LANTERN_TRIAL_FIRST_SEAL_NOTE);
+    expect(inputStatusFlightNote(lantern, 1, 2)).toBe(LANTERN_TRIAL_FINAL_SEAL_NOTE);
+    expect(inputStatusFlightNote(tower, 0, 2)).toBe(flightStatusNote(0, 2));
+    expect(inputStatusFlightNote(tower, 1, 2)).toBe(flightStatusNote(1, 2));
+    expect(flightStatusNote(0, 2)).toBe("Flight 1 of 2.");
+    expect(flightStatusNote(1, 2)).toBe("Flight 2 of 2.");
+  });
+
+  it("holds only between Lantern Trial flights", () => {
+    expect(betweenFlightHoldMs(resolveStageRules(100, "standard"))).toBe(LANTERN_TRIAL_HOLD_MS);
+    expect(betweenFlightHoldMs(resolveStageRules(51, "standard"))).toBe(0);
+    expect(betweenFlightHoldMs(resolveStageRules(91, "standard"))).toBe(0);
   });
 });
 

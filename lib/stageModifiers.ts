@@ -31,6 +31,11 @@ export const CROWN_INPUT_HOLD_MS = 150;
 export const CROWN_SHOWN_STATUS_NOTE = "Hollow Crown — one is already claimed.";
 export const CROWN_HIDDEN_STATUS_NOTE = "Hollow Crown — a claim waits in shadow.";
 export const CROWN_CLAIMED_INPUT_NOTE = "Claimed — tap the rest.";
+export const LANTERN_TRIAL_HOLD_MS = 300;
+export const LANTERN_TRIAL_HOLD_NOTE = "The lantern holds…";
+export const LANTERN_TRIAL_FIRST_SEAL_NOTE = "The Bound — first seal.";
+export const LANTERN_TRIAL_FINAL_SEAL_NOTE = "The Bound — final seal.";
+export const BOUND_CHAPTER_STATUS_NOTE = "The Bound — the spiral tightens.";
 
 export type CrownGrantMode = "none" | "shown" | "hiddenUntilInput";
 export type SequentialPreview = "none" | "accumulateBottomToTop" | "accumulateTopToBottom";
@@ -461,18 +466,42 @@ export function flightStatusNote(flightIndex: number, flightCount: number): stri
   return `Flight ${flightIndex + 1} of ${flightCount}.`;
 }
 
+export function lanternTrialSealNote(flightIndex: number): string {
+  return flightIndex <= 0 ? LANTERN_TRIAL_FIRST_SEAL_NOTE : LANTERN_TRIAL_FINAL_SEAL_NOTE;
+}
+
+export function inputStatusFlightNote(
+  rules: Pick<StageRules, "lanternTrial">,
+  flightIndex: number,
+  flightCount: number
+): string | null {
+  if (rules.lanternTrial) {
+    return lanternTrialSealNote(flightIndex);
+  }
+
+  return flightStatusNote(flightIndex, flightCount);
+}
+
+export function betweenFlightHoldMs(rules: Pick<StageRules, "lanternTrial">): number {
+  return rules.lanternTrial ? LANTERN_TRIAL_HOLD_MS : 0;
+}
+
 export function roundPreviewStatusNote(
   rules: StageRules,
   flightIndex: number,
   flightCount: number
 ): string | null {
   if (rules.lanternTrial) {
-    return "Lantern Trial.";
+    return lanternTrialSealNote(flightIndex);
   }
 
   const flightNote = flightStatusNote(flightIndex, flightCount);
   if (flightNote != null) {
     return flightNote;
+  }
+
+  if (rules.modifier === "bound") {
+    return BOUND_CHAPTER_STATUS_NOTE;
   }
 
   if (rules.modifier === "gatePulse") {
