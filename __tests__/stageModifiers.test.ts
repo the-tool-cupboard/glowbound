@@ -14,6 +14,10 @@ import {
   MIRROR_GHOST_MS,
   MIRROR_SETTLE_MS,
   MOONWELL_STATUS_NOTE,
+  NIGHT_ORCHARD_STATUS_NOTE,
+  RIPEN_ROT_LAND_MS,
+  RIPEN_ROT_LEAVE_MS,
+  RIPEN_ROT_SETTLE_MS,
   STARFALL_HOLD_MS,
   STARFALL_ORDER_STATUS_NOTE,
   STARFALL_STEP_MIN_MS,
@@ -108,6 +112,13 @@ describe("resolveStageRules", () => {
     expect(standard.emberFadeSwap).toBe(false);
     expect(harsh.emberFadeSwap).toBe(true);
     expect(resolveStageRules(1, "harsh").emberFadeSwap).toBe(false);
+  });
+
+  it("keeps Night Orchard neighbor swaps on every difficulty", () => {
+    expect(resolveStageRules(81, "calm").ripenRot).toBe(true);
+    expect(resolveStageRules(81, "standard").ripenRot).toBe(true);
+    expect(resolveStageRules(81, "harsh").ripenRot).toBe(true);
+    expect(resolveStageRules(1, "harsh").ripenRot).toBe(false);
   });
 
   it("splits The Tower and the Lantern Trial into two flights", () => {
@@ -305,6 +316,55 @@ describe("preview presentation", () => {
     expect(plan.inputTargets).not.toEqual(targets);
   });
 
+  it("telegraphs Night Orchard as leave glint then land hilite then settle, not a bilateral ghost", () => {
+    expect(RIPEN_ROT_LEAVE_MS).toBe(140);
+    expect(RIPEN_ROT_LAND_MS).toBe(200);
+    expect(RIPEN_ROT_SETTLE_MS).toBe(150);
+    const targets = [0, 1, 2];
+    const swap = pickRipenRotSwap(targets, diamond.points, () => 0);
+    expect(swap).not.toBeNull();
+    const from = swap!.from;
+    const to = swap!.to;
+
+    for (const difficulty of ["calm", "standard", "harsh"] as const) {
+      const plan = buildRoundPresentation({
+        rules: resolveStageRules(81, difficulty),
+        targets,
+        layout: diamond,
+        previewMs: 800,
+        kind: "round",
+        rng: () => 0,
+      });
+      expect(plan.steps).toHaveLength(4);
+      expect(plan.steps[0]).toEqual({
+        previewCellIds: targets,
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: 800,
+      });
+      expect(plan.steps[1]).toEqual({
+        previewCellIds: [],
+        glintCellIds: [from],
+        ghostCellIds: [],
+        durationMs: RIPEN_ROT_LEAVE_MS,
+      });
+      expect(plan.steps[2]).toEqual({
+        previewCellIds: [to],
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: RIPEN_ROT_LAND_MS,
+      });
+      expect(plan.steps[3]).toEqual({
+        previewCellIds: [],
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: RIPEN_ROT_SETTLE_MS,
+      });
+      expect(plan.steps.every((step) => step.ghostCellIds.length === 0)).toBe(true);
+      expect(plan.inputTargets).toEqual(applyTargetSwap(targets, swap!));
+    }
+  });
+
   it("grants the topmost Hollow Crown rune", () => {
     const granted = pickGrantedCell([0, 1, 2, 3], diamond.points);
     const top = sortByBoardY([0, 1, 2, 3], diamond.points, "topFirst")[0];
@@ -367,6 +427,23 @@ describe("preview presentation", () => {
     expect(plan.steps).toHaveLength(1);
     expect(plan.steps[0]?.ghostCellIds).toEqual([]);
   });
+
+  it("does not replay the Night Orchard move telegraph during Second Sight", () => {
+    const rules = resolveStageRules(81, "standard");
+    const plan = buildRoundPresentation({
+      rules,
+      targets: [0, 1, 2],
+      layout: diamond,
+      previewMs: 900,
+      kind: "sight",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]?.previewCellIds).toEqual([0, 1, 2]);
+    expect(plan.steps[0]?.glintCellIds).toEqual([]);
+    expect(plan.steps[0]?.ghostCellIds).toEqual([]);
+    expect(plan.inputTargets).toEqual([0, 1, 2]);
+  });
 });
 
 describe("preview status notes", () => {
@@ -425,7 +502,20 @@ describe("preview status notes", () => {
     );
   });
 
-  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, Crown, and Ember copy", () => {
+  it("teaches Night Orchard on every difficulty during preview", () => {
+    expect(NIGHT_ORCHARD_STATUS_NOTE).toBe("Night Orchard — one fruit moves.");
+    expect(roundPreviewStatusNote(resolveStageRules(81, "calm"), 0, 1)).toBe(
+      NIGHT_ORCHARD_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(81, "standard"), 0, 1)).toBe(
+      NIGHT_ORCHARD_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(81, "harsh"), 0, 1)).toBe(
+      NIGHT_ORCHARD_STATUS_NOTE
+    );
+  });
+
+  it("keeps lantern trial and two-flight notes ahead of Gate, Starfall, Moonwell, Crown, Ember, and Orchard copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe("Lantern Trial.");
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
@@ -459,6 +549,15 @@ describe("preview status notes", () => {
       "Lantern Trial."
     );
     expect(roundPreviewStatusNote(resolveStageRules(21, "standard"), 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(81, "standard"), 0, 1)).toBe(
+      NIGHT_ORCHARD_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote({ ...resolveStageRules(81, "standard"), lanternTrial: true }, 0, 1)).toBe(
+      "Lantern Trial."
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(81, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
   });
