@@ -17,13 +17,13 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: "pathHint",
     name: "Path Hint",
-    description: "Lights one remaining rune. Use when close.",
+    description: "Lights a leftover rune. Use when close.",
     cost: 25,
   },
   {
     id: "lanternOil",
     name: "Lantern Oil",
-    description: "Holds the next reveal. Use before a hard pattern.",
+    description: "Longer next reveal. Use on hard patterns.",
     cost: 35,
   },
   {
@@ -35,7 +35,7 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: "ward",
     name: "Rune Ward",
-    description: "Ignores the next miss. Use when guessing.",
+    description: "Ignores a miss. Use when guessing.",
     cost: 60,
   },
 ];
