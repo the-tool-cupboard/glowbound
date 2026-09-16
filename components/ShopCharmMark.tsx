@@ -38,11 +38,11 @@ export const CHARM_GLYPH_PAINT: Record<PowerUpId, GlyphPaint> = {
     well: "rgba(232, 180, 60, 0.18)",
   },
   secondSight: {
-    fill: "#C5D0E4",
-    accent: "#8A9BB8",
-    hilite: "rgba(245, 250, 255, 0.55)",
-    shade: "rgba(40, 52, 72, 0.32)",
-    well: "rgba(197, 208, 228, 0.18)",
+    fill: "#E2EAF6",
+    accent: "#9AABC4",
+    hilite: "rgba(255, 255, 255, 0.62)",
+    shade: "rgba(40, 52, 72, 0.28)",
+    well: "rgba(226, 234, 246, 0.2)",
   },
   ward: {
     fill: "#6BA89A",

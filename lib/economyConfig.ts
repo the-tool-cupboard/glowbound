@@ -17,7 +17,7 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: "pathHint",
     name: "Path Hint",
-    description: "Lights one remaining rune. Use when almost sure.",
+    description: "Lights one remaining rune. Use when close.",
     cost: 25,
   },
   {
@@ -29,13 +29,13 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: "secondSight",
     name: "Second Sight",
-    description: "A brief replay. Use after the embers fade.",
+    description: "A brief replay. Use after embers fade.",
     cost: 50,
   },
   {
     id: "ward",
     name: "Rune Ward",
-    description: "Ignores the next miss. Use when guessing, or Last Chance.",
+    description: "Ignores the next miss. Use when guessing.",
     cost: 60,
   },
 ];

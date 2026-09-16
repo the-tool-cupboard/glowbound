@@ -10,6 +10,7 @@ import type { Inventory, PowerUpId, ShopItem } from "@/types/economy";
 const BUY_FLASH_MS = 720;
 const PRIME_WINDOW_MS = 650;
 const SHOP_MARK_SIZE = 56;
+const SHOP_MARK_WELL = 60;
 
 interface ShopItemCardProps {
   item: ShopItem;
@@ -158,6 +159,7 @@ export function ShopItemCard({
         {item.name}
       </Text>
       <Text
+        numberOfLines={2}
         maxFontSizeMultiplier={1.2}
         style={[styles.description, unaffordable && styles.copyDim]}
       >
@@ -263,35 +265,37 @@ export function ShopGoodsDisplay({
 const styles = StyleSheet.create({
   stall: {
     flex: 1,
+    minHeight: 0,
     justifyContent: "center",
   },
   plate: {
+    flexShrink: 1,
     backgroundColor: theme.overlay.stall,
     borderRadius: theme.radius.lg,
     borderWidth: theme.pixel.inset,
     borderColor: theme.overlay.stallRim,
     padding: theme.stallPlate.padding,
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   shelf: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   tile: {
     flexBasis: "46%",
     flexGrow: 1,
     maxWidth: "48%",
-    minHeight: 188,
+    minHeight: 168,
     backgroundColor: theme.colors.backgroundElevated,
     borderRadius: theme.radius.pixel,
     borderWidth: theme.pixel.outline,
     borderColor: "rgba(196, 184, 150, 0.42)",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.sm,
-    gap: 6,
+    gap: 4,
     overflow: "hidden",
   },
   tileUnaffordable: {
@@ -328,13 +332,12 @@ const styles = StyleSheet.create({
     transform: [{ translateY: theme.pixel.inset }],
   },
   mark: {
-    width: 64,
-    height: 64,
+    width: SHOP_MARK_WELL,
+    height: SHOP_MARK_WELL,
     borderRadius: theme.radius.pixel,
     borderWidth: theme.pixel.outline,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
     overflow: "hidden",
   },
   markUnaffordable: {
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accent,
   },
   markDim: {
-    opacity: 0.45,
+    opacity: 0.58,
   },
   ownedPip: {
     position: "absolute",
@@ -358,29 +361,35 @@ const styles = StyleSheet.create({
   name: {
     color: theme.colors.text,
     textAlign: "center",
-    ...theme.typography.heading,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 20,
   },
   description: {
     color: theme.colors.textMuted,
     textAlign: "center",
     paddingHorizontal: 2,
-    ...theme.typography.caption,
+    fontSize: 12,
+    fontWeight: "400",
+    letterSpacing: 0.2,
+    lineHeight: 16,
   },
   copyDim: {
     color: "rgba(196, 184, 150, 0.72)",
   },
   costBlock: {
     alignItems: "center",
-    gap: 2,
-    minHeight: 38,
+    gap: 1,
+    minHeight: 32,
     justifyContent: "center",
   },
   costValue: {
     color: theme.colors.accent,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.4,
-    lineHeight: 22,
+    lineHeight: 20,
     fontVariant: ["tabular-nums"],
   },
   costLabel: {
@@ -428,6 +437,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "45deg" }],
   },
   hint: {
+    flexShrink: 0,
     color: theme.colors.textMuted,
     textAlign: "center",
     ...theme.typography.caption,

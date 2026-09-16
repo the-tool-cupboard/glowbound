@@ -127,7 +127,7 @@ export const theme = {
     padding: 12,
   },
   stallPlate: {
-    padding: 16,
+    padding: 12,
   },
   artTextShadow: {
     textShadowColor: "rgba(7, 11, 22, 0.94)",
