@@ -120,8 +120,13 @@ export const theme = {
     dock: "rgba(7, 11, 22, 0.55)",
     board: "rgba(7, 11, 22, 0.52)",
     boardRim: "rgba(196, 184, 150, 0.2)",
+    stall: "rgba(7, 11, 22, 0.56)",
+    stallRim: "rgba(196, 184, 150, 0.22)",
   },
   boardPlate: {
+    padding: 12,
+  },
+  stallPlate: {
     padding: 12,
   },
   artTextShadow: {

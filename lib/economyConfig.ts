@@ -17,25 +17,25 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   {
     id: "pathHint",
     name: "Path Hint",
-    description: "Lights one rune you still need.",
+    description: "Lights a leftover. Use when close.",
     cost: 25,
   },
   {
     id: "lanternOil",
     name: "Lantern Oil",
-    description: "Makes the next reveal last longer.",
+    description: "Longer reveal. Use on hard patterns.",
     cost: 35,
   },
   {
     id: "secondSight",
     name: "Second Sight",
-    description: "Shows the pattern again, briefly.",
+    description: "A brief replay. Use after embers fade.",
     cost: 50,
   },
   {
     id: "ward",
     name: "Rune Ward",
-    description: "Ignores the next wrong tap.",
+    description: "Ignores a miss. Use when guessing.",
     cost: 60,
   },
 ];

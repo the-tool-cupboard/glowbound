@@ -71,7 +71,6 @@ export default function ShopScreen() {
           embers={embers}
           canAfford={canAfford}
           onBuy={handleBuy}
-          showHint={false}
         />
       </View>
 
