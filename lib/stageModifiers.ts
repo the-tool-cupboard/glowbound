@@ -14,7 +14,9 @@ export const FACET_GLINT_MS = 280;
 export const RIPEN_ROT_SWAP_MS = 420;
 export const EMBER_FADE_WINDOW_MS = 6000;
 export const EMBER_FADE_RATIO = 0.4;
-export const EMBER_FADE_SWAP_MS = 280;
+export const EMBER_FADE_SWAP_MS = 400;
+export const EMBER_FADE_STATUS_NOTE = "Embers fade…";
+export const EMBER_BRIDGE_STATUS_NOTE = "Ember Bridge — hold the heat.";
 export const GATE_PULSE_MIN_MS = 170;
 export const GATE_PULSE_HOLD_MS = 220;
 export const GATE_PULSE_STATUS_NOTE = "Gate pulse — watch it rise.";
@@ -36,6 +38,7 @@ export interface StageRules {
   mirrorGhost: boolean;
   facetGlare: boolean;
   emberFade: boolean;
+  emberFadeSwap: boolean;
   twoFlight: boolean;
   orderedInput: boolean;
   crownGrant: CrownGrantMode;
@@ -74,6 +77,7 @@ export function resolveStageRules(level: number, difficulty: DifficultyId): Stag
     mirrorGhost: modifier === "reflection" && !calm,
     facetGlare: modifier === "facetGlare" && !calm,
     emberFade: modifier === "emberFade",
+    emberFadeSwap: modifier === "emberFade" && harsh,
     twoFlight: modifier === "twoFlight" || lanternTrial,
     orderedInput: modifier === "fallingOrder" && harsh,
     crownGrant:
@@ -282,6 +286,19 @@ export function pickEmberFadeSwap(
   return pickRipenRotSwap(remainingTargets, points, rng);
 }
 
+export function resolveEmberFadeSwap(
+  rules: StageRules,
+  remainingTargets: readonly CellId[],
+  points: readonly RunePoint[],
+  rng: Rng
+): { from: CellId; to: CellId } | null {
+  if (!rules.emberFadeSwap) {
+    return null;
+  }
+
+  return pickEmberFadeSwap(remainingTargets, points, rng);
+}
+
 function pulseDuration(totalMs: number, count: number, minMs: number): number {
   if (count <= 0) {
     return Math.max(0, totalMs);
@@ -456,6 +473,10 @@ export function roundPreviewStatusNote(
     return rules.crownGrant === "hiddenUntilInput"
       ? CROWN_HIDDEN_STATUS_NOTE
       : CROWN_SHOWN_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "emberFade") {
+    return EMBER_BRIDGE_STATUS_NOTE;
   }
 
   return null;
