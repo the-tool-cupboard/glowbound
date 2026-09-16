@@ -11,7 +11,10 @@ export const MIRROR_GHOST_MS = 380;
 export const MIRROR_SETTLE_MS = 120;
 export const MOONWELL_STATUS_NOTE = "Moonwell — the water lies.";
 export const FACET_GLINT_MS = 280;
-export const RIPEN_ROT_SWAP_MS = 420;
+export const RIPEN_ROT_LEAVE_MS = 140;
+export const RIPEN_ROT_LAND_MS = 200;
+export const RIPEN_ROT_SETTLE_MS = 150;
+export const NIGHT_ORCHARD_STATUS_NOTE = "Night Orchard — one fruit moves.";
 export const EMBER_FADE_WINDOW_MS = 6000;
 export const EMBER_FADE_RATIO = 0.4;
 export const EMBER_FADE_SWAP_MS = 400;
@@ -315,6 +318,26 @@ function plainPreviewStep(previewCellIds: readonly CellId[], durationMs: number)
   };
 }
 
+function ripenRotMoveSteps(swap: { from: CellId; to: CellId }): PreviewStep[] {
+  // Leave = dim glint on origin only; land = preview hilite on destination.
+  // Never a bilateral ghost flash — that verb is Moonwell's mirrored lie.
+  return [
+    {
+      previewCellIds: [],
+      glintCellIds: [swap.from],
+      ghostCellIds: [],
+      durationMs: RIPEN_ROT_LEAVE_MS,
+    },
+    {
+      previewCellIds: [swap.to],
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: RIPEN_ROT_LAND_MS,
+    },
+    plainPreviewStep([], RIPEN_ROT_SETTLE_MS),
+  ];
+}
+
 function accumulatePreviewSteps(
   ordered: readonly CellId[],
   stepMs: number
@@ -410,12 +433,7 @@ export function buildRoundPresentation(args: {
     const swap = pickRipenRotSwap(targets, layout.points, rng);
     if (swap != null) {
       inputTargets = applyTargetSwap(inputTargets, swap);
-      steps.push({
-        previewCellIds: [],
-        glintCellIds: [],
-        ghostCellIds: [swap.from, swap.to],
-        durationMs: RIPEN_ROT_SWAP_MS,
-      });
+      steps.push(...ripenRotMoveSteps(swap));
     }
   }
 
@@ -477,6 +495,10 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "emberFade") {
     return EMBER_BRIDGE_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "ripenRot") {
+    return NIGHT_ORCHARD_STATUS_NOTE;
   }
 
   return null;
