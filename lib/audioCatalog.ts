@@ -1,3 +1,5 @@
+import { getLevelInStage, getStageIndex } from "./gameConfig";
+
 export type SfxId =
   | "uiTap"
   | "uiSelect"
@@ -15,7 +17,17 @@ export type SfxId =
   | "emberGain"
   | "chapterUnlock"
   | "lastChanceSting"
-  | "lanternTrialClear";
+  | "lanternTrialClear"
+  | "chapterEnterSleepingWoods"
+  | "chapterEnterCastleGate"
+  | "chapterEnterMoonwell"
+  | "chapterEnterCrystalAscent"
+  | "chapterEnterEmberBridge"
+  | "chapterEnterTheTower"
+  | "chapterEnterStarfall"
+  | "chapterEnterHollowCrown"
+  | "chapterEnterNightOrchard"
+  | "chapterEnterTheBound";
 
 export type BgmId = "menuTheme" | "playTheme" | "resultsTheme";
 
@@ -60,7 +72,47 @@ export const SFX_CATALOG: readonly SfxEntry[] = [
   { id: "chapterUnlock", purpose: "New checkpoint chapter becomes available", filename: "chapter-unlock.wav" },
   { id: "lastChanceSting", purpose: "Last-chance menu appears after a wrong rune", filename: "last-chance-sting.wav" },
   { id: "lanternTrialClear", purpose: "Level 100 Lantern Trial cleared", filename: "lantern-trial-clear.wav" },
+  { id: "chapterEnterSleepingWoods", purpose: "Enter Sleeping Woods (levels 1–10)", filename: "chapter-enter-sleeping-woods.wav" },
+  { id: "chapterEnterCastleGate", purpose: "Enter Castle Gate (levels 11–20)", filename: "chapter-enter-castle-gate.wav" },
+  { id: "chapterEnterMoonwell", purpose: "Enter Moonwell (levels 21–30)", filename: "chapter-enter-moonwell.wav" },
+  { id: "chapterEnterCrystalAscent", purpose: "Enter Crystal Ascent (levels 31–40)", filename: "chapter-enter-crystal-ascent.wav" },
+  { id: "chapterEnterEmberBridge", purpose: "Enter Ember Bridge (levels 41–50)", filename: "chapter-enter-ember-bridge.wav" },
+  { id: "chapterEnterTheTower", purpose: "Enter The Tower (levels 51–60)", filename: "chapter-enter-the-tower.wav" },
+  { id: "chapterEnterStarfall", purpose: "Enter Starfall (levels 61–70)", filename: "chapter-enter-starfall.wav" },
+  { id: "chapterEnterHollowCrown", purpose: "Enter Hollow Crown (levels 71–80)", filename: "chapter-enter-hollow-crown.wav" },
+  { id: "chapterEnterNightOrchard", purpose: "Enter Night Orchard (levels 81–90)", filename: "chapter-enter-night-orchard.wav" },
+  { id: "chapterEnterTheBound", purpose: "Enter The Bound (levels 91–100)", filename: "chapter-enter-the-bound.wav" },
 ] as const;
+
+/** Chapter-enter stings in stage order (Sleeping Woods → The Bound). */
+export const CHAPTER_ENTER_SFX_IDS: readonly SfxId[] = [
+  "chapterEnterSleepingWoods",
+  "chapterEnterCastleGate",
+  "chapterEnterMoonwell",
+  "chapterEnterCrystalAscent",
+  "chapterEnterEmberBridge",
+  "chapterEnterTheTower",
+  "chapterEnterStarfall",
+  "chapterEnterHollowCrown",
+  "chapterEnterNightOrchard",
+  "chapterEnterTheBound",
+];
+
+/** Matching chapter-enter sting for a play level, or null if unmapped. */
+export function chapterEnterSfxForLevel(level: number): SfxId | null {
+  return CHAPTER_ENTER_SFX_IDS[getStageIndex(level) - 1] ?? null;
+}
+
+/**
+ * Play on run start at a chapter's first level, or when stage index increases
+ * versus the previous level in the same run.
+ */
+export function shouldPlayChapterEnterSfx(previousLevel: number | null, level: number): boolean {
+  if (previousLevel == null) {
+    return getLevelInStage(level) === 1;
+  }
+  return getStageIndex(level) > getStageIndex(previousLevel);
+}
 
 /** Background music slots — wired in engine; files optional. */
 export const BGM_CATALOG: readonly BgmEntry[] = [
@@ -149,6 +201,16 @@ export const SFX_SOURCES: Record<SfxId, number> = {
   chapterUnlock: require("../assets/audio/sfx/chapter-unlock.wav"),
   lastChanceSting: require("../assets/audio/sfx/last-chance-sting.wav"),
   lanternTrialClear: require("../assets/audio/sfx/lantern-trial-clear.wav"),
+  chapterEnterSleepingWoods: require("../assets/audio/sfx/chapter-enter-sleeping-woods.wav"),
+  chapterEnterCastleGate: require("../assets/audio/sfx/chapter-enter-castle-gate.wav"),
+  chapterEnterMoonwell: require("../assets/audio/sfx/chapter-enter-moonwell.wav"),
+  chapterEnterCrystalAscent: require("../assets/audio/sfx/chapter-enter-crystal-ascent.wav"),
+  chapterEnterEmberBridge: require("../assets/audio/sfx/chapter-enter-ember-bridge.wav"),
+  chapterEnterTheTower: require("../assets/audio/sfx/chapter-enter-the-tower.wav"),
+  chapterEnterStarfall: require("../assets/audio/sfx/chapter-enter-starfall.wav"),
+  chapterEnterHollowCrown: require("../assets/audio/sfx/chapter-enter-hollow-crown.wav"),
+  chapterEnterNightOrchard: require("../assets/audio/sfx/chapter-enter-night-orchard.wav"),
+  chapterEnterTheBound: require("../assets/audio/sfx/chapter-enter-the-bound.wav"),
 };
 
 /**
