@@ -1,5 +1,16 @@
 import { getLayoutForLevel } from "../lib/gameConfig";
-import { STAGE_LAYOUT_IDS, getLayout, minNormalizedDistance, runeCellSize } from "../lib/runeLayouts";
+import {
+  MIN_RUNE_CELL_SIZE,
+  RUNE_SPACING_GAP,
+  STAGE_LAYOUT_IDS,
+  fittedRuneCellSize,
+  getLayout,
+  minNormalizedDistance,
+  runeCellSize,
+  runeHitSlop,
+  runeNeighborGap,
+} from "../lib/runeLayouts";
+import { theme } from "../lib/theme";
 
 function pointKey(point: { x: number; y: number }): string {
   return `${point.x},${point.y}`;
@@ -43,9 +54,66 @@ describe("getLayout", () => {
         layout.points.every((point) => point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1)
       ).toBe(true);
       expect(minNormalizedDistance(layout.points)).toBeGreaterThan(0.1);
-      const cell = runeCellSize(layout.points, 1);
-      const gap = minNormalizedDistance(layout.points) * (1 - cell);
-      expect(gap).toBeGreaterThanOrEqual(cell);
+      const boardSize = 280;
+      const cell = runeCellSize(layout.points, boardSize);
+      const gap = minNormalizedDistance(layout.points) * (boardSize - cell);
+      expect(gap + 1e-9).toBeGreaterThanOrEqual(cell);
+      expect(cell).toBeLessThanOrEqual(fittedRuneCellSize(layout.points, boardSize));
     }
+  });
+});
+
+describe("runeCellSize", () => {
+  it("uses the spacing gap when that still sits above the pixel floor", () => {
+    const points = [
+      { x: 0.1, y: 0.5 },
+      { x: 0.9, y: 0.5 },
+    ];
+    const boardSize = 280;
+    const fitted = fittedRuneCellSize(points, boardSize);
+    const cell = runeCellSize(points, boardSize);
+
+    expect(fitted).toBeGreaterThan(MIN_RUNE_CELL_SIZE / RUNE_SPACING_GAP);
+    expect(cell).toBeCloseTo(fitted * RUNE_SPACING_GAP);
+    expect(cell).toBeLessThanOrEqual(fitted);
+  });
+
+  it("raises a short gapped fit to MIN_RUNE_CELL_SIZE without overlapping", () => {
+    const points = [
+      { x: 0.43, y: 0.5 },
+      { x: 0.57, y: 0.5 },
+    ];
+    const boardSize = 280;
+    const fitted = fittedRuneCellSize(points, boardSize);
+    const gapped = fitted * RUNE_SPACING_GAP;
+    const cell = runeCellSize(points, boardSize);
+
+    expect(gapped).toBeLessThan(MIN_RUNE_CELL_SIZE);
+    expect(fitted).toBeGreaterThan(MIN_RUNE_CELL_SIZE);
+    expect(cell).toBe(MIN_RUNE_CELL_SIZE);
+    expect(cell).toBeLessThanOrEqual(fitted);
+  });
+});
+
+describe("runeHitSlop", () => {
+  it("stays at 0 when the cell already meets the tap floor", () => {
+    expect(runeHitSlop(theme.minTapTarget, 12, theme.minTapTarget)).toBe(0);
+    expect(runeHitSlop(72, 20, theme.minTapTarget)).toBe(0);
+  });
+
+  it("grows the pressable toward minTapTarget without crossing leftover air", () => {
+    expect(runeHitSlop(40, 8, theme.minTapTarget)).toBe(4);
+    expect(runeHitSlop(40, 24, theme.minTapTarget)).toBe(10);
+  });
+
+  it("expands toward minTapTarget using leftover air between cells, not neighbor overlap", () => {
+    const points = getLayout("grid", 9).points;
+    const boardSize = 280;
+    const cell = runeCellSize(points, boardSize);
+    const neighborGap = runeNeighborGap(points, boardSize);
+    const slop = runeHitSlop(cell, neighborGap, theme.minTapTarget);
+
+    expect(slop * 2).toBeLessThanOrEqual(neighborGap + 1e-9);
+    expect(cell + slop * 2).toBeLessThanOrEqual(Math.max(cell, theme.minTapTarget) + 1e-9);
   });
 });

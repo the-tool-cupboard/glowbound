@@ -69,10 +69,10 @@ export const theme = {
     backgroundElevated: "#151D30",
     text: "#F4EBD0",
     textMuted: "#C4B896",
-    idle: "#3D4A5C",
-    idleBorder: "rgba(196, 184, 150, 0.22)",
-    idleCooled: "#243040",
-    idleCooledBorder: "rgba(110, 138, 168, 0.28)",
+    idle: "#243044",
+    idleBorder: "rgba(236, 220, 168, 0.62)",
+    idleCooled: "#1B2636",
+    idleCooledBorder: "rgba(148, 174, 202, 0.52)",
     preview: "#E6C35C",
     previewGlint: "#8A7340",
     previewGhost: "#6E8AA8",
@@ -118,6 +118,11 @@ export const theme = {
   overlay: {
     sky: "rgba(7, 11, 22, 0.42)",
     dock: "rgba(7, 11, 22, 0.55)",
+    board: "rgba(7, 11, 22, 0.52)",
+    boardRim: "rgba(196, 184, 150, 0.2)",
+  },
+  boardPlate: {
+    padding: 12,
   },
   artTextShadow: {
     textShadowColor: "rgba(7, 11, 22, 0.94)",

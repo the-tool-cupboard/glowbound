@@ -9,9 +9,13 @@ interface CircleRuneProps {
   visualState: RuneVisualState;
   disabled: boolean;
   onPress: (cellId: CellId) => void;
+  hitSlop?: number;
 }
 
-const GEM_SCALE = 0.78;
+/** Visible gem as a fraction of the layout cell. 0.88 reads larger than 0.78 without filling the cell. */
+export const GEM_SCALE = 0.88;
+
+const IDLE_OUTLINE = theme.pixel.outline + 1;
 
 const FILL_BY_STATE: Record<RuneVisualState, string> = {
   inactive: theme.colors.idle,
@@ -56,18 +60,23 @@ function stateLabel(visualState: RuneVisualState): string {
   }
 }
 
+function isResting(visualState: RuneVisualState): boolean {
+  return visualState === "inactive" || visualState === "emberCooled";
+}
+
 export function CircleRune({
   cellId,
   size,
   visualState,
   disabled,
   onPress,
+  hitSlop = 0,
 }: CircleRuneProps) {
   const fill = FILL_BY_STATE[visualState];
   const runeNumber = cellId + 1;
   const gemSize = size * GEM_SCALE;
   const gemRadius = theme.radius.pixel;
-  const lit = visualState !== "inactive" && visualState !== "emberCooled";
+  const resting = isResting(visualState);
 
   return (
     <Pressable
@@ -78,7 +87,7 @@ export function CircleRune({
         selected: visualState === "selected" || visualState === "correct",
       }}
       disabled={disabled}
-      hitSlop={0}
+      hitSlop={hitSlop}
       onPress={() => onPress(cellId)}
       style={({ pressed }) => [
         styles.hitTarget,
@@ -95,11 +104,16 @@ export function CircleRune({
             borderRadius: gemRadius,
             backgroundColor: fill,
             borderColor: BORDER_BY_STATE[visualState],
+            borderWidth: resting ? IDLE_OUTLINE : theme.pixel.outline,
           },
         ]}
       >
-        {lit ? <View style={styles.pixelHilite} /> : null}
-        {lit ? <View style={styles.pixelShade} /> : null}
+        {resting ? null : (
+          <>
+            <View style={styles.pixelHilite} />
+            <View style={styles.pixelShade} />
+          </>
+        )}
       </View>
     </Pressable>
   );
@@ -111,7 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   gem: {
-    borderWidth: theme.pixel.outline,
     overflow: "hidden",
   },
   pixelHilite: {
