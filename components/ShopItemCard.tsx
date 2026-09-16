@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { ShopCharmMark } from "@/components/ShopCharmMark";
+import { CHARM_GLYPH_PAINT, ShopCharmMark } from "@/components/ShopCharmMark";
 import { theme } from "@/lib/theme";
 import { MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
 import { isInventoryFull } from "@/lib/economyEngine";
@@ -9,6 +9,7 @@ import type { Inventory, PowerUpId, ShopItem } from "@/types/economy";
 
 const BUY_FLASH_MS = 720;
 const PRIME_WINDOW_MS = 650;
+const SHOP_MARK_SIZE = 56;
 
 interface ShopItemCardProps {
   item: ShopItem;
@@ -102,6 +103,7 @@ export function ShopItemCard({
   const locked = !canAfford || atCap;
   const unaffordable = !canAfford && !atCap;
   const shortfall = Math.max(0, item.cost - embers);
+  const paint = CHARM_GLYPH_PAINT[item.id];
   const hint = atCap
     ? `You already own the maximum of ${MAX_OWNED_PER_ITEM}`
     : canAfford
@@ -122,6 +124,7 @@ export function ShopItemCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
+        unaffordable && styles.tileUnaffordable,
         atCap && styles.tileCapped,
         primed && styles.tilePrimed,
         boughtFlash && styles.tileBought,
@@ -134,12 +137,32 @@ export function ShopItemCard({
           <View pointerEvents="none" style={styles.primeRing} />
         </>
       ) : null}
-      <View style={styles.mark}>
-        <ShopCharmMark itemId={item.id} />
+      <View
+        style={[
+          styles.mark,
+          { backgroundColor: paint.well, borderColor: paint.fill },
+          unaffordable && styles.markUnaffordable,
+          atCap && styles.markCapped,
+        ]}
+      >
+        <View style={unaffordable ? styles.markDim : undefined}>
+          <ShopCharmMark itemId={item.id} size={SHOP_MARK_SIZE} />
+        </View>
         {atCap ? <View pointerEvents="none" style={styles.ownedPip} /> : null}
       </View>
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.description}>{item.description}</Text>
+      <Text
+        numberOfLines={1}
+        maxFontSizeMultiplier={1.2}
+        style={[styles.name, unaffordable && styles.copyDim]}
+      >
+        {item.name}
+      </Text>
+      <Text
+        maxFontSizeMultiplier={1.2}
+        style={[styles.description, unaffordable && styles.copyDim]}
+      >
+        {item.description}
+      </Text>
       <View style={styles.costBlock} accessibilityElementsHidden>
         {unaffordable ? (
           <Text style={styles.needMore}>Need {shortfall} more</Text>
@@ -150,7 +173,10 @@ export function ShopItemCard({
           </>
         )}
       </View>
-      <Text style={styles.owned} accessibilityLabel={`${owned} of ${MAX_OWNED_PER_ITEM} owned`}>
+      <Text
+        style={[styles.owned, atCap && styles.ownedCapped]}
+        accessibilityLabel={`${owned} of ${MAX_OWNED_PER_ITEM} owned`}
+      >
         {atCap ? `Max ${MAX_OWNED_PER_ITEM}` : `${owned} owned`}
       </Text>
       {boughtFlash ? (
@@ -209,25 +235,27 @@ export function ShopGoodsDisplay({
 
   return (
     <View style={styles.stall}>
-      <View style={styles.shelf}>
-        {items.map((item) => (
-          <ShopItemCard
-            key={item.id}
-            item={item}
-            owned={inventory[item.id]}
-            embers={embers}
-            canAfford={canAfford(embers, item.cost)}
-            atCap={isInventoryFull(inventory, item.id)}
-            instantBuy={instantBuy}
-            onBuy={() => onBuy(item.id)}
-          />
-        ))}
+      <View pointerEvents="box-none" style={styles.plate}>
+        <View style={styles.shelf}>
+          {items.map((item) => (
+            <ShopItemCard
+              key={item.id}
+              item={item}
+              owned={inventory[item.id]}
+              embers={embers}
+              canAfford={canAfford(embers, item.cost)}
+              atCap={isInventoryFull(inventory, item.id)}
+              instantBuy={instantBuy}
+              onBuy={() => onBuy(item.id)}
+            />
+          ))}
+        </View>
+        {showHint ? (
+          <Text style={styles.hint}>
+            {instantBuy ? "Tap a charm to buy." : "Double-tap a charm to buy. Max 3 of each."}
+          </Text>
+        ) : null}
       </View>
-      {showHint ? (
-        <Text style={styles.hint}>
-          {instantBuy ? "Tap a charm to buy it." : "Double tap a charm to buy it. Max 3 of each."}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -236,6 +264,13 @@ const styles = StyleSheet.create({
   stall: {
     flex: 1,
     justifyContent: "center",
+  },
+  plate: {
+    backgroundColor: theme.overlay.stall,
+    borderRadius: theme.radius.lg,
+    borderWidth: theme.pixel.inset,
+    borderColor: theme.overlay.stallRim,
+    padding: theme.stallPlate.padding,
     gap: theme.spacing.md,
   },
   shelf: {
@@ -247,17 +282,21 @@ const styles = StyleSheet.create({
     flexBasis: "46%",
     flexGrow: 1,
     maxWidth: "48%",
-    minHeight: 168,
+    minHeight: 188,
     backgroundColor: theme.colors.backgroundElevated,
     borderRadius: theme.radius.pixel,
     borderWidth: theme.pixel.outline,
-    borderColor: theme.button3d.rim,
+    borderColor: "rgba(196, 184, 150, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     gap: 6,
     overflow: "hidden",
+  },
+  tileUnaffordable: {
+    borderColor: "rgba(196, 184, 150, 0.2)",
+    backgroundColor: "#10182A",
   },
   tileCapped: {
     borderColor: theme.colors.accent,
@@ -289,16 +328,24 @@ const styles = StyleSheet.create({
     transform: [{ translateY: theme.pixel.inset }],
   },
   mark: {
-    width: 48,
-    height: 48,
+    width: 64,
+    height: 64,
     borderRadius: theme.radius.pixel,
-    backgroundColor: "rgba(230, 195, 92, 0.16)",
     borderWidth: theme.pixel.outline,
-    borderColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
     overflow: "hidden",
+  },
+  markUnaffordable: {
+    borderColor: "rgba(196, 184, 150, 0.28)",
+    backgroundColor: "rgba(196, 184, 150, 0.08)",
+  },
+  markCapped: {
+    borderColor: theme.colors.accent,
+  },
+  markDim: {
+    opacity: 0.45,
   },
   ownedPip: {
     position: "absolute",
@@ -319,29 +366,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     ...theme.typography.caption,
   },
+  copyDim: {
+    color: "rgba(196, 184, 150, 0.72)",
+  },
   costBlock: {
     alignItems: "center",
     gap: 2,
-    minHeight: 34,
+    minHeight: 38,
     justifyContent: "center",
   },
   costValue: {
     color: theme.colors.accent,
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    lineHeight: 22,
     fontVariant: ["tabular-nums"],
-    ...theme.typography.overline,
   },
   costLabel: {
     color: theme.colors.textMuted,
     ...theme.typography.overline,
   },
   needMore: {
-    color: theme.colors.textMuted,
+    color: theme.colors.text,
     textAlign: "center",
     ...theme.typography.overline,
   },
   owned: {
     color: theme.colors.textMuted,
     ...theme.typography.overline,
+  },
+  ownedCapped: {
+    color: theme.colors.accent,
   },
   successFlash: {
     ...StyleSheet.absoluteFillObject,
@@ -375,5 +431,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textAlign: "center",
     ...theme.typography.caption,
+    ...theme.artTextShadow,
   },
 });
