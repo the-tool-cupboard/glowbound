@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
     minHeight: 0,
     width: "100%",
     justifyContent: "center",
-    gap: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
   },
   dockVeil: {
     marginHorizontal: -theme.spacing.lg,

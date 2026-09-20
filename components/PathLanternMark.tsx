@@ -13,20 +13,18 @@ interface PixelRect {
 }
 
 const FRAME: readonly PixelRect[] = [
-  { x: 7, y: 0, w: 2, h: 1 },
-  { x: 7, y: 1, w: 2, h: 2 },
-  { x: 5, y: 3, w: 6, h: 1 },
-  { x: 4, y: 4, w: 8, h: 1 },
-  { x: 3, y: 5, w: 2, h: 7 },
-  { x: 11, y: 5, w: 2, h: 7 },
-  { x: 4, y: 12, w: 8, h: 1 },
-  { x: 5, y: 13, w: 6, h: 1 },
-  { x: 6, y: 14, w: 4, h: 1 },
+  { x: 6, y: 0, w: 4, h: 2 },
+  { x: 7, y: 2, w: 2, h: 2 },
+  { x: 3, y: 4, w: 10, h: 2 },
+  { x: 3, y: 6, w: 2, h: 6 },
+  { x: 11, y: 6, w: 2, h: 6 },
+  { x: 3, y: 12, w: 10, h: 1 },
+  { x: 5, y: 13, w: 6, h: 2 },
 ];
 
 const FLAME: readonly PixelRect[] = [
-  { x: 7, y: 6, w: 2, h: 4 },
-  { x: 6, y: 7, w: 4, h: 2 },
+  { x: 7, y: 7, w: 2, h: 4 },
+  { x: 6, y: 8, w: 4, h: 2 },
 ];
 
 function rectKey(rect: PixelRect): string {

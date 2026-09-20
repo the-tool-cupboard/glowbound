@@ -6,8 +6,8 @@ import { formatEmberMultiplier } from "@/lib/economyConfig";
 import { theme } from "@/lib/theme";
 import type { DifficultyOption } from "@/types/economy";
 
-const PATH_MARK_SIZE = 40;
-const PATH_MARK_WELL = 44;
+const PATH_MARK_SIZE = 48;
+const PATH_MARK_WELL = 52;
 
 interface DifficultyCardProps {
   option: DifficultyOption;
@@ -66,15 +66,15 @@ export function DifficultyCard({ option, selected, onSelect }: DifficultyCardPro
 
 const styles = StyleSheet.create({
   outer: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     minHeight: theme.minTapTarget,
   },
   pressed: {
     transform: [{ translateY: theme.pixel.inset }],
   },
   plate: {
-    flex: 1,
-    minHeight: theme.minTapTarget,
+    minHeight: 96,
     backgroundColor: theme.overlay.stall,
     borderRadius: theme.radius.lg,
     borderWidth: theme.pixel.inset,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accent,
   },
   markQuiet: {
-    opacity: 0.86,
+    opacity: 0.92,
   },
   copy: {
     flex: 1,
@@ -134,8 +134,10 @@ const styles = StyleSheet.create({
   },
   name: {
     color: theme.colors.text,
-    ...theme.typography.heading,
-    letterSpacing: 0.6,
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    lineHeight: 22,
   },
   description: {
     color: theme.colors.textMuted,
