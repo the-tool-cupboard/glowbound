@@ -12,6 +12,8 @@ import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { canAfford } from "@/lib/economyEngine";
 import { theme } from "@/lib/theme";
 
+const passBackground = require("../assets/images/game images/GB_Results-Pass.png");
+
 function asCount(value: string | string[] | undefined): number {
   const raw = Array.isArray(value) ? value[0] : value;
   const parsed = Number.parseInt(raw ?? "0", 10);
@@ -74,22 +76,47 @@ export default function LevelCompleteScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.screen}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Level {level} complete</Text>
-        <Text style={styles.copy}>You earned {shardsEarned} embers.</Text>
-        <CurrencyBalance embers={embers} pending={!ready} />
+    <ScreenContainer style={styles.screen} backgroundSource={passBackground}>
+      <View style={styles.skyVeil}>
+        <View style={styles.hero}>
+          <View style={styles.brand}>
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              maxFontSizeMultiplier={1.2}
+              style={styles.title}
+            >
+              Level {level} clear.
+            </Text>
+            <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.copy}>
+              You earned {shardsEarned} embers.
+            </Text>
+          </View>
+          <CurrencyBalance
+            embers={embers}
+            align="right"
+            accessible
+            onArt
+            compact
+            chip
+            pending={!ready}
+          />
+        </View>
       </View>
 
-      <ShopGoodsDisplay
-        items={SHOP_ITEMS}
-        inventory={inventory}
-        embers={embers}
-        canAfford={canAfford}
-        onBuy={handleBuy}
-      />
+      <View style={styles.stage}>
+        <ShopGoodsDisplay
+          items={SHOP_ITEMS}
+          inventory={inventory}
+          embers={embers}
+          canAfford={canAfford}
+          onBuy={handleBuy}
+        />
+      </View>
 
-      <View style={styles.actions}>
+      <View style={styles.dockVeil}>
         <PrimaryButton
           label="Continue"
           fullWidth
@@ -112,22 +139,46 @@ const styles = StyleSheet.create({
   screen: {
     width: "100%",
   },
+  skyVeil: {
+    marginHorizontal: -theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.overlay.sky,
+  },
   hero: {
-    paddingTop: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+  },
+  brand: {
+    flex: 1,
+    minWidth: 0,
+    gap: theme.spacing.xs,
   },
   title: {
     color: theme.colors.text,
-    ...theme.typography.title,
+    ...theme.typography.heading,
+    ...theme.artTextShadow,
   },
   copy: {
     color: theme.colors.textMuted,
-    ...theme.typography.body,
+    ...theme.typography.caption,
+    ...theme.artTextShadow,
   },
-  actions: {
+  stage: {
+    flex: 1,
+    minHeight: 0,
     width: "100%",
-    gap: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+  },
+  dockVeil: {
+    marginHorizontal: -theme.spacing.lg,
+    marginBottom: -theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
+    gap: theme.spacing.xs,
+    backgroundColor: theme.overlay.dock,
   },
 });
