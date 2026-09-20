@@ -1,8 +1,9 @@
 import { StyleSheet, View } from "react-native";
-import Svg, { Circle, ClipPath, Defs, G, Polygon, Rect } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, G, Path, Polygon, Rect } from "react-native-svg";
 
 import {
   formatPolygonPoints,
+  gemPetalPath,
   gemPolygonPoints,
   gemStrokeInset,
   type RuneGemShape,
@@ -93,8 +94,30 @@ export function GemFace({
     );
   }
 
+  if (shape === "petal") {
+    const d = gemPetalPath(size, inset);
+    return (
+      <Svg width={size} height={size} pointerEvents="none">
+        <Defs>
+          <ClipPath id={clipId}>
+            <Path d={d} />
+          </ClipPath>
+        </Defs>
+        <Path
+          d={d}
+          fill={fill}
+          stroke={borderColor}
+          strokeWidth={borderWidth}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {hilite}
+      </Svg>
+    );
+  }
+
   const points = formatPolygonPoints(gemPolygonPoints(shape, size, inset));
-  const roundJoin = shape === "triangle";
+  const roundJoin = shape === "triangle" || shape === "cross" || shape === "pentagon" || shape === "octagon";
 
   return (
     <Svg width={size} height={size} pointerEvents="none">
