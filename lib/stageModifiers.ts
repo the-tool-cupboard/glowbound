@@ -10,7 +10,9 @@ import type { Rng } from "./gameEngine";
 export const MIRROR_GHOST_MS = 380;
 export const MIRROR_SETTLE_MS = 120;
 export const MOONWELL_STATUS_NOTE = "Moonwell — the water lies.";
-export const FACET_GLINT_MS = 280;
+export const FACET_GLINT_MS = 240;
+export const FACET_GLINT_SETTLE_MS = 100;
+export const CRYSTAL_ASCENT_STATUS_NOTE = "Crystal Ascent — some light lies.";
 export const RIPEN_ROT_LEAVE_MS = 140;
 export const RIPEN_ROT_LAND_MS = 200;
 export const RIPEN_ROT_SETTLE_MS = 150;
@@ -327,6 +329,35 @@ function plainPreviewStep(previewCellIds: readonly CellId[], durationMs: number)
   };
 }
 
+function facetGlareSteps(
+  targets: readonly CellId[],
+  glints: readonly CellId[],
+  previewMs: number
+): PreviewStep[] {
+  // Lie = dim glint on false cells only; settle clears the flash; hold = real targets.
+  // Never light real targets at full preview brightness on the same beat as the lie.
+  if (glints.length === 0) {
+    return [plainPreviewStep(targets, previewMs)];
+  }
+
+  const glintMs = Math.min(FACET_GLINT_MS, Math.max(80, previewMs));
+  const settleMs = Math.min(FACET_GLINT_SETTLE_MS, Math.max(0, previewMs - glintMs - 80));
+  const restMs = Math.max(80, previewMs - glintMs - settleMs);
+  const steps: PreviewStep[] = [
+    {
+      previewCellIds: [],
+      glintCellIds: glints,
+      ghostCellIds: [],
+      durationMs: glintMs,
+    },
+  ];
+  if (settleMs > 0) {
+    steps.push(plainPreviewStep([], settleMs));
+  }
+  steps.push(plainPreviewStep(targets, restMs));
+  return steps;
+}
+
 function ripenRotMoveSteps(swap: { from: CellId; to: CellId }): PreviewStep[] {
   // Leave = dim glint on origin only; land = preview hilite on destination.
   // Never a bilateral ghost flash — that verb is Moonwell's mirrored lie.
@@ -399,20 +430,7 @@ export function buildRoundPresentation(args: {
     steps.push(plainPreviewStep(ordered, STARFALL_HOLD_MS));
   } else if (rules.facetGlare) {
     const glints = pickFacetGlints(layout.runeCount, targets, rng);
-    const glintMs = Math.min(FACET_GLINT_MS, Math.max(80, Math.floor(safePreview * 0.35)));
-    const restMs = Math.max(80, safePreview - glintMs);
-    steps.push({
-      previewCellIds: targets,
-      glintCellIds: glints,
-      ghostCellIds: [],
-      durationMs: glintMs,
-    });
-    steps.push({
-      previewCellIds: targets,
-      glintCellIds: [],
-      ghostCellIds: [],
-      durationMs: restMs,
-    });
+    steps.push(...facetGlareSteps(targets, glints, safePreview));
   } else {
     steps.push({
       previewCellIds: targets,
@@ -562,6 +580,10 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "ripenRot") {
     return NIGHT_ORCHARD_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "facetGlare") {
+    return CRYSTAL_ASCENT_STATUS_NOTE;
   }
 
   return null;

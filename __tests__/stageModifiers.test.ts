@@ -2,6 +2,7 @@ import { CHECKPOINTS, getLevelConfig } from "../lib/gameConfig";
 import { getLayout } from "../lib/runeLayouts";
 import {
   BOUND_CHAPTER_STATUS_NOTE,
+  CRYSTAL_ASCENT_STATUS_NOTE,
   CROWN_CLAIMED_INPUT_NOTE,
   CROWN_HIDDEN_STATUS_NOTE,
   CROWN_INPUT_HOLD_MS,
@@ -9,6 +10,8 @@ import {
   EMBER_BRIDGE_STATUS_NOTE,
   EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
+  FACET_GLINT_MS,
+  FACET_GLINT_SETTLE_MS,
   GATE_PULSE_HOLD_MS,
   GATE_PULSE_MIN_MS,
   GATE_PULSE_STATUS_NOTE,
@@ -314,6 +317,96 @@ describe("preview presentation", () => {
     expect(glints.every((id) => ![0, 1, 2, 3, 4].includes(id))).toBe(true);
   });
 
+  it("flashes Crystal Ascent false glints alone, settles, then holds the real targets", () => {
+    expect(FACET_GLINT_MS).toBe(240);
+    expect(FACET_GLINT_SETTLE_MS).toBe(100);
+    const rules = resolveStageRules(31, "standard");
+    const targets = [0, 1, 2];
+    const layout = getLayout("ring", 9);
+    const previewMs = 1000;
+    const glints = pickFacetGlints(layout.runeCount, targets, () => 0);
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout,
+      previewMs,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(glints.length).toBeGreaterThan(0);
+    expect(plan.steps).toHaveLength(3);
+    expect(plan.steps[0]).toEqual({
+      previewCellIds: [],
+      glintCellIds: glints,
+      ghostCellIds: [],
+      durationMs: FACET_GLINT_MS,
+    });
+    expect(plan.steps[1]).toEqual({
+      previewCellIds: [],
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: FACET_GLINT_SETTLE_MS,
+    });
+    expect(plan.steps[2]).toEqual({
+      previewCellIds: targets,
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: previewMs - FACET_GLINT_MS - FACET_GLINT_SETTLE_MS,
+    });
+    expect(plan.steps[2]!.durationMs).toBeGreaterThan(plan.steps[0]!.durationMs);
+    expect(plan.steps[2]!.durationMs).toBeGreaterThan(
+      plan.steps[0]!.durationMs + plan.steps[1]!.durationMs
+    );
+    expect(plan.inputTargets).toEqual(targets);
+    expect(glints.every((id) => !targets.includes(id))).toBe(true);
+  });
+
+  it("keeps Crystal Ascent Harsh on the same lie-then-truth path as Standard", () => {
+    const targets = [1, 2];
+    const layout = getLayout("ring", 9);
+    const previewMs = 900;
+    const glints = pickFacetGlints(layout.runeCount, targets, () => 0);
+    const plan = buildRoundPresentation({
+      rules: resolveStageRules(31, "harsh"),
+      targets,
+      layout,
+      previewMs,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(3);
+    expect(plan.steps[0]?.previewCellIds).toEqual([]);
+    expect(plan.steps[0]?.glintCellIds).toEqual(glints);
+    expect(plan.steps[0]?.durationMs).toBe(FACET_GLINT_MS);
+    expect(plan.steps[1]?.durationMs).toBe(FACET_GLINT_SETTLE_MS);
+    expect(plan.steps[2]?.previewCellIds).toEqual(targets);
+    expect(plan.steps[2]?.glintCellIds).toEqual([]);
+    expect(plan.steps[2]?.durationMs).toBe(previewMs - FACET_GLINT_MS - FACET_GLINT_SETTLE_MS);
+    expect(plan.inputTargets).toEqual(targets);
+  });
+
+  it("keeps Crystal Ascent Calm without a false-glint flash or settle beat", () => {
+    const rules = resolveStageRules(31, "calm");
+    expect(rules.facetGlare).toBe(false);
+    const targets = [0, 3];
+    const plan = buildRoundPresentation({
+      rules,
+      targets,
+      layout: getLayout("ring", 9),
+      previewMs: 1000,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]).toEqual({
+      previewCellIds: targets,
+      glintCellIds: [],
+      ghostCellIds: [],
+      durationMs: 1000,
+    });
+    expect(plan.inputTargets).toEqual(targets);
+  });
+
   it("swaps one Night Orchard target with a neighbor for the input board", () => {
     const rules = resolveStageRules(81, "standard");
     const targets = [0, 1, 2];
@@ -443,6 +536,22 @@ describe("preview presentation", () => {
     expect(plan.steps[0]?.ghostCellIds).toEqual([]);
   });
 
+  it("does not replay Crystal Ascent glare during Second Sight", () => {
+    const rules = resolveStageRules(31, "standard");
+    const plan = buildRoundPresentation({
+      rules,
+      targets: [0, 1, 2],
+      layout: getLayout("ring", 9),
+      previewMs: 900,
+      kind: "sight",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]?.previewCellIds).toEqual([0, 1, 2]);
+    expect(plan.steps[0]?.glintCellIds).toEqual([]);
+    expect(plan.inputTargets).toEqual([0, 1, 2]);
+  });
+
   it("does not replay the Night Orchard move telegraph during Second Sight", () => {
     const rules = resolveStageRules(81, "standard");
     const plan = buildRoundPresentation({
@@ -489,6 +598,19 @@ describe("preview status notes", () => {
       MOONWELL_STATUS_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(21, "harsh"), 0, 1)).toBe(MOONWELL_STATUS_NOTE);
+  });
+
+  it("teaches Crystal Ascent on every difficulty during preview", () => {
+    expect(CRYSTAL_ASCENT_STATUS_NOTE).toBe("Crystal Ascent — some light lies.");
+    expect(roundPreviewStatusNote(resolveStageRules(31, "calm"), 0, 1)).toBe(
+      CRYSTAL_ASCENT_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(31, "standard"), 0, 1)).toBe(
+      CRYSTAL_ASCENT_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(31, "harsh"), 0, 1)).toBe(
+      CRYSTAL_ASCENT_STATUS_NOTE
+    );
   });
 
   it("teaches Hollow Crown by grant mode during preview", () => {
@@ -556,7 +678,7 @@ describe("preview status notes", () => {
     );
   });
 
-  it("keeps lantern trial seals and two-flight notes ahead of Bound, Gate, Starfall, Moonwell, Crown, Ember, and Orchard copy", () => {
+  it("keeps lantern trial seals and two-flight notes ahead of Bound, Gate, Starfall, Moonwell, Crown, Ember, Orchard, and Crystal copy", () => {
     expect(roundPreviewStatusNote(resolveStageRules(100, "standard"), 0, 2)).toBe(
       lanternTrialSealNote(0)
     );
@@ -607,6 +729,15 @@ describe("preview status notes", () => {
       flightStatusNote(0, 2)
     );
     expect(roundPreviewStatusNote({ ...resolveStageRules(91, "standard"), twoFlight: true }, 0, 2)).toBe(
+      flightStatusNote(0, 2)
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(31, "standard"), 0, 1)).toBe(
+      CRYSTAL_ASCENT_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote({ ...resolveStageRules(31, "standard"), lanternTrial: true }, 0, 1)).toBe(
+      LANTERN_TRIAL_FIRST_SEAL_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(31, "standard"), 0, 2)).toBe(
       flightStatusNote(0, 2)
     );
   });
