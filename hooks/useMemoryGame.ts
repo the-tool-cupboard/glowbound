@@ -21,10 +21,10 @@ import {
   CROWN_INPUT_HOLD_MS,
   EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
-  LANTERN_TRIAL_HOLD_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
+  betweenFlightHoldNote,
   buildRoundPresentation,
   emberFadeAtMs,
   inputStatusFlightNote,
@@ -610,7 +610,7 @@ export function useMemoryGame() {
             const holdMs = betweenFlightHoldMs(rules);
             if (holdMs > 0) {
               lanternHoldLockedRef.current = true;
-              setStatusNote(LANTERN_TRIAL_HOLD_NOTE);
+              setStatusNote(betweenFlightHoldNote(rules));
               clearTimer(lanternHoldTimerRef);
               lanternHoldTimerRef.current = setTimeout(() => {
                 lanternHoldTimerRef.current = null;

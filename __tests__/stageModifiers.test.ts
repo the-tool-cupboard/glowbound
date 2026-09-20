@@ -27,13 +27,19 @@ import {
   STARFALL_ORDER_STATUS_NOTE,
   STARFALL_STEP_MIN_MS,
   STARFALL_WATCH_STATUS_NOTE,
+  TOWER_ASCEND_MS,
+  TOWER_ASCEND_NOTE,
+  TOWER_FIRST_FLIGHT_NOTE,
+  TOWER_SECOND_FLIGHT_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
+  betweenFlightHoldNote,
   buildRoundPresentation,
   emberFadeAtMs,
   flightStatusNote,
   inputStatusFlightNote,
+  isTowerTwoFlight,
   lanternTrialSealNote,
   mirroredCellId,
   pickEmberFadeSwap,
@@ -45,6 +51,7 @@ import {
   roundPreviewStatusNote,
   sortByBoardY,
   splitTwoFlight,
+  towerFlightNote,
 } from "../lib/stageModifiers";
 import { chapterArtKey } from "../lib/chapterBackgrounds";
 
@@ -554,10 +561,10 @@ describe("preview status notes", () => {
       lanternTrialSealNote(0)
     );
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 0, 2)).toBe(
-      flightStatusNote(0, 2)
+      TOWER_FIRST_FLIGHT_NOTE
     );
     expect(roundPreviewStatusNote(resolveStageRules(51, "standard"), 1, 2)).toBe(
-      flightStatusNote(1, 2)
+      TOWER_SECOND_FLIGHT_NOTE
     );
     expect(roundPreviewStatusNote({ ...resolveStageRules(61, "harsh"), lanternTrial: true }, 0, 1)).toBe(
       LANTERN_TRIAL_FIRST_SEAL_NOTE
@@ -604,21 +611,60 @@ describe("preview status notes", () => {
     );
   });
 
-  it("uses Bound seals for Lantern Trial input and keeps Tower on Flight N of 2", () => {
+  it("uses Bound seals for Lantern Trial input and Tower-unique flight copy", () => {
     const lantern = resolveStageRules(100, "standard");
     const tower = resolveStageRules(51, "standard");
     expect(inputStatusFlightNote(lantern, 0, 2)).toBe(LANTERN_TRIAL_FIRST_SEAL_NOTE);
     expect(inputStatusFlightNote(lantern, 1, 2)).toBe(LANTERN_TRIAL_FINAL_SEAL_NOTE);
-    expect(inputStatusFlightNote(tower, 0, 2)).toBe(flightStatusNote(0, 2));
-    expect(inputStatusFlightNote(tower, 1, 2)).toBe(flightStatusNote(1, 2));
+    expect(inputStatusFlightNote(tower, 0, 2)).toBe(TOWER_FIRST_FLIGHT_NOTE);
+    expect(inputStatusFlightNote(tower, 1, 2)).toBe(TOWER_SECOND_FLIGHT_NOTE);
     expect(flightStatusNote(0, 2)).toBe("Flight 1 of 2.");
     expect(flightStatusNote(1, 2)).toBe("Flight 2 of 2.");
   });
 
-  it("holds only between Lantern Trial flights", () => {
+  it("teaches The Tower flights on 51–60 and holds Ascend between them", () => {
+    expect(TOWER_FIRST_FLIGHT_NOTE).toBe("The Tower — first flight.");
+    expect(TOWER_SECOND_FLIGHT_NOTE).toBe("The Tower — second flight.");
+    expect(TOWER_ASCEND_NOTE).toBe("Ascend.");
+    expect(TOWER_ASCEND_MS).toBe(300);
+    expect(towerFlightNote(0)).toBe(TOWER_FIRST_FLIGHT_NOTE);
+    expect(towerFlightNote(1)).toBe(TOWER_SECOND_FLIGHT_NOTE);
+    expect(isTowerTwoFlight(resolveStageRules(51, "calm"))).toBe(true);
+    expect(isTowerTwoFlight(resolveStageRules(60, "harsh"))).toBe(true);
+    expect(isTowerTwoFlight(resolveStageRules(100, "standard"))).toBe(false);
+    expect(isTowerTwoFlight(resolveStageRules(91, "standard"))).toBe(false);
+    expect(isTowerTwoFlight({ ...resolveStageRules(91, "standard"), twoFlight: true })).toBe(
+      false
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(51, "calm"), 0, 2)).toBe(
+      TOWER_FIRST_FLIGHT_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(55, "standard"), 1, 2)).toBe(
+      TOWER_SECOND_FLIGHT_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(60, "harsh"), 0, 2)).toBe(
+      TOWER_FIRST_FLIGHT_NOTE
+    );
+    expect(inputStatusFlightNote(resolveStageRules(51, "calm"), 0, 2)).toBe(
+      TOWER_FIRST_FLIGHT_NOTE
+    );
+    expect(inputStatusFlightNote(resolveStageRules(60, "harsh"), 1, 2)).toBe(
+      TOWER_SECOND_FLIGHT_NOTE
+    );
+    expect(betweenFlightHoldMs(resolveStageRules(51, "standard"))).toBe(TOWER_ASCEND_MS);
+    expect(betweenFlightHoldNote(resolveStageRules(51, "standard"))).toBe(TOWER_ASCEND_NOTE);
+    expect(betweenFlightHoldNote(resolveStageRules(100, "standard"))).toBe(LANTERN_TRIAL_HOLD_NOTE);
+    expect(betweenFlightHoldNote(resolveStageRules(91, "standard"))).toBeNull();
+    expect(betweenFlightHoldNote(resolveStageRules(1, "standard"))).toBeNull();
+  });
+
+  it("holds between Lantern Trial flights and Tower flights only", () => {
     expect(betweenFlightHoldMs(resolveStageRules(100, "standard"))).toBe(LANTERN_TRIAL_HOLD_MS);
-    expect(betweenFlightHoldMs(resolveStageRules(51, "standard"))).toBe(0);
+    expect(betweenFlightHoldMs(resolveStageRules(51, "standard"))).toBe(TOWER_ASCEND_MS);
     expect(betweenFlightHoldMs(resolveStageRules(91, "standard"))).toBe(0);
+    expect(betweenFlightHoldMs(resolveStageRules(1, "standard"))).toBe(0);
+    expect(betweenFlightHoldMs(resolveStageRules(11, "standard"))).toBe(0);
+    expect(betweenFlightHoldMs({ ...resolveStageRules(91, "standard"), twoFlight: true })).toBe(0);
   });
 });
 

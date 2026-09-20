@@ -36,6 +36,10 @@ export const LANTERN_TRIAL_HOLD_NOTE = "The lantern holds…";
 export const LANTERN_TRIAL_FIRST_SEAL_NOTE = "The Bound — first seal.";
 export const LANTERN_TRIAL_FINAL_SEAL_NOTE = "The Bound — final seal.";
 export const BOUND_CHAPTER_STATUS_NOTE = "The Bound — the spiral tightens.";
+export const TOWER_ASCEND_MS = 300;
+export const TOWER_ASCEND_NOTE = "Ascend.";
+export const TOWER_FIRST_FLIGHT_NOTE = "The Tower — first flight.";
+export const TOWER_SECOND_FLIGHT_NOTE = "The Tower — second flight.";
 
 export type CrownGrantMode = "none" | "shown" | "hiddenUntilInput";
 export type SequentialPreview = "none" | "accumulateBottomToTop" | "accumulateTopToBottom";
@@ -470,8 +474,18 @@ export function lanternTrialSealNote(flightIndex: number): string {
   return flightIndex <= 0 ? LANTERN_TRIAL_FIRST_SEAL_NOTE : LANTERN_TRIAL_FINAL_SEAL_NOTE;
 }
 
+export function towerFlightNote(flightIndex: number): string {
+  return flightIndex <= 0 ? TOWER_FIRST_FLIGHT_NOTE : TOWER_SECOND_FLIGHT_NOTE;
+}
+
+type TwoFlightRules = Pick<StageRules, "twoFlight" | "lanternTrial" | "modifier">;
+
+export function isTowerTwoFlight(rules: TwoFlightRules): boolean {
+  return rules.twoFlight && !rules.lanternTrial && rules.modifier === "twoFlight";
+}
+
 export function inputStatusFlightNote(
-  rules: Pick<StageRules, "lanternTrial">,
+  rules: TwoFlightRules,
   flightIndex: number,
   flightCount: number
 ): string | null {
@@ -479,11 +493,27 @@ export function inputStatusFlightNote(
     return lanternTrialSealNote(flightIndex);
   }
 
+  if (isTowerTwoFlight(rules)) {
+    return flightCount < 2 ? null : towerFlightNote(flightIndex);
+  }
+
   return flightStatusNote(flightIndex, flightCount);
 }
 
-export function betweenFlightHoldMs(rules: Pick<StageRules, "lanternTrial">): number {
-  return rules.lanternTrial ? LANTERN_TRIAL_HOLD_MS : 0;
+export function betweenFlightHoldMs(rules: TwoFlightRules): number {
+  if (rules.lanternTrial) {
+    return LANTERN_TRIAL_HOLD_MS;
+  }
+
+  return isTowerTwoFlight(rules) ? TOWER_ASCEND_MS : 0;
+}
+
+export function betweenFlightHoldNote(rules: TwoFlightRules): string | null {
+  if (rules.lanternTrial) {
+    return LANTERN_TRIAL_HOLD_NOTE;
+  }
+
+  return isTowerTwoFlight(rules) ? TOWER_ASCEND_NOTE : null;
 }
 
 export function roundPreviewStatusNote(
@@ -493,6 +523,10 @@ export function roundPreviewStatusNote(
 ): string | null {
   if (rules.lanternTrial) {
     return lanternTrialSealNote(flightIndex);
+  }
+
+  if (isTowerTwoFlight(rules)) {
+    return flightCount < 2 ? null : towerFlightNote(flightIndex);
   }
 
   const flightNote = flightStatusNote(flightIndex, flightCount);
