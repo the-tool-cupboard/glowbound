@@ -14,7 +14,11 @@ import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
 import { chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
-import { chapterBackground } from "@/lib/chapterBackgrounds";
+import {
+  chapterArtKey,
+  chapterBackground,
+  chapterPlayfieldCropStyle,
+} from "@/lib/chapterBackgrounds";
 import { calculateLanternShards, isDifficultyId } from "@/lib/economyEngine";
 import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS, getStageIndex } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
@@ -320,11 +324,17 @@ export default function GameScreen() {
   };
 
   const showRemaining = phase === "playerInput";
-  const backgroundSource = chapterBackground(phase === "idle" ? startLevel : level);
+  const backgroundLevel = phase === "idle" ? startLevel : level;
+  const backgroundSource = chapterBackground(backgroundLevel);
+  const backgroundImageStyle = chapterPlayfieldCropStyle(chapterArtKey(backgroundLevel));
   const onArt = true;
 
   return (
-    <ScreenContainer style={styles.screen} backgroundSource={backgroundSource}>
+    <ScreenContainer
+      style={styles.screen}
+      backgroundSource={backgroundSource}
+      backgroundImageStyle={backgroundImageStyle}
+    >
       <View style={onArt ? styles.skyVeil : undefined}>
         <GameHeader
           level={level}

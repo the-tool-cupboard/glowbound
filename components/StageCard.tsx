@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image, type ImageProps } from "expo-image";
 
 import {
-  CHAPTER_THUMB_CONTENT_FIT,
-  CHAPTER_THUMB_CONTENT_POSITION,
+  CHAPTER_ART_CONTENT_FIT,
+  CHAPTER_ART_CONTENT_POSITION,
   CHAPTER_THUMB_CROP_STYLE,
 } from "@/lib/chapterBackgrounds";
 import { theme } from "@/lib/theme";
@@ -47,8 +47,8 @@ export function StageCard({
           <Image
             source={thumbnail}
             style={CHAPTER_THUMB_CROP_STYLE}
-            contentFit={CHAPTER_THUMB_CONTENT_FIT}
-            contentPosition={CHAPTER_THUMB_CONTENT_POSITION}
+            contentFit={CHAPTER_ART_CONTENT_FIT}
+            contentPosition={CHAPTER_ART_CONTENT_POSITION}
             cachePolicy="memory-disk"
             accessible={false}
           />
