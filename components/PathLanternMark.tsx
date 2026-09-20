@@ -15,16 +15,24 @@ interface PixelRect {
 const FRAME: readonly PixelRect[] = [
   { x: 6, y: 0, w: 4, h: 2 },
   { x: 7, y: 2, w: 2, h: 2 },
-  { x: 3, y: 4, w: 10, h: 2 },
-  { x: 3, y: 6, w: 2, h: 6 },
-  { x: 11, y: 6, w: 2, h: 6 },
-  { x: 3, y: 12, w: 10, h: 1 },
-  { x: 5, y: 13, w: 6, h: 2 },
+  { x: 2, y: 4, w: 12, h: 2 },
+  { x: 2, y: 6, w: 3, h: 6 },
+  { x: 11, y: 6, w: 3, h: 6 },
+  { x: 2, y: 12, w: 12, h: 2 },
+  { x: 4, y: 14, w: 8, h: 2 },
 ];
 
+const GLASS: readonly PixelRect[] = [{ x: 5, y: 6, w: 6, h: 6 }];
+
 const FLAME: readonly PixelRect[] = [
-  { x: 7, y: 7, w: 2, h: 4 },
-  { x: 6, y: 8, w: 4, h: 2 },
+  { x: 7, y: 6, w: 2, h: 5 },
+  { x: 6, y: 8, w: 4, h: 3 },
+];
+
+const FLAME_LIT: readonly PixelRect[] = [
+  { x: 7, y: 5, w: 2, h: 6 },
+  { x: 6, y: 7, w: 4, h: 4 },
+  { x: 5, y: 8, w: 6, h: 2 },
 ];
 
 function rectKey(rect: PixelRect): string {
@@ -67,6 +75,7 @@ export function PathLanternMark({
 }: PathLanternMarkProps) {
   const paint = theme.path[pathId];
   const cell = size / GRID;
+  const flameRects = selected ? FLAME_LIT : FLAME;
   const flame = selected ? paint.flameLit : paint.flame;
 
   return (
@@ -78,8 +87,11 @@ export function PathLanternMark({
       {FRAME.map((rect) => (
         <PixelBlob key={rectKey(rect)} rect={rect} cell={cell} fill={paint.metal} />
       ))}
-      {FLAME.map((rect) => (
-        <PixelBlob key={rectKey(rect)} rect={rect} cell={cell} fill={flame} />
+      {GLASS.map((rect) => (
+        <PixelBlob key={`glass-${rectKey(rect)}`} rect={rect} cell={cell} fill={paint.well} />
+      ))}
+      {flameRects.map((rect) => (
+        <PixelBlob key={`flame-${rectKey(rect)}`} rect={rect} cell={cell} fill={flame} />
       ))}
     </View>
   );

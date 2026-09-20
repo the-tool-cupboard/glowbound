@@ -6,8 +6,8 @@ import { formatEmberMultiplier } from "@/lib/economyConfig";
 import { theme } from "@/lib/theme";
 import type { DifficultyOption } from "@/types/economy";
 
-const PATH_MARK_SIZE = 48;
-const PATH_MARK_WELL = 52;
+const PATH_MARK_SIZE = 68;
+const PATH_MARK_WELL = 72;
 
 interface DifficultyCardProps {
   option: DifficultyOption;
@@ -33,7 +33,6 @@ export function DifficultyCard({ option, selected, onSelect }: DifficultyCardPro
     >
       <View style={[styles.plate, selected ? styles.plateSelected : styles.plateQuiet]}>
         <View style={[styles.pixelHilite, selected && styles.pixelHiliteOn]} />
-        {selected ? <View pointerEvents="none" style={styles.selectedRing} /> : null}
         <View
           style={[
             styles.mark,
@@ -49,7 +48,7 @@ export function DifficultyCard({ option, selected, onSelect }: DifficultyCardPro
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.name}>
             {option.name}
           </Text>
-          <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.description}>
+          <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.description}>
             {option.description}
           </Text>
         </View>
@@ -74,12 +73,13 @@ const styles = StyleSheet.create({
     transform: [{ translateY: theme.pixel.inset }],
   },
   plate: {
-    minHeight: 108,
+    minHeight: 132,
     backgroundColor: theme.overlay.stall,
     borderRadius: theme.radius.lg,
     borderWidth: theme.pixel.inset,
     borderColor: theme.overlay.stallRim,
-    padding: theme.stallPlate.padding,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
@@ -104,13 +104,6 @@ const styles = StyleSheet.create({
   },
   pixelHiliteOn: {
     backgroundColor: theme.button3d.highlight,
-  },
-  selectedRing: {
-    ...StyleSheet.absoluteFillObject,
-    margin: 4,
-    borderWidth: theme.pixel.inset,
-    borderColor: theme.colors.accent,
-    borderRadius: theme.radius.lg,
   },
   mark: {
     width: PATH_MARK_WELL,

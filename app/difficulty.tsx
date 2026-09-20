@@ -54,13 +54,15 @@ export default function DifficultyScreen() {
         <Text
           accessibilityRole="header"
           numberOfLines={1}
-          maxFontSizeMultiplier={1.3}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          maxFontSizeMultiplier={1.2}
           style={styles.title}
         >
           Choose Your Path
         </Text>
-        <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={styles.copy}>
-          Glow, rune count, and embers change with the road.
+        <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.copy}>
+          Glow, runes, and embers shift with the path.
         </Text>
       </View>
 
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    ...theme.typography.heading,
+    ...theme.typography.title,
     ...theme.artTextShadow,
   },
   copy: {
@@ -127,9 +129,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -theme.spacing.lg,
     marginBottom: -theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-    gap: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
+    gap: theme.spacing.xs,
     backgroundColor: theme.overlay.dock,
   },
 });

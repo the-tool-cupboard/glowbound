@@ -44,7 +44,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "calm",
     name: "Calm",
-    description: "Linger and fewer runes. Use when learning.",
+    description: "Lingers longer. Fewer runes. Use when learning.",
     previewMsMultiplier: 1.25,
     extraTargets: -1,
     emberMultiplier: 0.75,
@@ -52,7 +52,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "standard",
     name: "Standard",
-    description: "The true path. Use for fair runs.",
+    description: "Fair glow. True path. Use for normal runs.",
     previewMsMultiplier: 1,
     extraTargets: 0,
     emberMultiplier: 1,
@@ -60,7 +60,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "harsh",
     name: "Harsh",
-    description: "Fleeting spark and extra rune. Use for more embers.",
+    description: "Fleeting spark. Extra rune. Use for more embers.",
     previewMsMultiplier: 0.7,
     extraTargets: 1,
     emberMultiplier: 1.5,
