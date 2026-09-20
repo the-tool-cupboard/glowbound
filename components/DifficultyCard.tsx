@@ -48,7 +48,7 @@ export function DifficultyCard({ option, selected, onSelect }: DifficultyCardPro
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.name}>
             {option.name}
           </Text>
-          <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.description}>
+          <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.description}>
             {option.description}
           </Text>
         </View>
@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
     borderWidth: theme.pixel.inset,
     borderColor: theme.overlay.stallRim,
     paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.stallPlate.padding,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
     overflow: "hidden",
   },
   plateQuiet: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   payout: {
     alignItems: "flex-end",
     justifyContent: "center",
-    minWidth: 64,
+    minWidth: 56,
     gap: 2,
   },
   multiplier: {
