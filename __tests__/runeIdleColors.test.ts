@@ -36,24 +36,24 @@ const CHAPTER_LEVELS: readonly { level: number; layoutId: LayoutId }[] = [
 ];
 
 describe("idleColorsForLayout", () => {
-  it("keeps Sleeping Woods Lattice on moss fill with a lantern-warm rim", () => {
+  it("keeps Sleeping Woods Lattice on richer moss with a deeper lantern-amber rim", () => {
     expect(idleColorsForLayout("grid")).toEqual(WOODS_IDLE);
-    expect(WOODS_IDLE.fill).toBe("#2A3428");
-    expect(WOODS_IDLE.border).toBe("rgba(232, 196, 120, 0.72)");
+    expect(WOODS_IDLE.fill).toBe("#243528");
+    expect(WOODS_IDLE.border).toBe("rgba(210, 170, 90, 0.78)");
   });
 
-  it("locks the chapter mood palette", () => {
+  it("locks the remixed chapter mood palette", () => {
     expect(EXPECTED_IDLE).toEqual({
-      grid: { fill: "#2A3428", border: "rgba(232, 196, 120, 0.72)" },
-      triangle: { fill: "#2A3038", border: "rgba(232, 180, 110, 0.70)" },
-      diamond: { fill: "#1E2E38", border: "rgba(180, 210, 230, 0.68)" },
-      ring: { fill: "#242038", border: "rgba(140, 210, 230, 0.70)" },
-      hex: { fill: "#302420", border: "rgba(230, 150, 80, 0.72)" },
-      cross: { fill: "#262A32", border: "rgba(220, 200, 150, 0.65)" },
-      star: { fill: "#1A2438", border: "rgba(230, 210, 140, 0.70)" },
-      petal: { fill: "#2A2430", border: "rgba(210, 185, 130, 0.65)" },
-      octagon: { fill: "#2A2230", border: "rgba(220, 160, 100, 0.68)" },
-      spiral: { fill: "#1A1824", border: "rgba(200, 190, 255, 0.55)" },
+      grid: { fill: "#243528", border: "rgba(210, 170, 90, 0.78)" },
+      triangle: { fill: "#2C3340", border: "rgba(255, 170, 90, 0.75)" },
+      diamond: { fill: "#163040", border: "rgba(160, 220, 255, 0.75)" },
+      ring: { fill: "#2A1A48", border: "rgba(120, 240, 230, 0.78)" },
+      hex: { fill: "#3A1C14", border: "rgba(255, 120, 50, 0.80)" },
+      cross: { fill: "#1E2830", border: "rgba(200, 210, 220, 0.70)" },
+      star: { fill: "#121A38", border: "rgba(255, 230, 140, 0.78)" },
+      petal: { fill: "#3A2030", border: "rgba(230, 200, 160, 0.70)" },
+      octagon: { fill: "#1A3020", border: "rgba(255, 140, 90, 0.72)" },
+      spiral: { fill: "#14101C", border: "rgba(180, 160, 255, 0.70)" },
     });
   });
 
@@ -65,12 +65,11 @@ describe("idleColorsForLayout", () => {
   });
 
   it("gives each chapter a distinct idle fill and rim pair", () => {
-    const serialized = STAGE_LAYOUT_IDS.map((layoutId) => {
-      const colors = idleColorsForLayout(layoutId);
-      return `${colors.fill}|${colors.border}`;
-    });
+    const fills = STAGE_LAYOUT_IDS.map((layoutId) => idleColorsForLayout(layoutId).fill);
+    const rims = STAGE_LAYOUT_IDS.map((layoutId) => idleColorsForLayout(layoutId).border);
 
-    expect(new Set(serialized).size).toBe(STAGE_LAYOUT_IDS.length);
+    expect(new Set(fills).size).toBe(STAGE_LAYOUT_IDS.length);
+    expect(new Set(rims).size).toBe(STAGE_LAYOUT_IDS.length);
   });
 
   it("does not use cooled ember or active-state tokens for resting idle", () => {
