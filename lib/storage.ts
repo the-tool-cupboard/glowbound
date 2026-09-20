@@ -7,6 +7,7 @@ const HIGH_SCORE_KEY = "glowbound:high-score";
 const HIGHEST_REACHED_KEY = "glowbound:highest-reached-level";
 const ECONOMY_KEY = "glowbound:economy";
 const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
+const ADMIN_UNLOCK_ALL_KEY = "glowbound:admin-unlock-all";
 
 function parseScore(raw: string | null): number {
   if (raw == null) {
@@ -99,6 +100,23 @@ export async function getAnimatedBackgroundsEnabled(): Promise<boolean> {
 export async function setAnimatedBackgroundsEnabled(enabled: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(ANIMATED_BACKGROUNDS_KEY, enabled ? "true" : "false");
+  } catch {
+    // Storage can be unavailable in some runtimes; keep gameplay working.
+  }
+}
+
+export async function getAdminUnlockAll(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(ADMIN_UNLOCK_ALL_KEY);
+    return raw === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function setAdminUnlockAll(enabled: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ADMIN_UNLOCK_ALL_KEY, enabled ? "true" : "false");
   } catch {
     // Storage can be unavailable in some runtimes; keep gameplay working.
   }

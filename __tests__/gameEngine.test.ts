@@ -19,6 +19,7 @@ import {
   getStagesForLevel,
   isCheckpointUnlocked,
   isLanternTrial,
+  isStageStartUnlocked,
 } from "../lib/gameConfig";
 
 describe("generateUniqueTargetCellIds", () => {
@@ -203,6 +204,18 @@ describe("isCheckpointUnlocked", () => {
     expect(isCheckpointUnlocked(21, 21)).toBe(true);
     expect(isCheckpointUnlocked(91, 90)).toBe(false);
     expect(CHECKPOINTS).toHaveLength(10);
+  });
+});
+
+describe("isStageStartUnlocked", () => {
+  it("follows saved progress when admin mode is off", () => {
+    expect(isStageStartUnlocked(11, 10, false)).toBe(false);
+    expect(isStageStartUnlocked(11, 11, false)).toBe(true);
+  });
+
+  it("unlocks every stage when admin mode is on", () => {
+    expect(isStageStartUnlocked(11, 1, true)).toBe(true);
+    expect(isStageStartUnlocked(91, 0, true)).toBe(true);
   });
 });
 

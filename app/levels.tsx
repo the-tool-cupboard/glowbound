@@ -2,18 +2,20 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 
+import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { StageCard } from "@/components/StageCard";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useProgress } from "@/hooks/useProgress";
-import { useScreenMusic } from "@/hooks/useGameAudio";
+import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { chapterArtSource } from "@/lib/chapterBackgrounds";
 import {
   CHECKPOINTS,
   getCheckpointLevelRange,
   getCheckpointTwistLine,
-  isCheckpointUnlocked,
+  isStageStartUnlocked,
 } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 
@@ -24,6 +26,8 @@ export default function LevelsScreen() {
   const router = useRouter();
   const { highestReachedLevel, ready } = useProgress();
   const { enabled: animatedBackgrounds } = useAnimatedBackgrounds();
+  const { enabled: adminUnlockAll, ready: adminReady, toggle: toggleAdminUnlockAll } = useAdminMode();
+  const { playSfx } = useGameAudio();
   const focused = useIsFocused();
   useScreenMusic("menuTheme");
 
@@ -36,16 +40,28 @@ export default function LevelsScreen() {
     >
       <View style={styles.skyVeil}>
         <View style={styles.hero}>
-          <Text
-            accessibilityRole="header"
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.3}
-            style={styles.title}
-          >
-            Stages
-          </Text>
+          <View style={styles.heroTop}>
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+              style={styles.title}
+            >
+              Stages
+            </Text>
+            <AdminUnlockToggle
+              enabled={adminUnlockAll}
+              disabled={!adminReady}
+              onToggle={() => {
+                playSfx("uiTap");
+                toggleAdminUnlockAll();
+              }}
+            />
+          </View>
           <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={styles.copy}>
-            Ten levels each. Start from a stage you have already reached.
+            {adminUnlockAll
+              ? "Admin mode. Every stage is open."
+              : "Ten levels each. Start from a stage you have already reached."}
           </Text>
         </View>
       </View>
@@ -56,11 +72,12 @@ export default function LevelsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {CHECKPOINTS.map((checkpoint, index) => {
-          const unlocked = isCheckpointUnlocked(
+          const unlocked = isStageStartUnlocked(
             checkpoint.startLevel,
-            ready ? highestReachedLevel : 0
+            ready ? highestReachedLevel : 0,
+            adminReady && adminUnlockAll
           );
-          const pending = !ready && checkpoint.startLevel > 1;
+          const pending = !ready && !adminUnlockAll && checkpoint.startLevel > 1;
 
           return (
             <StageCard
@@ -109,7 +126,15 @@ const styles = StyleSheet.create({
   hero: {
     gap: theme.spacing.xs,
   },
+  heroTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
   title: {
+    flex: 1,
+    minWidth: 0,
     color: theme.colors.text,
     ...theme.typography.heading,
     ...theme.artTextShadow,

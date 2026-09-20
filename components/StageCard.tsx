@@ -99,8 +99,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.button3d.highlight,
   },
   thumbWrap: {
-    width: 52,
-    height: 52,
+    width: 72,
+    height: 72,
+    flexShrink: 0,
     borderRadius: theme.radius.pixel,
     borderWidth: theme.pixel.outline,
     borderColor: theme.button3d.rim,
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   thumbLocked: {
-    opacity: 0.38,
+    opacity: 0.55,
   },
   copy: {
     flex: 1,

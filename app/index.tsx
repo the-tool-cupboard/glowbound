@@ -2,12 +2,14 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 
+import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { MotionToggle } from "@/components/MotionToggle";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ShopStallMark } from "@/components/ShopStallMark";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
@@ -23,6 +25,7 @@ export default function HomeScreen() {
   const { embers, ready: economyReady } = useGameEconomy();
   const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
     useAnimatedBackgrounds();
+  const { enabled: adminUnlockAll, ready: adminReady, toggle: toggleAdminUnlockAll } = useAdminMode();
   const focused = useIsFocused();
   const {
     playSfx,
@@ -122,6 +125,14 @@ export default function HomeScreen() {
             onToggle={() => {
               playSfx("uiTap");
               toggleAnimatedBackgrounds();
+            }}
+          />
+          <AdminUnlockToggle
+            enabled={adminUnlockAll}
+            disabled={!adminReady}
+            onToggle={() => {
+              playSfx("uiTap");
+              toggleAdminUnlockAll();
             }}
           />
         </View>

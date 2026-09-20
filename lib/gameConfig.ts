@@ -159,6 +159,15 @@ export function isCheckpointUnlocked(startLevel: number, highestReachedLevel: nu
   return Math.max(0, Math.floor(highestReachedLevel)) >= safeStart;
 }
 
+/** Admin overlay: every stage is playable without writing saved progress. */
+export function isStageStartUnlocked(
+  startLevel: number,
+  highestReachedLevel: number,
+  adminUnlockAll: boolean
+): boolean {
+  return adminUnlockAll || isCheckpointUnlocked(startLevel, highestReachedLevel);
+}
+
 /** True when progress first crosses a later checkpoint start level. */
 export function didUnlockCheckpoint(previousHighest: number, nextHighest: number): boolean {
   return CHECKPOINTS.some((checkpoint) => {

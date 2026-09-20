@@ -3,10 +3,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STARTING_EMBERS } from "../lib/economyConfig";
 import { createEconomyState } from "../lib/economyEngine";
 import {
+  getAdminUnlockAll,
   getAnimatedBackgroundsEnabled,
   getEconomyState,
   getHighScore,
   getHighestReachedLevel,
+  setAdminUnlockAll,
   setAnimatedBackgroundsEnabled,
   setEconomyState,
   setHighScore,
@@ -77,6 +79,7 @@ describe("storage fallbacks", () => {
     await expect(setHighScore(40)).resolves.toBeUndefined();
     await expect(setEconomyState(createEconomyState({ embers: STARTING_EMBERS }))).resolves.toBeUndefined();
     await expect(setAnimatedBackgroundsEnabled(true)).resolves.toBeUndefined();
+    await expect(setAdminUnlockAll(true)).resolves.toBeUndefined();
   });
 
   it("treats missing or unreadable animated-background flags as still images", async () => {
@@ -93,5 +96,21 @@ describe("storage fallbacks", () => {
   it("reads the animated-background flag when stored as true", async () => {
     mockedStorage.getItem.mockResolvedValueOnce("true");
     await expect(getAnimatedBackgroundsEnabled()).resolves.toBe(true);
+  });
+
+  it("treats missing or unreadable admin-unlock flags as off", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getAdminUnlockAll()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockResolvedValueOnce("false");
+    await expect(getAdminUnlockAll()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getAdminUnlockAll()).resolves.toBe(false);
+  });
+
+  it("reads the admin-unlock flag when stored as true", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("true");
+    await expect(getAdminUnlockAll()).resolves.toBe(true);
   });
 });
