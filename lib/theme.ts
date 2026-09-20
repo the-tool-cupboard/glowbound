@@ -143,6 +143,29 @@ export const theme = {
     stall: "rgba(7, 11, 22, 0.56)",
     stallRim: "rgba(196, 184, 150, 0.22)",
   },
+  path: {
+    calm: {
+      metal: "#C8D4E4",
+      flame: "#E8D9A0",
+      flameLit: "#FFF6D0",
+      well: "rgba(200, 212, 228, 0.16)",
+      rim: "rgba(200, 212, 228, 0.52)",
+    },
+    standard: {
+      metal: "#C4A04A",
+      flame: "#E6C35C",
+      flameLit: "#FFE08A",
+      well: "rgba(230, 195, 92, 0.18)",
+      rim: "rgba(230, 195, 92, 0.62)",
+    },
+    harsh: {
+      metal: "#C45A2A",
+      flame: "#E06A3A",
+      flameLit: "#FF8A3A",
+      well: "rgba(224, 90, 42, 0.2)",
+      rim: "rgba(255, 120, 60, 0.7)",
+    },
+  },
   boardPlate: {
     padding: 12,
   },

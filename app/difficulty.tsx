@@ -50,12 +50,21 @@ export default function DifficultyScreen() {
 
   return (
     <ScreenContainer style={styles.screen} backgroundSource={pathBackground}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Choose Your Path</Text>
-        <Text style={styles.copy}>Glow, rune count, and embers change with the road.</Text>
+      <View style={styles.skyVeil}>
+        <Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          maxFontSizeMultiplier={1.3}
+          style={styles.title}
+        >
+          Choose Your Path
+        </Text>
+        <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={styles.copy}>
+          Glow, rune count, and embers change with the road.
+        </Text>
       </View>
 
-      <View style={styles.list}>
+      <View style={styles.stage}>
         {DIFFICULTIES.map((option) => (
           <DifficultyCard
             key={option.id}
@@ -66,7 +75,7 @@ export default function DifficultyScreen() {
         ))}
       </View>
 
-      <View style={styles.actions}>
+      <View style={styles.dockVeil}>
         <PrimaryButton
           label={`Walk the ${selectedName} road`}
           fullWidth
@@ -87,38 +96,40 @@ export default function DifficultyScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    justifyContent: "space-between",
     width: "100%",
   },
-  hero: {
+  skyVeil: {
     marginHorizontal: -theme.spacing.lg,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
+    backgroundColor: theme.overlay.sky,
   },
   title: {
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-    ...theme.typography.title,
+    ...theme.typography.heading,
     ...theme.artTextShadow,
   },
   copy: {
     color: theme.colors.textMuted,
-    ...theme.typography.body,
+    ...theme.typography.caption,
     ...theme.artTextShadow,
   },
-  list: {
+  stage: {
     flex: 1,
-    gap: theme.spacing.sm,
+    minHeight: 0,
+    width: "100%",
+    justifyContent: "center",
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
   },
-  actions: {
-    alignSelf: "stretch",
+  dockVeil: {
     marginHorizontal: -theme.spacing.lg,
+    marginBottom: -theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
     gap: theme.spacing.md,
-    alignItems: "stretch",
+    backgroundColor: theme.overlay.dock,
   },
 });
