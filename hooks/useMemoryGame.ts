@@ -33,6 +33,7 @@ import {
   resolveStageRules,
   roundPreviewStatusNote,
   splitTwoFlight,
+  woodsInputStatusNote,
   type PreviewStep,
   type StageRules,
 } from "@/lib/stageModifiers";
@@ -134,7 +135,7 @@ export function useMemoryGame() {
         flights != null ? 2 : 1
       );
     }
-    return null;
+    return woodsInputStatusNote(rulesRef.current);
   }, []);
 
   const enterInputPhase = useCallback(() => {

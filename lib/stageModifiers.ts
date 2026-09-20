@@ -7,6 +7,9 @@ import {
 } from "./gameConfig";
 import type { Rng } from "./gameEngine";
 
+export const WOODS_HOLD_MS = 200;
+export const SLEEPING_WOODS_STATUS_NOTE = "Sleeping Woods — watch, then tap.";
+export const SLEEPING_WOODS_INPUT_NOTE = "Tap what you saw.";
 export const MIRROR_GHOST_MS = 380;
 export const MIRROR_SETTLE_MS = 120;
 export const MOONWELL_STATUS_NOTE = "Moonwell — the water lies.";
@@ -432,12 +435,10 @@ export function buildRoundPresentation(args: {
     const glints = pickFacetGlints(layout.runeCount, targets, rng);
     steps.push(...facetGlareSteps(targets, glints, safePreview));
   } else {
-    steps.push({
-      previewCellIds: targets,
-      glintCellIds: [],
-      ghostCellIds: [],
-      durationMs: safePreview,
-    });
+    steps.push(plainPreviewStep(targets, safePreview));
+    if (rules.modifier === "none") {
+      steps.push(plainPreviewStep(targets, WOODS_HOLD_MS));
+    }
   }
 
   if (rules.mirrorGhost) {
@@ -518,6 +519,12 @@ export function inputStatusFlightNote(
   return flightStatusNote(flightIndex, flightCount);
 }
 
+export function woodsInputStatusNote(
+  rules: Pick<StageRules, "modifier">
+): string | null {
+  return rules.modifier === "none" ? SLEEPING_WOODS_INPUT_NOTE : null;
+}
+
 export function betweenFlightHoldMs(rules: TwoFlightRules): number {
   if (rules.lanternTrial) {
     return LANTERN_TRIAL_HOLD_MS;
@@ -584,6 +591,10 @@ export function roundPreviewStatusNote(
 
   if (rules.modifier === "facetGlare") {
     return CRYSTAL_ASCENT_STATUS_NOTE;
+  }
+
+  if (rules.modifier === "none") {
+    return SLEEPING_WOODS_STATUS_NOTE;
   }
 
   return null;
