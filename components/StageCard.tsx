@@ -1,6 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image, type ImageProps } from "expo-image";
 
+import {
+  CHAPTER_THUMB_CONTENT_FIT,
+  CHAPTER_THUMB_CONTENT_POSITION,
+  CHAPTER_THUMB_CROP_STYLE,
+} from "@/lib/chapterBackgrounds";
 import { theme } from "@/lib/theme";
 
 interface StageCardProps {
@@ -41,9 +46,9 @@ export function StageCard({
         <View style={[styles.thumbWrap, !unlocked && styles.thumbLocked]}>
           <Image
             source={thumbnail}
-            style={styles.thumb}
-            contentFit="cover"
-            contentPosition="center"
+            style={CHAPTER_THUMB_CROP_STYLE}
+            contentFit={CHAPTER_THUMB_CONTENT_FIT}
+            contentPosition={CHAPTER_THUMB_CONTENT_POSITION}
             cachePolicy="memory-disk"
             accessible={false}
           />
@@ -107,10 +112,6 @@ const styles = StyleSheet.create({
     borderColor: theme.button3d.rim,
     overflow: "hidden",
     backgroundColor: theme.colors.background,
-  },
-  thumb: {
-    width: "100%",
-    height: "100%",
   },
   thumbLocked: {
     opacity: 0.55,
