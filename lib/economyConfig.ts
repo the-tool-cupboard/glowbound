@@ -60,7 +60,7 @@ export const DIFFICULTIES: readonly DifficultyOption[] = [
   {
     id: "harsh",
     name: "Harsh",
-    description: "Fleeting spark, extra rune. Use for more embers.",
+    description: "Fleeting spark and extra rune. Use for more embers.",
     previewMsMultiplier: 0.7,
     extraTargets: 1,
     emberMultiplier: 1.5,

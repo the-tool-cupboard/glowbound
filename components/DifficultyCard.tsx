@@ -49,7 +49,7 @@ export function DifficultyCard({ option, selected, onSelect }: DifficultyCardPro
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.name}>
             {option.name}
           </Text>
-          <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.description}>
+          <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.description}>
             {option.description}
           </Text>
         </View>
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: theme.pixel.inset }],
   },
   plate: {
-    minHeight: 96,
+    minHeight: 108,
     backgroundColor: theme.overlay.stall,
     borderRadius: theme.radius.lg,
     borderWidth: theme.pixel.inset,
