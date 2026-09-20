@@ -26,6 +26,8 @@ import {
   RIPEN_ROT_LAND_MS,
   RIPEN_ROT_LEAVE_MS,
   RIPEN_ROT_SETTLE_MS,
+  SLEEPING_WOODS_INPUT_NOTE,
+  SLEEPING_WOODS_STATUS_NOTE,
   STARFALL_HOLD_MS,
   STARFALL_ORDER_STATUS_NOTE,
   STARFALL_STEP_MIN_MS,
@@ -34,6 +36,7 @@ import {
   TOWER_ASCEND_NOTE,
   TOWER_FIRST_FLIGHT_NOTE,
   TOWER_SECOND_FLIGHT_NOTE,
+  WOODS_HOLD_MS,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
@@ -55,6 +58,7 @@ import {
   sortByBoardY,
   splitTwoFlight,
   towerFlightNote,
+  woodsInputStatusNote,
 } from "../lib/stageModifiers";
 import { chapterArtKey } from "../lib/chapterBackgrounds";
 
@@ -159,6 +163,94 @@ describe("splitTwoFlight", () => {
 
 describe("preview presentation", () => {
   const diamond = getLayout("diamond", 9);
+  const grid = getLayout("grid", 9);
+
+  it("holds Sleeping Woods on the full pattern after the plain preview", () => {
+    expect(WOODS_HOLD_MS).toBe(200);
+    const targets = [0, 1, 2];
+    for (const difficulty of ["calm", "standard", "harsh"] as const) {
+      const rules = resolveStageRules(1, difficulty);
+      const previewMs = applyCalmPreviewBonus(1600, rules);
+      const plan = buildRoundPresentation({
+        rules,
+        targets,
+        layout: grid,
+        previewMs,
+        kind: "round",
+        rng: () => 0,
+      });
+      expect(plan.steps).toHaveLength(2);
+      expect(plan.steps[0]).toEqual({
+        previewCellIds: targets,
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: previewMs,
+      });
+      expect(plan.steps[1]).toEqual({
+        previewCellIds: targets,
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: WOODS_HOLD_MS,
+      });
+      expect(plan.inputTargets).toEqual(targets);
+    }
+    expect(applyCalmPreviewBonus(1600, resolveStageRules(1, "calm"))).toBe(1700);
+    expect(applyCalmPreviewBonus(1600, resolveStageRules(1, "standard"))).toBe(1600);
+    expect(applyCalmPreviewBonus(1600, resolveStageRules(1, "harsh"))).toBe(1600);
+  });
+
+  it("does not hold Sleeping Woods during Second Sight", () => {
+    const plan = buildRoundPresentation({
+      rules: resolveStageRules(1, "standard"),
+      targets: [0, 1, 2],
+      layout: grid,
+      previewMs: 900,
+      kind: "sight",
+      rng: () => 0,
+    });
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]?.previewCellIds).toEqual([0, 1, 2]);
+    expect(plan.steps[0]?.durationMs).toBe(900);
+  });
+
+  it("keeps Gate, Bound, and Crystal Calm off the Woods hold", () => {
+    const gateTargets = [0, 1, 2];
+    const gateLayout = getLayout("triangle", 9);
+    const gate = buildRoundPresentation({
+      rules: resolveStageRules(11, "standard"),
+      targets: gateTargets,
+      layout: gateLayout,
+      previewMs: 900,
+      kind: "round",
+      rng: () => 0,
+    });
+    const ordered = sortByBoardY(gateTargets, gateLayout.points, "bottomFirst");
+    expect(gate.steps[gate.steps.length - 1]?.durationMs).toBe(GATE_PULSE_HOLD_MS);
+    expect(gate.steps[gate.steps.length - 1]?.previewCellIds).toEqual(ordered);
+    expect(gate.steps.every((step) => step.durationMs !== WOODS_HOLD_MS)).toBe(true);
+
+    const bound = buildRoundPresentation({
+      rules: resolveStageRules(91, "standard"),
+      targets: [0, 1, 2],
+      layout: getLayout("spiral", 9),
+      previewMs: 870,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(bound.steps).toHaveLength(1);
+    expect(bound.steps[0]?.durationMs).toBe(870);
+
+    const crystalCalm = buildRoundPresentation({
+      rules: resolveStageRules(31, "calm"),
+      targets: [0, 3],
+      layout: getLayout("ring", 9),
+      previewMs: 1000,
+      kind: "round",
+      rng: () => 0,
+    });
+    expect(crystalCalm.steps).toHaveLength(1);
+    expect(crystalCalm.steps[0]?.durationMs).toBe(1000);
+  });
 
   it("accumulates Castle Gate from the bottom, then holds the full shape", () => {
     const rules = resolveStageRules(11, "standard");
@@ -571,10 +663,29 @@ describe("preview presentation", () => {
 });
 
 describe("preview status notes", () => {
-  it("teaches Gate pulse during preview and leaves Woods on the generic line", () => {
+  it("teaches Sleeping Woods on every difficulty during preview and input", () => {
+    expect(SLEEPING_WOODS_STATUS_NOTE).toBe("Sleeping Woods — watch, then tap.");
+    expect(SLEEPING_WOODS_INPUT_NOTE).toBe("Tap what you saw.");
+    expect(roundPreviewStatusNote(resolveStageRules(1, "calm"), 0, 1)).toBe(
+      SLEEPING_WOODS_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(1, "standard"), 0, 1)).toBe(
+      SLEEPING_WOODS_STATUS_NOTE
+    );
+    expect(roundPreviewStatusNote(resolveStageRules(1, "harsh"), 0, 1)).toBe(
+      SLEEPING_WOODS_STATUS_NOTE
+    );
+    expect(woodsInputStatusNote(resolveStageRules(1, "calm"))).toBe(SLEEPING_WOODS_INPUT_NOTE);
+    expect(woodsInputStatusNote(resolveStageRules(1, "standard"))).toBe(SLEEPING_WOODS_INPUT_NOTE);
+    expect(woodsInputStatusNote(resolveStageRules(1, "harsh"))).toBe(SLEEPING_WOODS_INPUT_NOTE);
+  });
+
+  it("teaches Gate pulse during preview and keeps Woods copy off Gate input", () => {
     const gate = resolveStageRules(11, "standard");
     expect(roundPreviewStatusNote(gate, 0, 1)).toBe(GATE_PULSE_STATUS_NOTE);
-    expect(roundPreviewStatusNote(resolveStageRules(1, "standard"), 0, 1)).toBeNull();
+    expect(woodsInputStatusNote(gate)).toBeNull();
+    expect(woodsInputStatusNote(resolveStageRules(71, "standard"))).toBeNull();
+    expect(woodsInputStatusNote(resolveStageRules(51, "standard"))).toBeNull();
   });
 
   it("teaches Starfall by difficulty during preview", () => {
