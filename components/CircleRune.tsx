@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet } from "react-native";
 
 import { GemFace } from "./GemFace";
+import { idleColorsForLayout } from "@/lib/runeIdleColors";
 import { runeGemShapeForLayout } from "@/lib/runeGemShape";
 import { theme } from "@/lib/theme";
 import type { CellId, LayoutId, RuneVisualState } from "@/types/game";
@@ -20,8 +21,9 @@ export const GEM_SCALE = 0.88;
 
 const IDLE_OUTLINE = theme.pixel.outline + 1;
 
-const FILL_BY_STATE: Record<RuneVisualState, string> = {
-  inactive: theme.colors.idle,
+type ActiveRuneVisualState = Exclude<RuneVisualState, "inactive">;
+
+const FILL_BY_STATE: Record<ActiveRuneVisualState, string> = {
   previewTarget: theme.colors.preview,
   previewGlint: theme.colors.previewGlint,
   previewGhost: theme.colors.previewGhost,
@@ -31,8 +33,7 @@ const FILL_BY_STATE: Record<RuneVisualState, string> = {
   incorrect: theme.colors.wrong,
 };
 
-const BORDER_BY_STATE: Record<RuneVisualState, string> = {
-  inactive: theme.colors.idleBorder,
+const BORDER_BY_STATE: Record<ActiveRuneVisualState, string> = {
   previewTarget: theme.button3d.rim,
   previewGlint: "rgba(42, 31, 10, 0.55)",
   previewGhost: "rgba(110, 138, 168, 0.7)",
@@ -41,6 +42,20 @@ const BORDER_BY_STATE: Record<RuneVisualState, string> = {
   correct: "#1A5C42",
   incorrect: "#6B2E28",
 };
+
+function colorsForVisualState(
+  visualState: RuneVisualState,
+  layoutId: LayoutId
+): { fill: string; border: string } {
+  if (visualState === "inactive") {
+    return idleColorsForLayout(layoutId);
+  }
+
+  return {
+    fill: FILL_BY_STATE[visualState],
+    border: BORDER_BY_STATE[visualState],
+  };
+}
 
 function stateLabel(visualState: RuneVisualState): string {
   switch (visualState) {
@@ -76,7 +91,7 @@ export function CircleRune({
   hitSlop = 0,
   layoutId = "grid",
 }: CircleRuneProps) {
-  const fill = FILL_BY_STATE[visualState];
+  const { fill, border: borderColor } = colorsForVisualState(visualState, layoutId);
   const runeNumber = cellId + 1;
   const gemSize = size * GEM_SCALE;
   const resting = isResting(visualState);
@@ -103,7 +118,7 @@ export function CircleRune({
         shape={shape}
         size={gemSize}
         fill={fill}
-        borderColor={BORDER_BY_STATE[visualState]}
+        borderColor={borderColor}
         borderWidth={resting ? IDLE_OUTLINE : theme.pixel.outline}
         resting={resting}
         clipId={`rune-gem-${cellId}`}

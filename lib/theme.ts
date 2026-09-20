@@ -71,6 +71,8 @@ export const theme = {
     textMuted: "#C4B896",
     idle: "#243044",
     idleBorder: "rgba(236, 220, 168, 0.62)",
+    idleWoods: "#2A3428",
+    idleWoodsBorder: "rgba(232, 196, 120, 0.72)",
     idleCooled: "#1B2636",
     idleCooledBorder: "rgba(148, 174, 202, 0.52)",
     preview: "#E6C35C",
