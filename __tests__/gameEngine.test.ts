@@ -272,6 +272,13 @@ describe("getRuneVisualState", () => {
     );
   });
 
+  it("keeps real targets idle during a glint-only flash", () => {
+    const snapshot = { ...base, previewCellIds: [] as number[], glintCellIds: [7] };
+    expect(getRuneVisualState(1, snapshot)).toBe("inactive");
+    expect(getRuneVisualState(4, snapshot)).toBe("inactive");
+    expect(getRuneVisualState(7, snapshot)).toBe("previewGlint");
+  });
+
   it("cools the whole idle board after embers fade", () => {
     expect(
       getRuneVisualState(2, {
