@@ -1,11 +1,14 @@
+import { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { StallStatPlate } from "@/components/StallStatPlate";
+import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
+import { calculateEmbersEarned } from "@/lib/economyEngine";
 import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 
@@ -23,12 +26,23 @@ export default function ResultsScreen() {
   const score = parseScoreParam(params.score);
   const level = parsePlayLevel(params.level);
   const startLevel = parsePlayLevel(params.startLevel);
-  const embersEarned = parseScoreParam(params.embers);
   const difficulty = parseDifficultyParam(params.difficulty);
+  const embersEarned = calculateEmbersEarned(score, level, difficulty);
+  const { addEmbers, ready: economyReady } = useGameEconomy();
   const { highScore, ready } = useHighScore();
   const bestScore = Math.max(highScore, score);
   const highlightBest = ready && score > 0 && score >= highScore;
+  const grantAppliedRef = useRef(false);
   useScreenMusic("resultsTheme");
+
+  useEffect(() => {
+    if (!economyReady || grantAppliedRef.current || embersEarned <= 0) {
+      return;
+    }
+
+    grantAppliedRef.current = true;
+    void addEmbers(embersEarned);
+  }, [addEmbers, economyReady, embersEarned]);
 
   return (
     <ScreenContainer style={styles.screen} backgroundSource={failBackground}>

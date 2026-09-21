@@ -75,8 +75,9 @@ export function calculateEmbersEarned(
   reachedLevel: number,
   difficulty: DifficultyId
 ): number {
-  const completedLevels = Math.max(0, Math.floor(reachedLevel) - 1);
-  const safeScore = Math.max(0, Math.floor(score));
+  const safeLevel = Number.isFinite(reachedLevel) ? Math.floor(reachedLevel) : 0;
+  const completedLevels = Math.max(0, safeLevel - 1);
+  const safeScore = Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
   const multiplier = getDifficulty(difficulty).emberMultiplier;
   const raw = completedLevels * 8 + Math.floor(safeScore / 20);
   return Math.max(0, Math.floor(raw * multiplier));
