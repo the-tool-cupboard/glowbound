@@ -10,21 +10,11 @@ import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { canAfford } from "@/lib/economyEngine";
+import { MAX_LEVEL } from "@/lib/gameConfig";
+import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 
 const passBackground = require("../assets/images/game images/GB_Results-Pass.png");
-
-function asCount(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-function asScore(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-}
 
 export default function LevelCompleteScreen() {
   const router = useRouter();
@@ -36,12 +26,12 @@ export default function LevelCompleteScreen() {
     difficulty?: string;
     shards?: string;
   }>();
-  const level = asCount(params.level) || 1;
-  const score = asScore(params.score);
-  const startLevel = asCount(params.startLevel) || 1;
-  const playLevel = asCount(params.playLevel) || level + 1;
-  const shardsEarned = asScore(params.shards);
-  const difficulty = params.difficulty ?? "standard";
+  const level = parsePlayLevel(params.level);
+  const score = parseScoreParam(params.score);
+  const startLevel = parsePlayLevel(params.startLevel);
+  const playLevel = parsePlayLevel(params.playLevel, Math.min(MAX_LEVEL, level + 1));
+  const shardsEarned = parseScoreParam(params.shards);
+  const difficulty = parseDifficultyParam(params.difficulty);
   const { embers, inventory, buyItem, ready } = useGameEconomy();
   const { playSfx } = useGameAudio();
   useScreenMusic("resultsTheme");

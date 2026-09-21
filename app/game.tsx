@@ -10,6 +10,7 @@ import { RuneGrid } from "@/components/RuneGrid";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
@@ -19,23 +20,18 @@ import {
   chapterBackground,
   chapterPlayfieldCropStyle,
 } from "@/lib/chapterBackgrounds";
-import { calculateLanternShards, isDifficultyId } from "@/lib/economyEngine";
-import { GAME_OVER_REVEAL_MS, LEVEL_COMPLETE_DELAY_MS, getStageIndex } from "@/lib/gameConfig";
+import { calculateLanternShards } from "@/lib/economyEngine";
+import {
+  GAME_OVER_REVEAL_MS,
+  LEVEL_COMPLETE_DELAY_MS,
+  getStageIndex,
+  resolvePlayLevel,
+  resolveUnlockedStartLevel,
+} from "@/lib/gameConfig";
+import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
-
-function asCount(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-function asScore(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-}
 
 function statusCopy(phase: ReturnType<typeof useMemoryGame>["phase"]): string {
   switch (phase) {
@@ -64,16 +60,23 @@ export default function GameScreen() {
     resumeScore?: string;
     difficulty?: string;
   }>();
-  const startLevel = asCount(params.startLevel) || 1;
-  const playLevel = asCount(params.playLevel) || startLevel;
-  const resumeScore = asScore(params.resumeScore);
-  const rawDifficulty = Array.isArray(params.difficulty) ? params.difficulty[0] : params.difficulty;
-  const difficulty = isDifficultyId(rawDifficulty) ? rawDifficulty : "standard";
+  const requestedStart = parsePlayLevel(params.startLevel);
+  const requestedPlay = parsePlayLevel(params.playLevel, requestedStart);
+  const resumeScore = parseScoreParam(params.resumeScore);
+  const difficulty = parseDifficultyParam(params.difficulty);
   const awardedRef = useRef(false);
   const shardsAwardedRef = useRef(false);
   const [boardSlot, setBoardSlot] = useState({ width: 0, height: 0 });
   const { recordScore } = useHighScore();
-  const { recordReachedLevel } = useProgress();
+  const { highestReachedLevel, ready: progressReady, recordReachedLevel } = useProgress();
+  const { enabled: adminUnlockAll, ready: adminReady } = useAdminMode();
+  const paramsReady = progressReady && adminReady;
+  const startLevel = paramsReady
+    ? resolveUnlockedStartLevel(requestedStart, highestReachedLevel, adminUnlockAll)
+    : 1;
+  const playLevel = paramsReady
+    ? resolvePlayLevel(requestedPlay, startLevel, highestReachedLevel, adminUnlockAll)
+    : startLevel;
   const { inventory, addEmbers, consumeItem } = useGameEconomy();
   const {
     phase,
@@ -164,12 +167,15 @@ export default function GameScreen() {
     prevWardArmedRef.current = wardArmed;
   }, [phase, playSfx, wardArmed, wrongCellId]);
 
-  const handleRunePress = (cellId: CellId) => {
-    if (phase === "playerInput") {
-      playSfx("runeTap");
-    }
-    onRunePress(cellId);
-  };
+  const handleRunePress = useCallback(
+    (cellId: CellId) => {
+      if (phase === "playerInput") {
+        playSfx("runeTap");
+      }
+      onRunePress(cellId);
+    },
+    [onRunePress, phase, playSfx]
+  );
 
   const resetAwardFlags = () => {
     awardedRef.current = false;
@@ -186,6 +192,10 @@ export default function GameScreen() {
   );
 
   useEffect(() => {
+    if (!paramsReady) {
+      return;
+    }
+
     resetAwardFlags();
     startGame(startLevel, difficulty, { playLevel, score: resumeScore });
     if (shouldPlayChapterEnterSfx(null, playLevel)) {
@@ -195,7 +205,7 @@ export default function GameScreen() {
       }
     }
     chapterEnterStageRef.current = getStageIndex(playLevel);
-  }, [difficulty, playLevel, playSfx, resumeScore, startGame, startLevel]);
+  }, [difficulty, paramsReady, playLevel, playSfx, resumeScore, startGame, startLevel]);
 
   useEffect(() => {
     if (phase === "idle") {

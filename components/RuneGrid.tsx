@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { getRuneVisualState, isInputEnabled } from "@/lib/gameEngine";
-import { runeCellSize, runeHitSlop, runeNeighborGap } from "@/lib/runeLayouts";
+import { runeBoardMetrics, runeHitSlop } from "@/lib/runeLayouts";
 import { theme } from "@/lib/theme";
 import type { CellId, GamePhase, RuneLayout } from "@/types/game";
 
@@ -23,10 +24,6 @@ interface RuneGridProps {
   onRunePress: (cellId: CellId) => void;
 }
 
-function cellSizeForBoard(layout: RuneLayout, boardSize: number): number {
-  return runeCellSize(layout.points, boardSize);
-}
-
 export function RuneGrid({
   layout,
   slotWidth,
@@ -43,12 +40,47 @@ export function RuneGrid({
   onRunePress,
 }: RuneGridProps) {
   const boardSize = Math.max(0, Math.min(slotWidth, slotHeight));
-  const cellSize = cellSizeForBoard(layout, boardSize);
-  const usable = Math.max(0, boardSize - cellSize);
+  const metrics = useMemo(
+    () => runeBoardMetrics(layout.points, boardSize),
+    [boardSize, layout.points]
+  );
+  const usable = Math.max(0, boardSize - metrics.cellSize);
   const inputEnabled = isInputEnabled(phase);
-  const neighborGap = runeNeighborGap(layout.points, boardSize);
-  const hitSlop = runeHitSlop(cellSize, neighborGap, theme.minTapTarget);
+  const hitSlop = runeHitSlop(metrics.cellSize, metrics.neighborGap, theme.minTapTarget);
   const platePad = theme.boardPlate.padding;
+  const snapshot = useMemo(
+    () => ({
+      phase,
+      targetCellIds,
+      selectedCellIds,
+      hintCellIds,
+      previewCellIds,
+      glintCellIds,
+      ghostCellIds,
+      wrongCellId,
+      cooledBoard,
+    }),
+    [
+      cooledBoard,
+      ghostCellIds,
+      glintCellIds,
+      hintCellIds,
+      phase,
+      previewCellIds,
+      selectedCellIds,
+      targetCellIds,
+      wrongCellId,
+    ]
+  );
+  const cells = useMemo(
+    () =>
+      layout.points.map((point, cellId) => ({
+        cellId,
+        left: point.x * usable,
+        top: point.y * usable,
+      })),
+    [layout.points, usable]
+  );
 
   return (
     <View
@@ -69,32 +101,16 @@ export function RuneGrid({
           },
         ]}
       />
-      {layout.points.map((point, cellId) => (
+      {cells.map(({ cellId, left, top }) => (
         <View
           key={cellId}
-          style={{
-            position: "absolute",
-            width: cellSize,
-            height: cellSize,
-            left: point.x * usable,
-            top: point.y * usable,
-          }}
+          style={[styles.cell, { width: metrics.cellSize, height: metrics.cellSize, left, top }]}
         >
           <CircleRune
             cellId={cellId}
-            size={cellSize}
+            size={metrics.cellSize}
             layoutId={layout.id}
-            visualState={getRuneVisualState(cellId, {
-              phase,
-              targetCellIds,
-              selectedCellIds,
-              hintCellIds,
-              previewCellIds,
-              glintCellIds,
-              ghostCellIds,
-              wrongCellId,
-              cooledBoard,
-            })}
+            visualState={getRuneVisualState(cellId, snapshot)}
             disabled={!inputEnabled}
             hitSlop={hitSlop}
             onPress={onRunePress}
@@ -115,5 +131,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     borderWidth: theme.pixel.inset,
     borderColor: theme.overlay.boardRim,
+  },
+  cell: {
+    position: "absolute",
   },
 });

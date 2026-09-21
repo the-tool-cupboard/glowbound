@@ -161,7 +161,7 @@ describe("applyDifficultyToConfig", () => {
     ).toBe(9);
   });
 
-  it("never shortens harsh previews below the 850ms config floor", () => {
+  it("never shortens harsh previews below the configured floor", () => {
     expect(
       applyDifficultyToConfig(
         {

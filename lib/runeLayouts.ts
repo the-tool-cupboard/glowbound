@@ -391,30 +391,44 @@ export function minNormalizedDistance(points: readonly RunePoint[]): number {
   return Number.isFinite(min) ? min : 1;
 }
 
-export function fittedRuneCellSize(points: readonly RunePoint[], boardSize: number): number {
+export interface RuneBoardMetrics {
+  minDist: number;
+  fitted: number;
+  cellSize: number;
+  neighborGap: number;
+}
+
+export function runeBoardMetrics(
+  points: readonly RunePoint[],
+  boardSize: number
+): RuneBoardMetrics {
   if (boardSize <= 0 || points.length === 0) {
-    return 0;
+    return { minDist: 1, fitted: 0, cellSize: 0, neighborGap: 0 };
   }
 
   const minDist = minNormalizedDistance(points);
-  return (minDist * boardSize) / (1 + minDist);
-}
-
-export function runeCellSize(points: readonly RunePoint[], boardSize: number): number {
-  const fitted = fittedRuneCellSize(points, boardSize);
+  const fitted = (minDist * boardSize) / (1 + minDist);
   if (fitted <= 0) {
-    return 0;
+    return { minDist, fitted: 0, cellSize: 0, neighborGap: 0 };
   }
 
   const gapped = fitted * RUNE_SPACING_GAP;
-  return Math.min(fitted, Math.max(gapped, MIN_RUNE_CELL_SIZE));
+  const cellSize = Math.min(fitted, Math.max(gapped, MIN_RUNE_CELL_SIZE));
+  const usable = Math.max(0, boardSize - cellSize);
+  const neighborGap = Math.max(0, minDist * usable - cellSize);
+  return { minDist, fitted, cellSize, neighborGap };
+}
+
+export function fittedRuneCellSize(points: readonly RunePoint[], boardSize: number): number {
+  return runeBoardMetrics(points, boardSize).fitted;
+}
+
+export function runeCellSize(points: readonly RunePoint[], boardSize: number): number {
+  return runeBoardMetrics(points, boardSize).cellSize;
 }
 
 export function runeNeighborGap(points: readonly RunePoint[], boardSize: number): number {
-  const cellSize = runeCellSize(points, boardSize);
-  const minDist = minNormalizedDistance(points);
-  const usable = Math.max(0, boardSize - cellSize);
-  return Math.max(0, minDist * usable - cellSize);
+  return runeBoardMetrics(points, boardSize).neighborGap;
 }
 
 export function runeHitSlop(

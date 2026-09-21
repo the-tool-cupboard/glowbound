@@ -74,14 +74,3 @@ export interface LevelConfig {
   previewDurationMs: number;
   modifier: StageModifierId;
 }
-
-export interface GameState {
-  level: number;
-  score: number;
-  layoutId: LayoutId;
-  runeCount: number;
-  targetCellIds: readonly CellId[];
-  selectedCellIds: readonly CellId[];
-  phase: GamePhase;
-  highScore: number;
-}

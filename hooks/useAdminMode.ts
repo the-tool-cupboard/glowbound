@@ -1,40 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { getAdminUnlockAll, setAdminUnlockAll } from "@/lib/storage";
+import { createSyncedResource } from "@/lib/syncedResource";
+
+const adminUnlockResource = createSyncedResource(false, getAdminUnlockAll);
 
 export function useAdminMode() {
-  const [enabled, setEnabledState] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void getAdminUnlockAll()
-      .then((value) => {
-        if (!cancelled) {
-          setEnabledState(value);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: enabled, ready } = useSyncExternalStore(
+    adminUnlockResource.subscribe,
+    adminUnlockResource.getSnapshot,
+    adminUnlockResource.getServerSnapshot
+  );
 
   const setEnabled = useCallback(async (next: boolean) => {
-    setEnabledState(next);
+    adminUnlockResource.setValue(next);
     await setAdminUnlockAll(next);
   }, []);
 
   const toggle = useCallback(() => {
-    void setEnabled(!enabled);
-  }, [enabled, setEnabled]);
+    void setEnabled(!adminUnlockResource.value);
+  }, [setEnabled]);
 
   return {
     enabled,

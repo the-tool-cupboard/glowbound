@@ -73,12 +73,19 @@ export const CHECKPOINTS: readonly Checkpoint[] = STAGE_SPECS.map((spec, index) 
   twistLabel: spec.twistLabel,
 }));
 
+/** Upper bound for persisted / deep-linked run scores. Far above a legitimate 100-level run. */
+export const MAX_STORED_SCORE = 1_000_000;
+
 function safePlayLevel(level: number): number {
   if (!Number.isFinite(level)) {
     return 1;
   }
 
   return Math.min(MAX_LEVEL, Math.max(1, Math.floor(level)));
+}
+
+export function clampPlayLevel(level: number): number {
+  return safePlayLevel(level);
 }
 
 export function getStageIndex(level: number): number {
@@ -168,6 +175,49 @@ export function isStageStartUnlocked(
   return adminUnlockAll || isCheckpointUnlocked(startLevel, highestReachedLevel);
 }
 
+/** Snap a requested start to a checkpoint the player (or admin) may actually open. */
+export function resolveUnlockedStartLevel(
+  requestedLevel: number,
+  highestReachedLevel: number,
+  adminUnlockAll: boolean
+): number {
+  const requestedStart = getCheckpointForLevel(requestedLevel).startLevel;
+  if (isStageStartUnlocked(requestedStart, highestReachedLevel, adminUnlockAll)) {
+    return requestedStart;
+  }
+
+  let unlocked = 1;
+  for (const checkpoint of CHECKPOINTS) {
+    if (isStageStartUnlocked(checkpoint.startLevel, highestReachedLevel, false)) {
+      unlocked = checkpoint.startLevel;
+    }
+  }
+
+  return unlocked;
+}
+
+/**
+ * Allow continue-to-next-level (`highestReached + 1`) but reject deep-link skips.
+ * Admin mode may open any play level.
+ */
+export function resolvePlayLevel(
+  requestedPlayLevel: number,
+  startLevel: number,
+  highestReachedLevel: number,
+  adminUnlockAll: boolean
+): number {
+  const safeStart = clampPlayLevel(startLevel);
+  const requested = clampPlayLevel(requestedPlayLevel);
+  const reached = Number.isFinite(highestReachedLevel)
+    ? Math.max(0, Math.floor(highestReachedLevel))
+    : 0;
+  const ceiling = adminUnlockAll
+    ? MAX_LEVEL
+    : Math.min(MAX_LEVEL, Math.max(safeStart, reached + 1));
+
+  return Math.min(ceiling, Math.max(safeStart, requested));
+}
+
 /** True when progress first crosses a later checkpoint start level. */
 export function didUnlockCheckpoint(previousHighest: number, nextHighest: number): boolean {
   return CHECKPOINTS.some((checkpoint) => {
@@ -201,10 +251,6 @@ export function getCheckpointForLevel(level: number): Checkpoint {
     (current, checkpoint) => (safeLevel >= checkpoint.startLevel ? checkpoint : current),
     fallback
   );
-}
-
-export function getCheckpointShapeName(checkpoint: Checkpoint): string {
-  return LAYOUT_NAMES[checkpoint.layoutId];
 }
 
 export function getCheckpointTwistLine(checkpoint: Checkpoint): string {

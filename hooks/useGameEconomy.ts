@@ -108,10 +108,11 @@ export function GameEconomyProvider({ children }: { children: ReactNode }) {
 
   const addEmbers = useCallback(
     async (amount: number) => {
+      const gain = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
       const current = stateRef.current;
       const next = persist({
         ...current,
-        embers: current.embers + Math.max(0, Math.floor(amount)),
+        embers: current.embers + gain,
       });
       await writeChainRef.current.catch(() => undefined);
       return next;
@@ -155,8 +156,4 @@ export function useGameEconomy(): GameEconomyValue {
   }
 
   return value;
-}
-
-export function hasAnyPowerUps(inventory: Inventory): boolean {
-  return Object.values(inventory).some((count) => count > 0);
 }

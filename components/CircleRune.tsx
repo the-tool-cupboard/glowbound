@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Pressable, StyleSheet } from "react-native";
 
 import { GemFace } from "./GemFace";
@@ -82,7 +83,7 @@ function isResting(visualState: RuneVisualState): boolean {
   return visualState === "inactive" || visualState === "emberCooled";
 }
 
-export function CircleRune({
+export const CircleRune = memo(function CircleRune({
   cellId,
   size,
   visualState,
@@ -125,7 +126,7 @@ export function CircleRune({
       />
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   hitTarget: {

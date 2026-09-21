@@ -5,6 +5,8 @@ import { LANTERN_OIL_BONUS_MS, SECOND_SIGHT_MS, WARD_FLASH_MS } from "@/lib/econ
 import { applyDifficultyToConfig } from "@/lib/economyEngine";
 import {
   LEVEL_COMPLETE_DELAY_MS,
+  MAX_STORED_SCORE,
+  clampPlayLevel,
   getLayoutForLevel,
   getLevelConfig,
   getStagesForLevel,
@@ -436,9 +438,11 @@ export function useMemoryGame() {
       difficulty: DifficultyId = "standard",
       resume?: { playLevel?: number; score?: number }
     ) => {
-      const chapter = Math.max(1, Math.floor(startLevel));
-      const playLevel = Math.max(1, Math.floor(resume?.playLevel ?? chapter));
-      const resumeScore = Math.max(0, Math.floor(resume?.score ?? 0));
+      const chapter = clampPlayLevel(startLevel);
+      const playLevel = clampPlayLevel(resume?.playLevel ?? chapter);
+      const resumeScore = Number.isFinite(resume?.score)
+        ? Math.min(MAX_STORED_SCORE, Math.max(0, Math.floor(resume?.score ?? 0)))
+        : 0;
       runStartLevelRef.current = chapter;
       difficultyRef.current = difficulty;
       recentPatternKeysRef.current = [];

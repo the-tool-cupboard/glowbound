@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { createEconomyState } from "./economyEngine";
+import { MAX_LEVEL, MAX_STORED_SCORE } from "./gameConfig";
 import type { EconomyState } from "../types/economy";
 
 const HIGH_SCORE_KEY = "glowbound:high-score";
@@ -9,13 +10,47 @@ const ECONOMY_KEY = "glowbound:economy";
 const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
 const ADMIN_UNLOCK_ALL_KEY = "glowbound:admin-unlock-all";
 
-function parseScore(raw: string | null): number {
+function parseStoredInt(raw: string | null): number | null {
   if (raw == null) {
-    return 0;
+    return null;
   }
 
   const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clampStoredScore(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(MAX_STORED_SCORE, Math.max(0, Math.floor(value)));
+}
+
+function clampStoredLevel(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(MAX_LEVEL, Math.max(0, Math.floor(value)));
+}
+
+function parseScore(raw: string | null): number {
+  const parsed = parseStoredInt(raw);
+  if (parsed == null || parsed <= 0) {
+    return 0;
+  }
+
+  return clampStoredScore(parsed);
+}
+
+function parseReachedLevel(raw: string | null): number {
+  const parsed = parseStoredInt(raw);
+  if (parsed == null || parsed <= 0) {
+    return 0;
+  }
+
+  return clampStoredLevel(parsed);
 }
 
 export async function getHighScore(): Promise<number> {
@@ -27,26 +62,30 @@ export async function getHighScore(): Promise<number> {
   }
 }
 
-export async function setHighScore(score: number): Promise<void> {
+export async function setHighScore(score: number): Promise<number> {
+  const nextScore = clampStoredScore(score);
+
   try {
-    const nextScore = Math.max(0, Math.floor(score));
-    await AsyncStorage.setItem(HIGH_SCORE_KEY, String(nextScore));
+    const current = await getHighScore();
+    const stored = Math.max(current, nextScore);
+    await AsyncStorage.setItem(HIGH_SCORE_KEY, String(stored));
+    return stored;
   } catch {
-    // Storage can be unavailable in some runtimes; keep gameplay working.
+    return nextScore;
   }
 }
 
 export async function getHighestReachedLevel(): Promise<number> {
   try {
     const raw = await AsyncStorage.getItem(HIGHEST_REACHED_KEY);
-    return parseScore(raw);
+    return parseReachedLevel(raw);
   } catch {
     return 0;
   }
 }
 
 export async function setHighestReachedLevel(level: number): Promise<number> {
-  const nextLevel = Math.max(1, Math.floor(level));
+  const nextLevel = Math.max(1, clampStoredLevel(level) || 1);
 
   try {
     const current = await getHighestReachedLevel();

@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
-import { didUnlockCheckpoint } from "@/lib/gameConfig";
+import { clampPlayLevel, didUnlockCheckpoint } from "@/lib/gameConfig";
 import { getHighestReachedLevel, setHighestReachedLevel } from "@/lib/storage";
+import { createSyncedResource } from "@/lib/syncedResource";
+
+const progressResource = createSyncedResource(1, async () =>
+  Math.max(1, await getHighestReachedLevel())
+);
 
 export interface RecordReachedLevelResult {
   previous: number;
@@ -10,53 +15,37 @@ export interface RecordReachedLevelResult {
 }
 
 export function useProgress() {
-  const [highestReachedLevel, setHighestReachedLevelState] = useState(1);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void getHighestReachedLevel()
-      .then((value) => {
-        if (!cancelled) {
-          setHighestReachedLevelState(Math.max(1, value));
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: highestReachedLevel, ready } = useSyncExternalStore(
+    progressResource.subscribe,
+    progressResource.getSnapshot,
+    progressResource.getServerSnapshot
+  );
 
   const recordReachedLevel = useCallback(async (level: number): Promise<RecordReachedLevelResult> => {
-    const safeLevel = Math.max(1, Math.floor(level));
+    const safeLevel = clampPlayLevel(level);
+    const previous = progressResource.value;
+    const next = Math.max(previous, safeLevel);
+    progressResource.setValue(next);
 
     try {
-      const previous = await getHighestReachedLevel();
-      const stored = await setHighestReachedLevel(safeLevel);
-      setHighestReachedLevelState(stored);
+      const stored = await setHighestReachedLevel(next);
+      if (stored !== progressResource.value) {
+        progressResource.setValue(Math.max(progressResource.value, stored));
+      }
+      const persisted = progressResource.value;
       return {
         previous,
-        stored,
-        unlockedCheckpoint: didUnlockCheckpoint(previous, stored),
+        stored: persisted,
+        unlockedCheckpoint: didUnlockCheckpoint(previous, persisted),
       };
     } catch {
-      const previous = highestReachedLevel;
-      const stored = Math.max(previous, safeLevel);
-      setHighestReachedLevelState((current) => Math.max(current, safeLevel));
       return {
         previous,
-        stored,
-        unlockedCheckpoint: didUnlockCheckpoint(previous, stored),
+        stored: next,
+        unlockedCheckpoint: didUnlockCheckpoint(previous, next),
       };
     }
-  }, [highestReachedLevel]);
+  }, []);
 
   return {
     highestReachedLevel,
