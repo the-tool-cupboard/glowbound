@@ -30,7 +30,7 @@ Every night you light a short lantern run — always ends in a score, almost alw
 3. Play **exactly 5 patterns** on today’s board (see Rotation).
 4. Miss uses existing Last Chance / Ward rules once; second miss **ends the lantern** (not the whole campaign).
 5. Results: **lantern stars (0–3)** + ember drip + streak update + share card.
-6. Optional **one free rematch** only if stars ≤ 1 (near-miss pull). Second rematch costs a shop **Frost Wick** (or 15 embers). Cap: **2 attempts / day**.
+6. Optional **one free rematch** only if stars ≤ 1 (near-miss pull). Cap: **2 attempts / day**. Frost Wick is a **streak freeze**, not a paid rematch (Phase 1 rematch already covers the free second lighting).
 
 Session always ends before rage. Never deep-links into campaign mid-lantern.
 
@@ -94,7 +94,7 @@ No dark-pattern countdown that punishes sleep. Soft: “Lantern dims at dawn.”
 1. **Camp card** — lantern glyph, streak count, “Light” / timer.
 2. **In-run** — reuse game HUD; status “Night Lantern · Pattern k of 5”; hide campaign level number or show “Lantern”.
 3. **Results** — stall plates: Stars · Streak · Embers; buttons: Return Camp · Rematch (if eligible) · Share.
-4. **Share card** — pixel still + “Sealed N patterns under [Chapter] · streak S” (image export later; Phase 1 = copy + in-app card).
+4. **Share card** — pixel still + “Sealed N patterns under [Chapter] · streak S”. Phase 2: in-app card + system share of that copy; image export later.
 
 Visual language: same sky/dock veils + stall plates as difficulty/results. No Candy Crush rainbow chrome.
 
@@ -113,27 +113,37 @@ Visual language: same sky/dock veils + stall plates as difficulty/results. No Ca
 
 - No lives that block campaign play.
 - No forced ads / IAP for streak (Frost Wick is optional earnable).
-- No leaderboards in Phase 1 (async friends = Phase 2).
+- No leaderboards in Phase 1–2 (async friends = Phase 3).
 - No changing campaign twists to feed lantern.
 
 ---
 
 ## Build phases
 
-### Phase 1 — Ship the loop (this sprint)
+### Phase 1 — Ship the loop (shipped)
 
 - Storage: `nightLantern` { lastPlayDate, attemptsToday, streak, freezeOwned, bestStarsByDay }
 - Route `/lantern` or `game` mode=`lantern`
 - Camp entry + 5-pattern run + stars results + streak + ember drip + 1 free rematch rule
 - Reuse chapter rotation + existing twists
 
-### Phase 2 — Juice
+### Phase 2 — Juice (this PR)
 
-- Share card image, camp particle on streak 7, Frost Wick in shop, push reminder (opt-in)
+Shipped:
+
+- **Frost Wick** shop stall (40 embers, cap 3). Buying increments `freezeOwned`. Not a run charm.
+- Miss exactly one calendar day with a wick owned → Camp offer **Use Frost Wick** / **Let it fade**. Using one wick sets last play to yesterday and keeps the streak.
+- **Share** on lantern results: in-app seal card (chapter, stars, streak; **Kindled** title at streak ≥ 3) + system share sheet (`Share.share` text). Image export still later.
+- Camp lantern **streak ≥ 7** glow + pixel ember motes (static halo when motion is off). Ember bonus `floor(streak/7)` already shipped in Phase 1.
+
+Deferred:
+
+- **Phase 2.5 — Push reminders (opt-in).** Needs notification permission + local scheduling. Not in-repo; do not ship until that stack exists.
+- Share-card **image** render/export (ViewShot / file share). Phase 2 ships text + in-app card.
 
 ### Phase 3 — Social light
 
-- Weekly “which chapter” vote or friend streak ghosts (async)
+- Weekly “which chapter” vote or friend streak ghosts (async). Leaderboards stay here, not Phase 2.
 
 ---
 

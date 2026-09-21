@@ -2,11 +2,17 @@ export type DifficultyId = "calm" | "standard" | "harsh";
 
 export type PowerUpId = "secondSight" | "lanternOil" | "ward" | "pathHint";
 
-export interface ShopItem {
-  id: PowerUpId;
+export type ShopGlyphId = PowerUpId | "frostWick";
+
+export interface ShopListing {
+  id: ShopGlyphId;
   name: string;
   description: string;
   cost: number;
+}
+
+export interface ShopItem extends ShopListing {
+  id: PowerUpId;
 }
 
 export interface DifficultyOption {

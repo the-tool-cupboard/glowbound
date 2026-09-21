@@ -39,6 +39,10 @@ export function isDifficultyId(value: string | undefined): value is DifficultyId
   return DIFFICULTIES.some((item) => item.id === value);
 }
 
+export function isPowerUpId(value: string | undefined): value is PowerUpId {
+  return value === "secondSight" || value === "lanternOil" || value === "ward" || value === "pathHint";
+}
+
 export function isInventoryFull(inventory: Inventory, itemId: PowerUpId): boolean {
   return sanitizeCount(inventory[itemId]) >= MAX_OWNED_PER_ITEM;
 }
@@ -81,6 +85,21 @@ export function calculateEmbersEarned(
   const multiplier = getDifficulty(difficulty).emberMultiplier;
   const raw = completedLevels * 8 + Math.floor(safeScore / 20);
   return Math.max(0, Math.floor(raw * multiplier));
+}
+
+export function spendEmbers(state: EconomyState, amount: number): PurchaseResult {
+  const cost = Math.max(0, Number.isFinite(amount) ? Math.floor(amount) : 0);
+  if (!canAfford(state.embers, cost)) {
+    return { ok: false, reason: "cannotAfford" };
+  }
+
+  return {
+    ok: true,
+    state: {
+      ...state,
+      embers: state.embers - cost,
+    },
+  };
 }
 
 export function purchaseItem(state: EconomyState, itemId: PowerUpId): PurchaseResult {

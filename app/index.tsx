@@ -4,6 +4,7 @@ import { useIsFocused, useRouter } from "expo-router";
 import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
+import { FrostWickOffer } from "@/components/FrostWickOffer";
 import { MotionToggle } from "@/components/MotionToggle";
 import { NightLanternCard } from "@/components/NightLanternCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -30,8 +31,12 @@ export default function HomeScreen() {
   const {
     ready: lanternReady,
     streak,
+    freezeOwned,
+    freezeOffer,
     playLevel: lanternLevel,
     availability,
+    applyFreeze,
+    declineFreeze,
   } = useNightLantern();
   const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
     useAnimatedBackgrounds();
@@ -110,21 +115,38 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.stage} pointerEvents="box-none">
-        <NightLanternCard
-          streak={streak}
-          chapterTitle={getCheckpointForLevel(lanternLevel).title}
-          dreamPreview={
-            progressReady &&
-            !isCheckpointUnlocked(
-              getCheckpointForLevel(lanternLevel).startLevel,
-              highestReachedLevel
-            )
-          }
-          canStart={lanternReady && availability.canStart}
-          rematch={availability.canRematch}
-          pending={!lanternReady}
-          onPress={() => router.push("/lantern")}
-        />
+        {freezeOffer ? (
+          <FrostWickOffer
+            streak={streak}
+            freezeOwned={freezeOwned}
+            onUse={() => {
+              playSfx("emberGain");
+              void applyFreeze();
+            }}
+            onDecline={() => {
+              playSfx("uiTap");
+              void declineFreeze();
+            }}
+          />
+        ) : (
+          <NightLanternCard
+            streak={streak}
+            freezeOwned={freezeOwned}
+            animateGlow={animatedBackgrounds}
+            chapterTitle={getCheckpointForLevel(lanternLevel).title}
+            dreamPreview={
+              progressReady &&
+              !isCheckpointUnlocked(
+                getCheckpointForLevel(lanternLevel).startLevel,
+                highestReachedLevel
+              )
+            }
+            canStart={lanternReady && availability.canStart}
+            rematch={availability.canRematch}
+            pending={!lanternReady}
+            onPress={() => router.push("/lantern")}
+          />
+        )}
       </View>
 
       <View style={styles.dockVeil}>

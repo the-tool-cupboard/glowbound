@@ -8,22 +8,54 @@ import { ShopGoodsDisplay } from "@/components/ShopItemCard";
 import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
-import { SHOP_ITEMS } from "@/lib/economyConfig";
-import { canAfford } from "@/lib/economyEngine";
+import { useNightLantern } from "@/hooks/useNightLantern";
+import { SHOP_GOODS } from "@/lib/economyConfig";
+import { canAfford, isPowerUpId } from "@/lib/economyEngine";
+import { FROST_WICK_COST, purchaseFrostWick } from "@/lib/nightLantern";
 import { theme } from "@/lib/theme";
+import type { ShopGlyphId } from "@/types/economy";
 
 const menuBackground = require("../assets/images/game images/GB_Menu-Background.png");
 const menuVideo = require("../assets/video/GB_Menu-Background.mp4");
 
 export default function ShopScreen() {
   const router = useRouter();
-  const { embers, inventory, buyItem, ready } = useGameEconomy();
+  const { embers, inventory, buyItem, spendEmbers, addEmbers, ready } = useGameEconomy();
+  const { freezeOwned, grantFrostWick } = useNightLantern();
   const { playSfx } = useGameAudio();
   const { enabled: animatedBackgrounds } = useAnimatedBackgrounds();
   const focused = useIsFocused();
   useScreenMusic("menuTheme");
 
-  const handleBuy = (id: Parameters<typeof buyItem>[0]) => {
+  const handleBuy = (id: ShopGlyphId) => {
+    if (id === "frostWick") {
+      void (async () => {
+        const preview = purchaseFrostWick(embers, freezeOwned);
+        if (!preview.ok) {
+          playSfx("purchaseFail");
+          return;
+        }
+        const spent = await spendEmbers(FROST_WICK_COST);
+        if (!spent.ok) {
+          playSfx("purchaseFail");
+          return;
+        }
+        const granted = await grantFrostWick();
+        if (granted == null) {
+          await addEmbers(FROST_WICK_COST);
+          playSfx("purchaseFail");
+          return;
+        }
+        playSfx("purchase");
+      })();
+      return;
+    }
+
+    if (!isPowerUpId(id)) {
+      playSfx("purchaseFail");
+      return;
+    }
+
     void buyItem(id).then((result) => {
       playSfx(result.ok ? "purchase" : "purchaseFail");
     });
@@ -48,7 +80,7 @@ export default function ShopScreen() {
               Shop
             </Text>
             <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={styles.copy}>
-              Spend embers on charms. You can hold 3 of each.
+              Spend embers on charms and a Frost Wick. You can hold 3 of each.
             </Text>
           </View>
           <CurrencyBalance
@@ -65,8 +97,9 @@ export default function ShopScreen() {
 
       <View style={styles.stage}>
         <ShopGoodsDisplay
-          items={SHOP_ITEMS}
+          items={SHOP_GOODS}
           inventory={inventory}
+          freezeOwned={freezeOwned}
           embers={embers}
           canAfford={canAfford}
           onBuy={handleBuy}

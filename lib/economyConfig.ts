@@ -1,7 +1,16 @@
-import type { DifficultyId, DifficultyOption, Inventory, PowerUpId, ShopItem } from "../types/economy";
+import type {
+  DifficultyId,
+  DifficultyOption,
+  Inventory,
+  PowerUpId,
+  ShopItem,
+  ShopListing,
+} from "../types/economy";
 
 export const STARTING_EMBERS = 25;
 export const MAX_OWNED_PER_ITEM = 3;
+export const FROST_WICK_COST = 40;
+export const FROST_WICK_SHOP_CAP = MAX_OWNED_PER_ITEM;
 export const SECOND_SIGHT_MS = 900;
 export const LANTERN_OIL_BONUS_MS = 700;
 export const WARD_FLASH_MS = 500;
@@ -39,6 +48,15 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
     cost: 60,
   },
 ];
+
+export const FROST_WICK_ITEM: ShopListing = {
+  id: "frostWick",
+  name: "Frost Wick",
+  description: "Holds a missed streak. Use when the lantern dims.",
+  cost: FROST_WICK_COST,
+};
+
+export const SHOP_GOODS: readonly ShopListing[] = [...SHOP_ITEMS, FROST_WICK_ITEM];
 
 export const DIFFICULTIES: readonly DifficultyOption[] = [
   {

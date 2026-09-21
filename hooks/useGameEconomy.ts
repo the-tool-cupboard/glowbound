@@ -14,6 +14,7 @@ import {
   consumePowerUp,
   createEconomyState,
   purchaseItem,
+  spendEmbers as spendEmbersFromState,
 } from "@/lib/economyEngine";
 import { getEconomyState, setEconomyState } from "@/lib/storage";
 import type {
@@ -32,6 +33,7 @@ interface GameEconomyValue {
   difficulty: DifficultyId;
   buyItem: (itemId: PowerUpId) => Promise<PurchaseResult>;
   consumeItem: (itemId: PowerUpId) => Promise<ConsumeResult>;
+  spendEmbers: (amount: number) => Promise<PurchaseResult>;
   addEmbers: (amount: number) => Promise<EconomyState>;
   setDifficulty: (difficulty: DifficultyId) => Promise<EconomyState>;
 }
@@ -106,6 +108,20 @@ export function GameEconomyProvider({ children }: { children: ReactNode }) {
     [persist]
   );
 
+  const spendEmbers = useCallback(
+    async (amount: number) => {
+      const result = spendEmbersFromState(stateRef.current, amount);
+      if (!result.ok) {
+        return result;
+      }
+
+      persist(result.state);
+      await writeChainRef.current.catch(() => undefined);
+      return result;
+    },
+    [persist]
+  );
+
   const addEmbers = useCallback(
     async (amount: number) => {
       const gain = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
@@ -140,10 +156,11 @@ export function GameEconomyProvider({ children }: { children: ReactNode }) {
       difficulty: state.difficulty,
       buyItem,
       consumeItem,
+      spendEmbers,
       addEmbers,
       setDifficulty,
     }),
-    [addEmbers, buyItem, consumeItem, ready, setDifficulty, state.difficulty, state.embers, state.inventory]
+    [addEmbers, buyItem, consumeItem, ready, setDifficulty, spendEmbers, state.difficulty, state.embers, state.inventory]
   );
 
   return createElement(GameEconomyContext.Provider, { value }, children);

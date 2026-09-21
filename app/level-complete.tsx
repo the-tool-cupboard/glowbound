@@ -9,11 +9,14 @@ import { ShopGoodsDisplay } from "@/components/ShopItemCard";
 import { StallStatPlate } from "@/components/StallStatPlate";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
-import { SHOP_ITEMS } from "@/lib/economyConfig";
-import { canAfford } from "@/lib/economyEngine";
+import { useNightLantern } from "@/hooks/useNightLantern";
+import { SHOP_GOODS } from "@/lib/economyConfig";
+import { canAfford, isPowerUpId } from "@/lib/economyEngine";
+import { FROST_WICK_COST, purchaseFrostWick } from "@/lib/nightLantern";
 import { levelCompleteView } from "@/lib/levelCompleteCopy";
 import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
+import type { ShopGlyphId } from "@/types/economy";
 
 const passBackground = require("../assets/images/game images/GB_Results-Pass.png");
 
@@ -39,7 +42,8 @@ export default function LevelCompleteScreen() {
     shardsEarned,
     difficulty,
   });
-  const { embers, inventory, buyItem, ready } = useGameEconomy();
+  const { embers, inventory, buyItem, spendEmbers, addEmbers, ready } = useGameEconomy();
+  const { freezeOwned, grantFrostWick } = useNightLantern();
   const { playSfx } = useGameAudio();
   useScreenMusic("resultsTheme");
   const celebrationPlayedRef = useRef(false);
@@ -54,7 +58,35 @@ export default function LevelCompleteScreen() {
     }
   }, [playSfx, shardsEarned]);
 
-  const handleBuy = (id: Parameters<typeof buyItem>[0]) => {
+  const handleBuy = (id: ShopGlyphId) => {
+    if (id === "frostWick") {
+      void (async () => {
+        const preview = purchaseFrostWick(embers, freezeOwned);
+        if (!preview.ok) {
+          playSfx("purchaseFail");
+          return;
+        }
+        const spent = await spendEmbers(FROST_WICK_COST);
+        if (!spent.ok) {
+          playSfx("purchaseFail");
+          return;
+        }
+        const granted = await grantFrostWick();
+        if (granted == null) {
+          await addEmbers(FROST_WICK_COST);
+          playSfx("purchaseFail");
+          return;
+        }
+        playSfx("purchase");
+      })();
+      return;
+    }
+
+    if (!isPowerUpId(id)) {
+      playSfx("purchaseFail");
+      return;
+    }
+
     void buyItem(id).then((result) => {
       playSfx(result.ok ? "purchase" : "purchaseFail");
     });
@@ -117,8 +149,9 @@ export default function LevelCompleteScreen() {
           </View>
         ) : (
           <ShopGoodsDisplay
-            items={SHOP_ITEMS}
+            items={SHOP_GOODS}
             inventory={inventory}
+            freezeOwned={freezeOwned}
             embers={embers}
             canAfford={canAfford}
             onBuy={handleBuy}

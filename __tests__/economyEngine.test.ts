@@ -7,7 +7,9 @@ import {
   createEconomyState,
   isDifficultyId,
   isInventoryFull,
+  isPowerUpId,
   purchaseItem,
+  spendEmbers,
 } from "../lib/economyEngine";
 import { EMPTY_INVENTORY, MAX_OWNED_PER_ITEM, STARTING_EMBERS } from "../lib/economyConfig";
 import { MIN_PREVIEW_MS } from "../lib/gameConfig";
@@ -87,6 +89,29 @@ describe("purchaseItem", () => {
     expect(state.inventory.pathHint).toBe(MAX_OWNED_PER_ITEM);
     expect(isInventoryFull(state.inventory, "pathHint")).toBe(true);
     expect(purchaseItem(state, "pathHint")).toEqual({ ok: false, reason: "capReached" });
+  });
+});
+
+describe("spendEmbers", () => {
+  it("deducts a Frost Wick cost without touching inventory", () => {
+    const result = spendEmbers(createEconomyState({ embers: 40 }), 40);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.embers).toBe(0);
+      expect(result.state.inventory).toEqual(EMPTY_INVENTORY);
+    }
+    expect(spendEmbers(createEconomyState({ embers: 39 }), 40)).toEqual({
+      ok: false,
+      reason: "cannotAfford",
+    });
+  });
+});
+
+describe("isPowerUpId", () => {
+  it("accepts run charms and rejects Frost Wick", () => {
+    expect(isPowerUpId("ward")).toBe(true);
+    expect(isPowerUpId("frostWick")).toBe(false);
   });
 });
 

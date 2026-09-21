@@ -1,7 +1,7 @@
 import { View } from "react-native";
 
 import { theme } from "@/lib/theme";
-import type { PowerUpId } from "@/types/economy";
+import type { ShopGlyphId } from "@/types/economy";
 
 const CELL = 2;
 const GRID = 16;
@@ -22,7 +22,7 @@ interface GlyphPaint {
   well: string;
 }
 
-export const CHARM_GLYPH_PAINT: Record<PowerUpId, GlyphPaint> = {
+export const CHARM_GLYPH_PAINT: Record<ShopGlyphId, GlyphPaint> = {
   pathHint: {
     fill: "#E09A3A",
     accent: "#F6C56A",
@@ -50,6 +50,13 @@ export const CHARM_GLYPH_PAINT: Record<PowerUpId, GlyphPaint> = {
     hilite: "rgba(200, 236, 220, 0.45)",
     shade: "rgba(16, 40, 36, 0.32)",
     well: "rgba(107, 168, 154, 0.18)",
+  },
+  frostWick: {
+    fill: "#7EB4D6",
+    accent: "#E4F2FF",
+    hilite: "rgba(228, 242, 255, 0.62)",
+    shade: "rgba(18, 42, 64, 0.34)",
+    well: "rgba(126, 180, 214, 0.18)",
   },
 };
 
@@ -116,18 +123,38 @@ const WARD_ACCENT: readonly PixelRect[] = [
   { x: 5, y: 6, w: 6, h: 2 },
 ];
 
-const GLYPHS: Record<PowerUpId, readonly PixelRect[]> = {
+const FROST_WICK: readonly PixelRect[] = [
+  { x: 6, y: 9, w: 4, h: 5 },
+  { x: 5, y: 14, w: 6, h: 2 },
+  { x: 7, y: 6, w: 2, h: 3 },
+  { x: 7, y: 1, w: 2, h: 2 },
+  { x: 6, y: 3, w: 4, h: 2 },
+  { x: 7, y: 5, w: 2, h: 1 },
+  { x: 3, y: 7, w: 2, h: 2 },
+  { x: 11, y: 7, w: 2, h: 2 },
+];
+
+const FROST_WICK_ACCENT: readonly PixelRect[] = [
+  { x: 7, y: 1, w: 2, h: 2 },
+  { x: 6, y: 3, w: 4, h: 2 },
+  { x: 7, y: 5, w: 2, h: 1 },
+  { x: 7, y: 6, w: 2, h: 3 },
+];
+
+const GLYPHS: Record<ShopGlyphId, readonly PixelRect[]> = {
   pathHint: PATH_HINT,
   lanternOil: LANTERN_OIL,
   secondSight: SECOND_SIGHT,
   ward: WARD,
+  frostWick: FROST_WICK,
 };
 
-const GLYPH_ACCENTS: Record<PowerUpId, readonly PixelRect[]> = {
+const GLYPH_ACCENTS: Record<ShopGlyphId, readonly PixelRect[]> = {
   pathHint: PATH_HINT_ACCENT,
   lanternOil: LANTERN_OIL_ACCENT,
   secondSight: SECOND_SIGHT_ACCENT,
   ward: WARD_ACCENT,
+  frostWick: FROST_WICK_ACCENT,
 };
 
 function rectKey(rect: PixelRect): string {
@@ -194,7 +221,7 @@ function PixelBlob({
 }
 
 interface ShopCharmMarkProps {
-  itemId: PowerUpId;
+  itemId: ShopGlyphId;
   size?: number;
 }
 
