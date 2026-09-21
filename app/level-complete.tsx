@@ -69,7 +69,7 @@ export default function LevelCompleteScreen() {
               accessibilityRole="header"
               numberOfLines={1}
               adjustsFontSizeToFit
-              minimumFontScale={0.72}
+              minimumFontScale={0.62}
               maxFontSizeMultiplier={1.2}
               style={styles.finaleTitle}
             >
@@ -186,7 +186,9 @@ const styles = StyleSheet.create({
   },
   finaleTitle: {
     color: theme.colors.text,
-    ...theme.typography.title,
+    ...theme.typography.heading,
+    fontSize: 28,
+    lineHeight: 34,
     ...theme.artTextShadow,
   },
   copy: {
