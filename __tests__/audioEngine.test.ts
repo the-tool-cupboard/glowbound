@@ -34,7 +34,7 @@ interface MockAudioPlayer {
   play: jest.Mock;
   pause: jest.Mock;
   seekTo: jest.Mock;
-  release: jest.Mock;
+  remove: jest.Mock;
 }
 
 const mockedCreateAudioPlayer = createAudioPlayer as jest.MockedFunction<typeof createAudioPlayer>;
@@ -47,7 +47,7 @@ function makePlayer(): MockAudioPlayer {
     play: jest.fn(),
     pause: jest.fn(),
     seekTo: jest.fn(),
-    release: jest.fn(),
+    remove: jest.fn(),
   };
   player.play.mockImplementation(() => {
     player.playing = true;
@@ -203,7 +203,7 @@ describe("createGameAudioEngine lazy SFX", () => {
     engine.dispose();
     for (const player of players) {
       expect(player.pause).toHaveBeenCalled();
-      expect(player.release).toHaveBeenCalled();
+      expect(player.remove).toHaveBeenCalled();
     }
   });
 
@@ -290,11 +290,11 @@ describe("createGameAudioEngine chapter beds", () => {
     engine.playMusic("chapterBedCastleGate");
     expect(loopingPlayers()).toHaveLength(2);
     expect(woods?.volume).toBeCloseTo(duckedMusicVolume(DEFAULT_MUSIC_VOLUME * BGM_VOLUME));
-    expect(woods?.release).not.toHaveBeenCalled();
+    expect(woods?.remove).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(BGM_FADE_OUT_MS + 40);
     expect(woods?.pause).toHaveBeenCalled();
-    expect(woods?.release).toHaveBeenCalled();
+    expect(woods?.remove).toHaveBeenCalled();
 
     engine.stopMusic();
     jest.advanceTimersByTime(BGM_FADE_OUT_MS + 40);
