@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { CHARM_GLYPH_PAINT, ShopCharmMark } from "@/components/ShopCharmMark";
+import { ShopStallGrid } from "@/components/ShopStallGrid";
 import { theme } from "@/lib/theme";
 import { FROST_WICK_SHOP_CAP, MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
 import { isInventoryFull } from "@/lib/economyEngine";
@@ -260,53 +261,33 @@ export function ShopGoodsDisplay({
   }, []);
 
   return (
-    <View style={styles.stall}>
-      <View pointerEvents="box-none" style={styles.plate}>
-        <View style={styles.shelf}>
-          {items.map((item) => (
-            <ShopItemCard
-              key={item.id}
-              item={item}
-              owned={ownedForItem(item, inventory, freezeOwned)}
-              cap={capForItem(item)}
-              embers={embers}
-              canAfford={canAfford(embers, item.cost)}
-              atCap={itemAtCap(item, inventory, freezeOwned)}
-              instantBuy={instantBuy}
-              onBuy={() => onBuy(item.id)}
-            />
-          ))}
-        </View>
-        {showHint ? (
+    <ShopStallGrid
+      footer={
+        showHint ? (
           <Text style={styles.hint}>
             {instantBuy ? "Tap a tile to buy." : "Double-tap a tile to buy. Max 3 of each."}
           </Text>
-        ) : null}
-      </View>
-    </View>
+        ) : null
+      }
+    >
+      {items.map((item) => (
+        <ShopItemCard
+          key={item.id}
+          item={item}
+          owned={ownedForItem(item, inventory, freezeOwned)}
+          cap={capForItem(item)}
+          embers={embers}
+          canAfford={canAfford(embers, item.cost)}
+          atCap={itemAtCap(item, inventory, freezeOwned)}
+          instantBuy={instantBuy}
+          onBuy={() => onBuy(item.id)}
+        />
+      ))}
+    </ShopStallGrid>
   );
 }
 
 const styles = StyleSheet.create({
-  stall: {
-    flex: 1,
-    minHeight: 0,
-    justifyContent: "center",
-  },
-  plate: {
-    flexShrink: 1,
-    backgroundColor: theme.overlay.stall,
-    borderRadius: theme.radius.lg,
-    borderWidth: theme.pixel.inset,
-    borderColor: theme.overlay.stallRim,
-    padding: theme.stallPlate.padding,
-    gap: theme.spacing.sm,
-  },
-  shelf: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
   tile: {
     flexBasis: "46%",
     flexGrow: 1,
