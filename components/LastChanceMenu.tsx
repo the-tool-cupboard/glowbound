@@ -7,6 +7,8 @@ import type { Inventory, PowerUpId } from "@/types/economy";
 interface LastChanceMenuProps {
   visible: boolean;
   inventory: Inventory;
+  title?: string;
+  question?: string;
   onUseItem: (id: PowerUpId) => void;
   onDecline: () => void;
 }
@@ -14,6 +16,8 @@ interface LastChanceMenuProps {
 export function LastChanceMenu({
   visible,
   inventory,
+  title,
+  question,
   onUseItem,
   onDecline,
 }: LastChanceMenuProps) {
@@ -26,11 +30,12 @@ export function LastChanceMenu({
   return (
     <View style={styles.overlay} accessibilityViewIsModal accessibilityRole="alert">
       <View style={styles.card}>
-        <Text style={styles.title}>Wrong rune</Text>
+        <Text style={styles.title}>{title ?? "Wrong rune"}</Text>
         <Text style={styles.question}>
-          {hasWard
-            ? "A Rune Ward can ignore this miss and let you keep going."
-            : "You have no Rune Ward left."}
+          {question ??
+            (hasWard
+              ? "A Rune Ward can ignore this miss and let you keep going."
+              : "You have no Rune Ward left.")}
         </Text>
         {hasWard ? (
           <PrimaryButton
