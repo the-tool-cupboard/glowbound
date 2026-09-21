@@ -6,11 +6,12 @@ import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ShopGoodsDisplay } from "@/components/ShopItemCard";
+import { StallStatPlate } from "@/components/StallStatPlate";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { SHOP_ITEMS } from "@/lib/economyConfig";
 import { canAfford } from "@/lib/economyEngine";
-import { MAX_LEVEL } from "@/lib/gameConfig";
+import { levelCompleteView } from "@/lib/levelCompleteCopy";
 import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 
@@ -29,9 +30,15 @@ export default function LevelCompleteScreen() {
   const level = parsePlayLevel(params.level);
   const score = parseScoreParam(params.score);
   const startLevel = parsePlayLevel(params.startLevel);
-  const playLevel = parsePlayLevel(params.playLevel, Math.min(MAX_LEVEL, level + 1));
   const shardsEarned = parseScoreParam(params.shards);
   const difficulty = parseDifficultyParam(params.difficulty);
+  const view = levelCompleteView({
+    clearedLevel: level,
+    startLevel,
+    score,
+    shardsEarned,
+    difficulty,
+  });
   const { embers, inventory, buyItem, ready } = useGameEconomy();
   const { playSfx } = useGameAudio();
   useScreenMusic("resultsTheme");
@@ -53,73 +60,96 @@ export default function LevelCompleteScreen() {
     });
   };
 
-  const continueRun = () => {
-    router.replace({
-      pathname: "/game",
-      params: {
-        startLevel: String(startLevel),
-        playLevel: String(playLevel),
-        resumeScore: String(score),
-        difficulty: String(difficulty),
-      },
-    });
-  };
-
   return (
     <ScreenContainer style={styles.screen} backgroundSource={passBackground}>
       <View style={styles.skyVeil}>
-        <View style={styles.hero}>
-          <View style={styles.brand}>
+        {view.journeyComplete ? (
+          <View style={styles.finaleBrand}>
             <Text
               accessibilityRole="header"
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.72}
               maxFontSizeMultiplier={1.2}
-              style={styles.title}
+              style={styles.finaleTitle}
             >
-              Level {level} clear.
+              {view.title}
             </Text>
-            <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.copy}>
-              You earned {shardsEarned} embers.
+            <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.copy}>
+              {view.copy}
             </Text>
           </View>
-          <CurrencyBalance
-            embers={embers}
-            align="right"
-            accessible
-            onArt
-            compact
-            chip
-            pending={!ready}
-          />
-        </View>
+        ) : (
+          <View style={styles.hero}>
+            <View style={styles.brand}>
+              <Text
+                accessibilityRole="header"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                maxFontSizeMultiplier={1.2}
+                style={styles.title}
+              >
+                {view.title}
+              </Text>
+              <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.copy}>
+                {view.copy}
+              </Text>
+            </View>
+            <CurrencyBalance
+              embers={embers}
+              align="right"
+              accessible
+              onArt
+              compact
+              chip
+              pending={!ready}
+            />
+          </View>
+        )}
       </View>
 
-      <View style={styles.stage}>
-        <ShopGoodsDisplay
-          items={SHOP_ITEMS}
-          inventory={inventory}
-          embers={embers}
-          canAfford={canAfford}
-          onBuy={handleBuy}
-        />
+      <View style={[styles.stage, view.journeyComplete && styles.finaleStage]}>
+        {view.journeyComplete ? (
+          <View style={styles.stats}>
+            <StallStatPlate label="Score" value={score} />
+            <StallStatPlate label="Level" value={level} accent />
+          </View>
+        ) : (
+          <ShopGoodsDisplay
+            items={SHOP_ITEMS}
+            inventory={inventory}
+            embers={embers}
+            canAfford={canAfford}
+            onBuy={handleBuy}
+          />
+        )}
       </View>
 
       <View style={styles.dockVeil}>
-        <PrimaryButton
-          label="Continue"
-          fullWidth
-          accessibilityHint={`Continues this run at level ${playLevel}`}
-          onPress={continueRun}
-        />
-        <PrimaryButton
-          label="Return Home"
-          variant="ghost"
-          fullWidth
-          accessibilityHint="Returns to the home screen"
-          onPress={() => router.replace("/")}
-        />
+        {view.actions.map((action) => (
+          <PrimaryButton
+            key={action.id}
+            label={action.label}
+            variant={action.variant}
+            fullWidth
+            accessibilityHint={action.accessibilityHint}
+            onPress={() => {
+              if (action.id === "continue" || action.id === "retryTrial") {
+                router.replace({
+                  pathname: "/game",
+                  params: action.route.params ?? {},
+                });
+                return;
+              }
+              if (action.id === "stages") {
+                router.replace("/levels");
+                return;
+              }
+              router.replace("/");
+            }}
+          />
+        ))}
       </View>
     </ScreenContainer>
   );
@@ -146,9 +176,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: theme.spacing.xs,
   },
+  finaleBrand: {
+    gap: theme.spacing.xs,
+  },
   title: {
     color: theme.colors.text,
     ...theme.typography.heading,
+    ...theme.artTextShadow,
+  },
+  finaleTitle: {
+    color: theme.colors.text,
+    ...theme.typography.title,
     ...theme.artTextShadow,
   },
   copy: {
@@ -161,6 +199,14 @@ const styles = StyleSheet.create({
     minHeight: 0,
     width: "100%",
     paddingVertical: theme.spacing.md,
+  },
+  finaleStage: {
+    justifyContent: "center",
+    paddingVertical: theme.spacing.sm,
+  },
+  stats: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
   },
   dockVeil: {
     marginHorizontal: -theme.spacing.lg,
