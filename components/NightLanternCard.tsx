@@ -18,6 +18,7 @@ interface NightLanternCardProps {
   pending: boolean;
   freezeOwned?: number;
   animateGlow?: boolean;
+  weeklyWhisper?: boolean;
   onPress: () => void;
 }
 
@@ -30,6 +31,7 @@ export function NightLanternCard({
   pending,
   freezeOwned = 0,
   animateGlow = false,
+  weeklyWhisper = false,
   onPress,
 }: NightLanternCardProps) {
   const { playSfx } = useGameAudio();
@@ -51,7 +53,12 @@ export function NightLanternCard({
   }, [canStart, pending]);
 
   const actionLabel = pending ? "…" : canStart ? (rematch ? "Relight" : "Light the lantern") : relitLabel;
-  const chapterLine = dreamPreview ? `Tonight's dream · ${chapterTitle}` : chapterTitle;
+  const dreamLine = dreamPreview ? `Tonight's dream · ${chapterTitle}` : chapterTitle;
+  const chapterLine = weeklyWhisper
+    ? dreamPreview
+      ? `Tonight's dream · ${chapterTitle} · whisper`
+      : `This week's whisper · ${chapterTitle}`
+    : dreamLine;
   const disabled = pending || !canStart;
   const longKindled = streak >= 7;
   const wickLine = freezeOwned > 0 ? ` · Wick ${freezeOwned}` : "";

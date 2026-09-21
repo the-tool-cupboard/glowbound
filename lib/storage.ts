@@ -2,7 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { createEconomyState } from "./economyEngine";
 import { MAX_LEVEL, MAX_STORED_SCORE } from "./gameConfig";
-import { createNightLanternState, type NightLanternState } from "./nightLantern";
+import { createLanternGhostBook, type LanternGhostBook } from "./lanternGhosts";
+import { calendarDateInZone, createNightLanternState, type NightLanternState } from "./nightLantern";
 import type { EconomyState } from "../types/economy";
 
 const HIGH_SCORE_KEY = "glowbound:high-score";
@@ -11,6 +12,7 @@ const ECONOMY_KEY = "glowbound:economy";
 const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
 const ADMIN_UNLOCK_ALL_KEY = "glowbound:admin-unlock-all";
 const NIGHT_LANTERN_KEY = "glowbound:night-lantern";
+const LANTERN_GHOSTS_KEY = "glowbound:lantern-ghosts";
 
 function parseStoredInt(raw: string | null): number | null {
   if (raw == null) {
@@ -193,6 +195,45 @@ export async function getNightLanternState(): Promise<NightLanternState> {
 export async function setNightLanternState(state: NightLanternState): Promise<void> {
   try {
     await AsyncStorage.setItem(NIGHT_LANTERN_KEY, JSON.stringify(createNightLanternState(state)));
+  } catch {
+    // Storage can be unavailable in some runtimes; keep gameplay working.
+  }
+}
+
+function parseLanternGhostBook(raw: string | null, today: string): LanternGhostBook {
+  if (raw == null) {
+    return createLanternGhostBook(undefined, { today });
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<LanternGhostBook>;
+    return createLanternGhostBook(parsed, { today });
+  } catch {
+    return createLanternGhostBook(undefined, { today });
+  }
+}
+
+export async function getLanternGhostBook(): Promise<LanternGhostBook> {
+  const today = calendarDateInZone(new Date());
+  try {
+    const raw = await AsyncStorage.getItem(LANTERN_GHOSTS_KEY);
+    if (raw == null) {
+      const created = createLanternGhostBook(undefined, { today });
+      await setLanternGhostBook(created);
+      return created;
+    }
+    return parseLanternGhostBook(raw, today);
+  } catch {
+    return createLanternGhostBook(undefined, { today });
+  }
+}
+
+export async function setLanternGhostBook(book: LanternGhostBook): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      LANTERN_GHOSTS_KEY,
+      JSON.stringify(createLanternGhostBook(book, { today: calendarDateInZone(new Date()) }))
+    );
   } catch {
     // Storage can be unavailable in some runtimes; keep gameplay working.
   }

@@ -12,6 +12,7 @@ import {
   lanternPlayLevel,
   lanternRelitLabel,
   lanternWeekdayBand,
+  lanternWeeklyWhisper,
   rollNightLanternDay,
   type LanternAttemptAvailability,
   type NightLanternState,
@@ -78,12 +79,14 @@ export function useNightLantern() {
       weekdayBand: lanternWeekdayBand(now),
       relitLabel: lanternRelitLabel(now),
       freezeOffer: canOfferFrostWick(value, today),
+      whisper: lanternWeeklyWhisper(now),
     };
   }, [value]);
 
   return {
     ready,
     state: view.rolled,
+    today: view.today,
     streak: view.rolled.streak,
     freezeOwned: view.rolled.freezeOwned,
     freezeOffer: view.freezeOffer,
@@ -92,6 +95,7 @@ export function useNightLantern() {
     playLevel: view.playLevel,
     weekdayBand: view.weekdayBand,
     relitLabel: view.relitLabel,
+    whisper: view.whisper,
     recordResult,
     grantFrostWick,
     applyFreeze,

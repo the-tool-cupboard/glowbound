@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useIsFocused, useRouter } from "expo-router";
 
 import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { FrostWickOffer } from "@/components/FrostWickOffer";
+import { LanternSocialLight } from "@/components/LanternSocialLight";
 import { MotionToggle } from "@/components/MotionToggle";
 import { NightLanternCard } from "@/components/NightLanternCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -15,9 +16,11 @@ import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
+import { useLanternGhosts } from "@/hooks/useLanternGhosts";
 import { useNightLantern } from "@/hooks/useNightLantern";
 import { useProgress } from "@/hooks/useProgress";
 import { getCheckpointForLevel, isCheckpointUnlocked } from "@/lib/gameConfig";
+import { shareLanternSeal } from "@/lib/lanternShare";
 import { theme } from "@/lib/theme";
 
 const menuBackground = require("../assets/images/game images/GB_Menu-Background.png");
@@ -30,14 +33,27 @@ export default function HomeScreen() {
   const { highestReachedLevel, ready: progressReady } = useProgress();
   const {
     ready: lanternReady,
+    today: lanternToday,
+    state: lanternState,
     streak,
     freezeOwned,
     freezeOffer,
     playLevel: lanternLevel,
     availability,
+    whisper,
     applyFreeze,
     declineFreeze,
   } = useNightLantern();
+  const {
+    ready: ghostsReady,
+    ghosts,
+    selfName,
+    saveSelfName,
+    importSeal,
+    removeSeal,
+    composeShare,
+  } = useLanternGhosts();
+  const lanternChapterTitle = getCheckpointForLevel(lanternLevel).title;
   const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
     useAnimatedBackgrounds();
   const { enabled: adminUnlockAll, ready: adminReady, toggle: toggleAdminUnlockAll } = useAdminMode();
@@ -115,38 +131,82 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.stage} pointerEvents="box-none">
-        {freezeOffer ? (
-          <FrostWickOffer
-            streak={streak}
-            freezeOwned={freezeOwned}
-            onUse={() => {
-              playSfx("emberGain");
-              void applyFreeze();
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.stageInner}
+          style={styles.stageScroll}
+        >
+          {freezeOffer ? (
+            <FrostWickOffer
+              streak={streak}
+              freezeOwned={freezeOwned}
+              onUse={() => {
+                playSfx("emberGain");
+                void applyFreeze();
+              }}
+              onDecline={() => {
+                playSfx("uiTap");
+                void declineFreeze();
+              }}
+            />
+          ) : (
+            <NightLanternCard
+              streak={streak}
+              freezeOwned={freezeOwned}
+              animateGlow={animatedBackgrounds}
+              weeklyWhisper={whisper.isTonight}
+              chapterTitle={lanternChapterTitle}
+              dreamPreview={
+                progressReady &&
+                !isCheckpointUnlocked(
+                  getCheckpointForLevel(lanternLevel).startLevel,
+                  highestReachedLevel
+                )
+              }
+              canStart={lanternReady && availability.canStart}
+              rematch={availability.canRematch}
+              pending={!lanternReady}
+              onPress={() => router.push("/lantern")}
+            />
+          )}
+          <LanternSocialLight
+            ready={ghostsReady}
+            today={lanternToday}
+            selfName={selfName}
+            ghosts={ghosts}
+            whisperTitle={whisper.title}
+            whisperIsTonight={whisper.isTonight}
+            hideActions={freezeOffer}
+            onChangeName={(name) => {
+              void saveSelfName(name);
             }}
-            onDecline={() => {
+            onShare={() => {
+              const stars = lanternState.bestStarsByDay[lanternToday] ?? 0;
+              void shareLanternSeal(
+                composeShare({
+                  patternsCleared: stars >= 2 ? 5 : stars === 1 ? 3 : 0,
+                  chapterTitle: lanternChapterTitle,
+                  streak,
+                  stars,
+                  litDate: lanternToday,
+                })
+              );
+            }}
+            onImport={async (raw) => {
+              const result = await importSeal(raw, lanternToday);
+              if (result.ok) {
+                playSfx("emberGain");
+                return null;
+              }
+              return result.reason;
+            }}
+            onRemoveGhost={(ghostId) => {
               playSfx("uiTap");
-              void declineFreeze();
+              void removeSeal(ghostId);
             }}
           />
-        ) : (
-          <NightLanternCard
-            streak={streak}
-            freezeOwned={freezeOwned}
-            animateGlow={animatedBackgrounds}
-            chapterTitle={getCheckpointForLevel(lanternLevel).title}
-            dreamPreview={
-              progressReady &&
-              !isCheckpointUnlocked(
-                getCheckpointForLevel(lanternLevel).startLevel,
-                highestReachedLevel
-              )
-            }
-            canStart={lanternReady && availability.canStart}
-            rematch={availability.canRematch}
-            pending={!lanternReady}
-            onPress={() => router.push("/lantern")}
-          />
-        )}
+        </ScrollView>
       </View>
 
       <View style={styles.dockVeil}>
@@ -271,7 +331,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
+  },
+  stageScroll: {
+    flex: 1,
+  },
+  stageInner: {
+    flexGrow: 1,
     justifyContent: "flex-end",
+    gap: theme.spacing.sm,
     paddingBottom: theme.spacing.sm,
   },
   dockVeil: {
