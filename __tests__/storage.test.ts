@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STARTING_EMBERS } from "../lib/economyConfig";
 import { createEconomyState } from "../lib/economyEngine";
 import { MAX_LEVEL, MAX_STORED_SCORE } from "../lib/gameConfig";
+import { createLanternGhostBook } from "../lib/lanternGhosts";
 import { createNightLanternState } from "../lib/nightLantern";
 import {
   getAdminUnlockAll,
@@ -10,12 +11,14 @@ import {
   getEconomyState,
   getHighScore,
   getHighestReachedLevel,
+  getLanternGhostBook,
   getNightLanternState,
   setAdminUnlockAll,
   setAnimatedBackgroundsEnabled,
   setEconomyState,
   setHighScore,
   setHighestReachedLevel,
+  setLanternGhostBook,
   setNightLanternState,
 } from "../lib/storage";
 
@@ -186,6 +189,62 @@ describe("storage fallbacks", () => {
     mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
     await expect(
       setNightLanternState(createNightLanternState({ streak: 2 }, "2026-09-21"))
+    ).resolves.toBeUndefined();
+  });
+
+  it("loads a default lantern ghost book and persists a self id", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    mockedStorage.setItem.mockResolvedValueOnce(undefined);
+
+    const loaded = await getLanternGhostBook();
+    expect(loaded.ghosts).toEqual([]);
+    expect(loaded.selfId).toMatch(/^[a-z0-9]{6}$/);
+    expect(mockedStorage.setItem).toHaveBeenCalledWith(
+      "glowbound:lantern-ghosts",
+      expect.any(String)
+    );
+  });
+
+  it("loads stored ghosts and drops junk ids", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({
+        selfId: "selfaa",
+        selfName: "Mae",
+        ghosts: [
+          {
+            id: "no",
+            name: "Skip",
+            streak: 2,
+            chapterTitle: "Moonwell",
+            stars: 1,
+            litDate: "2026-09-21",
+            importedAt: "2026-09-21",
+          },
+          {
+            id: "pal009",
+            name: "Ren",
+            streak: 6,
+            chapterTitle: "Moonwell",
+            stars: 3,
+            litDate: "2026-09-21",
+            importedAt: "2026-09-21",
+          },
+        ],
+      })
+    );
+
+    const loaded = await getLanternGhostBook();
+    expect(loaded.selfId).toBe("selfaa");
+    expect(loaded.selfName).toBe("Mae");
+    expect(loaded.ghosts).toHaveLength(1);
+    expect(loaded.ghosts[0]?.id).toBe("pal009");
+    expect(loaded.ghosts[0]?.streak).toBe(6);
+  });
+
+  it("does not throw when ghost book persistence fails", async () => {
+    mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
+    await expect(
+      setLanternGhostBook(createLanternGhostBook({ selfId: "selfaa" }, { today: "2026-09-21" }))
     ).resolves.toBeUndefined();
   });
 });

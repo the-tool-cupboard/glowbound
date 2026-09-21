@@ -9,9 +9,15 @@ import { StallStatPlate } from "@/components/StallStatPlate";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
+import { useLanternGhosts } from "@/hooks/useLanternGhosts";
 import { calculateEmbersEarned } from "@/lib/economyEngine";
 import { shareLanternSeal } from "@/lib/lanternShare";
-import { lanternEmberDrip, lanternShareMessage, lanternStarsCopy } from "@/lib/nightLantern";
+import {
+  calendarDateInZone,
+  lanternEmberDrip,
+  lanternShareMessage,
+  lanternStarsCopy,
+} from "@/lib/nightLantern";
 import {
   parseDifficultyParam,
   parseFlagParam,
@@ -131,6 +137,7 @@ function LanternResults() {
       : parseScoreParam(params.embers);
   const { addEmbers, ready: economyReady } = useGameEconomy();
   const { playSfx } = useGameAudio();
+  const { ready: ghostsReady, composeShare } = useLanternGhosts();
   const grantAppliedRef = useRef(false);
   const stingPlayedRef = useRef(false);
   useScreenMusic("resultsTheme");
@@ -155,11 +162,19 @@ function LanternResults() {
     }
   }, [playSfx, rematch]);
 
-  const shareCopy = lanternShareMessage({
-    patternsCleared,
-    chapterTitle,
-    streak,
-  });
+  const shareCopy = ghostsReady
+    ? composeShare({
+        patternsCleared,
+        chapterTitle,
+        streak,
+        stars,
+        litDate: calendarDateInZone(new Date()),
+      })
+    : lanternShareMessage({
+        patternsCleared,
+        chapterTitle,
+        streak,
+      });
 
   return (
     <ScreenContainer
@@ -202,7 +217,7 @@ function LanternResults() {
           label="Share"
           variant={rematch ? "ghost" : "primary"}
           fullWidth
-          accessibilityHint="Opens the system share sheet with this lantern seal"
+          accessibilityHint="Opens the system share sheet with this lantern seal and a pasteable ghost code"
           onPress={() => {
             playSfx("uiTap");
             void shareLanternSeal(shareCopy);

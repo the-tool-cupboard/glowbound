@@ -46,5 +46,24 @@ describe("night lantern phase 2 juice wiring", () => {
     expect(results).toContain("shareLanternSeal");
     expect(results).toContain('label="Share"');
     expect(results).toContain("lanternShareMessage");
+    expect(results).toContain("composeShare");
+  });
+});
+
+describe("night lantern phase 3 social light wiring", () => {
+  it("imports and displays friend ghosts on Camp without a backend", () => {
+    const camp = fs.readFileSync(path.join(__dirname, "../app/index.tsx"), "utf8");
+    expect(camp).toContain("LanternSocialLight");
+    expect(camp).toContain("composeShare");
+    expect(camp).toContain("importSeal");
+    expect(camp).toContain("shareLanternSeal");
+    expect(camp).not.toContain("firebase");
+  });
+
+  it("keeps the weekly whisper cosmetic on the lantern card", () => {
+    const camp = fs.readFileSync(path.join(__dirname, "../app/index.tsx"), "utf8");
+    const card = fs.readFileSync(path.join(__dirname, "../components/NightLanternCard.tsx"), "utf8");
+    expect(camp).toContain("weeklyWhisper={whisper.isTonight}");
+    expect(card).toContain("This week's whisper");
   });
 });

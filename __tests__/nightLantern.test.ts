@@ -28,12 +28,15 @@ import {
   lanternStarsCopy,
   lanternTargetCount,
   lanternWeekdayBandFromWeekday,
+  lanternWeeklyWhisper,
   lanternWrongTapEndsRun,
   nextZonedMidnightUtc,
   pruneBestStarsByDay,
   purchaseFrostWick,
   rollNightLanternDay,
   weekdayInZone,
+  weekIndexFromDate,
+  whisperedCheckpointFromDate,
 } from "../lib/nightLantern";
 
 describe("chapter of the day", () => {
@@ -54,6 +57,27 @@ describe("chapter of the day", () => {
     for (let i = 0; i < CHECKPOINTS.length; i += 1) {
       expect(lanternPlayLevelFromDayIndex(i)).toBe(CHECKPOINTS[i]?.startLevel);
     }
+  });
+});
+
+describe("weekly chapter whisper", () => {
+  it("uses floor(dayIndex / 7) % 10 and stays put for a seven-day week", () => {
+    expect(weekIndexFromDate("1970-01-01")).toBe(0);
+    expect(whisperedCheckpointFromDate("1970-01-01").title).toBe("Sleeping Woods");
+    expect(whisperedCheckpointFromDate("1970-01-07").title).toBe("Sleeping Woods");
+    expect(whisperedCheckpointFromDate("1970-01-08").title).toBe("Castle Gate");
+  });
+
+  it("is independent of the daily chapter rotation except when they happen to match", () => {
+    const monday = new Date("1970-01-05T17:00:00.000Z");
+    const whisper = lanternWeeklyWhisper(monday, "UTC");
+    expect(whisper.title).toBe("Sleeping Woods");
+    expect(whisper.isTonight).toBe(false);
+    expect(checkpointForDayIndex(dayIndexFromDate("1970-01-05")).title).toBe("Ember Bridge");
+
+    const woodsNight = lanternWeeklyWhisper(new Date("1970-01-01T17:00:00.000Z"), "UTC");
+    expect(woodsNight.title).toBe("Sleeping Woods");
+    expect(woodsNight.isTonight).toBe(true);
   });
 });
 

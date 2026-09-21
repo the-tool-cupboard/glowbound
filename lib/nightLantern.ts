@@ -162,6 +162,40 @@ export function lanternPlayLevel(
   return lanternPlayLevelFromDayIndex(dayIndexFromDate(calendarDateInZone(now, timeZone)));
 }
 
+/** Epoch week from the same civil-date index as chapter-of-day. Not a live vote. */
+export function weekIndexFromDate(dateStr: string): number {
+  return Math.floor(dayIndexFromDate(dateStr) / 7);
+}
+
+export function whisperedCheckpointFromDate(dateStr: string): Checkpoint {
+  return checkpointForDayIndex(weekIndexFromDate(dateStr));
+}
+
+export interface LanternWeeklyWhisper {
+  title: string;
+  isTonight: boolean;
+  weekIndex: number;
+}
+
+/**
+ * Cosmetic weekly accent. Same ET civil date as lantern days; chapter is
+ * `weekIndex % 10`, independent of the daily `dayIndex % 10` rotation.
+ */
+export function lanternWeeklyWhisper(
+  now: Date,
+  timeZone: string = NIGHT_LANTERN_TIMEZONE
+): LanternWeeklyWhisper {
+  const today = calendarDateInZone(now, timeZone);
+  const weekIndex = weekIndexFromDate(today);
+  const whisper = checkpointForDayIndex(weekIndex);
+  const tonight = checkpointForDayIndex(dayIndexFromDate(today));
+  return {
+    title: whisper.title,
+    isTonight: whisper.startLevel === tonight.startLevel,
+    weekIndex,
+  };
+}
+
 export function lanternTargetCount(runeCount: number, band: LanternWeekdayBand): number {
   const capacity = Math.max(0, Math.floor(runeCount));
   if (capacity <= 1) {

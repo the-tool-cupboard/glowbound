@@ -113,7 +113,7 @@ Visual language: same sky/dock veils + stall plates as difficulty/results. No Ca
 
 - No lives that block campaign play.
 - No forced ads / IAP for streak (Frost Wick is optional earnable).
-- No leaderboards in Phase 1–2 (async friends = Phase 3).
+- No live leaderboards (async friend ghosts only; no ranks).
 - No changing campaign twists to feed lantern.
 
 ---
@@ -127,7 +127,7 @@ Visual language: same sky/dock veils + stall plates as difficulty/results. No Ca
 - Camp entry + 5-pattern run + stars results + streak + ember drip + 1 free rematch rule
 - Reuse chapter rotation + existing twists
 
-### Phase 2 — Juice (this PR)
+### Phase 2 — Juice (shipped)
 
 Shipped:
 
@@ -141,9 +141,21 @@ Deferred:
 - **Phase 2.5 — Push reminders (opt-in).** Needs notification permission + local scheduling. Not in-repo; do not ship until that stack exists.
 - Share-card **image** render/export (ViewShot / file share). Phase 2 ships text + in-app card.
 
-### Phase 3 — Social light
+### Phase 3 — Social light (this PR)
 
-- Weekly “which chapter” vote or friend streak ghosts (async). Leaderboards stay here, not Phase 2.
+Client-only, offline-first. No accounts, Firebase, or live-ops backend.
+
+Shipped:
+
+- **Friend streak ghosts (async).** Results **Share** and Camp **Share a ghost seal** attach a pasteable `GBG1|…` payload (id, optional name, streak, tonight’s chapter, stars, lit date) to the existing share-sheet copy. Camp **Import a friend’s ghost** pastes that code (or the JSON form) into local storage (`glowbound:lantern-ghosts`). Camp shows **1–3** silver ghost lanterns beside yours (optional name, streak, last chapter). Same id updates in place; a fourth unique friend drops the oldest import. Long-press removes a ghost. Display / motivation only — ghosts never change stars, streak, embers, or campaign unlocks.
+- **Weekly chapter whisper (cosmetic).** “This week whispers …” is `floor(dayIndex / 7) % 10` mapped onto the ten chapters. When it matches tonight’s rotating chapter, the lantern card uses **This week’s whisper · [chapter]**. Gameplay stays on the daily rotation. **Whisper is not a multiplayer vote.**
+
+Deferred:
+
+- True weekly chapter **vote** (needs a server). Do not fake a vote in the client.
+- Live share-sheet receive / deep-link import (paste is the receive path).
+- Leaderboards, friend accounts, or competitive ranks.
+- Share-card **image** export (still Phase 2 leftover).
 
 ---
 
