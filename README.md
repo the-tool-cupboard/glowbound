@@ -2,6 +2,11 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Design
+
+- [Night Lantern](docs/NIGHT-LANTERN.md) — daily-loop design (short lantern run beside the 10-stage campaign; does not replace Bound / Journey complete)
+- More in [docs/](docs/README.md)
+
 ## Requirements
 
 - **Node.js** 22.13 or newer (SDK 57 minimum; this repo is developed on Node 22 LTS)
