@@ -159,36 +159,24 @@ function setPlayerVolume(player: AudioPlayer | null | undefined, volume: number)
   }
 }
 
-function createSfxPlayers(): {
-  pools: Partial<Record<SfxId, AudioPlayer[]>>;
-  singles: Partial<Record<SfxId, AudioPlayer>>;
-} {
-  const pools: Partial<Record<SfxId, AudioPlayer[]>> = {};
-  const singles: Partial<Record<SfxId, AudioPlayer>> = {};
-  const pooled = new Set<SfxId>(POOLED_SFX_IDS);
+const POOLED_SFX_ID_SET = new Set<SfxId>(POOLED_SFX_IDS);
 
-  for (const id of Object.keys(SFX_SOURCES) as SfxId[]) {
-    const source = SFX_SOURCES[id];
-    try {
-      if (pooled.has(id)) {
-        pools[id] = Array.from({ length: SFX_POOL_SIZE }, () =>
-          createAudioPlayer(source, { keepAudioSessionActive: true })
-        );
-      } else {
-        singles[id] = createAudioPlayer(source, { keepAudioSessionActive: true });
-      }
-    } catch {
-      // Missing or invalid asset — skip.
-    }
+function createOneShotPlayer(source: number): AudioPlayer | null {
+  try {
+    return createAudioPlayer(source, { keepAudioSessionActive: true });
+  } catch {
+    // Missing or invalid asset — skip.
+    return null;
   }
-
-  return { pools, singles };
 }
 
 export function createGameAudioEngine(initialPrefs: AudioPreferences): GameAudioEngine {
   let prefs = prefsFromVolumes(initialPrefs.sfxVolume, initialPrefs.musicVolume);
   const poolCursor: Partial<Record<SfxId, number>> = {};
-  const { pools, singles } = createSfxPlayers();
+  const pools: Partial<Record<SfxId, AudioPlayer[]>> = {};
+  const singles: Partial<Record<SfxId, AudioPlayer>> = {};
+  /** Cues that already failed to allocate — do not retry on every play. */
+  const failedSfx = new Set<SfxId>();
 
   let bgmPlayer: AudioPlayer | null = null;
   let currentBgmId: BgmId | null = null;
@@ -213,15 +201,65 @@ export function createGameAudioEngine(initialPrefs: AudioPreferences): GameAudio
     setPlayerVolume(bgmPlayer, mixedMusicVolume());
   };
 
-  applySfxVolume(prefs.sfxVolume);
+  const unlockPooledSfx = (id: SfxId): AudioPlayer[] | null => {
+    const existing = pools[id];
+    if (existing != null) {
+      return existing.length > 0 ? existing : null;
+    }
+    if (failedSfx.has(id)) {
+      return null;
+    }
+
+    const source = SFX_SOURCES[id];
+    const created: AudioPlayer[] = [];
+    for (let index = 0; index < SFX_POOL_SIZE; index += 1) {
+      const player = createOneShotPlayer(source);
+      if (player == null) {
+        break;
+      }
+      setPlayerVolume(player, prefs.sfxVolume);
+      created.push(player);
+    }
+
+    if (created.length === 0) {
+      failedSfx.add(id);
+      return null;
+    }
+
+    pools[id] = created;
+    return created;
+  };
+
+  const unlockSingleSfx = (id: SfxId): AudioPlayer | null => {
+    const existing = singles[id];
+    if (existing != null) {
+      return existing;
+    }
+    if (failedSfx.has(id)) {
+      return null;
+    }
+
+    const player = createOneShotPlayer(SFX_SOURCES[id]);
+    if (player == null) {
+      failedSfx.add(id);
+      return null;
+    }
+
+    setPlayerVolume(player, prefs.sfxVolume);
+    singles[id] = player;
+    return player;
+  };
 
   const playSfx = (id: SfxId): void => {
     if (!prefs.sfxEnabled || prefs.sfxVolume <= 0) {
       return;
     }
 
-    const pool = pools[id];
-    if (pool != null && pool.length > 0) {
+    if (POOLED_SFX_ID_SET.has(id)) {
+      const pool = unlockPooledSfx(id);
+      if (pool == null) {
+        return;
+      }
       const cursor = poolCursor[id] ?? 0;
       const player = pool[cursor % pool.length];
       poolCursor[id] = (cursor + 1) % pool.length;
@@ -230,7 +268,7 @@ export function createGameAudioEngine(initialPrefs: AudioPreferences): GameAudio
       return;
     }
 
-    const single = singles[id];
+    const single = unlockSingleSfx(id);
     if (single != null) {
       setPlayerVolume(single, prefs.sfxVolume);
       replayPlayer(single);
