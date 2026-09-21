@@ -5,6 +5,7 @@ import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { MotionToggle } from "@/components/MotionToggle";
+import { NightLanternCard } from "@/components/NightLanternCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ShopStallMark } from "@/components/ShopStallMark";
@@ -13,6 +14,9 @@ import { useAnimatedBackgrounds } from "@/hooks/useAnimatedBackgrounds";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
+import { useNightLantern } from "@/hooks/useNightLantern";
+import { useProgress } from "@/hooks/useProgress";
+import { getCheckpointForLevel, isCheckpointUnlocked } from "@/lib/gameConfig";
 import { theme } from "@/lib/theme";
 
 const menuBackground = require("../assets/images/game images/GB_Menu-Background.png");
@@ -22,6 +26,13 @@ export default function HomeScreen() {
   const router = useRouter();
   const { highScore, ready: scoreReady } = useHighScore();
   const { embers, ready: economyReady } = useGameEconomy();
+  const { highestReachedLevel, ready: progressReady } = useProgress();
+  const {
+    ready: lanternReady,
+    streak,
+    playLevel: lanternLevel,
+    availability,
+  } = useNightLantern();
   const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
     useAnimatedBackgrounds();
   const { enabled: adminUnlockAll, ready: adminReady, toggle: toggleAdminUnlockAll } = useAdminMode();
@@ -98,7 +109,23 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.stage} pointerEvents="none" accessible={false} />
+      <View style={styles.stage} pointerEvents="box-none">
+        <NightLanternCard
+          streak={streak}
+          chapterTitle={getCheckpointForLevel(lanternLevel).title}
+          dreamPreview={
+            progressReady &&
+            !isCheckpointUnlocked(
+              getCheckpointForLevel(lanternLevel).startLevel,
+              highestReachedLevel
+            )
+          }
+          canStart={lanternReady && availability.canStart}
+          rematch={availability.canRematch}
+          pending={!lanternReady}
+          onPress={() => router.push("/lantern")}
+        />
+      </View>
 
       <View style={styles.dockVeil}>
         <View style={styles.dockRow}>
@@ -222,6 +249,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
+    justifyContent: "flex-end",
+    paddingBottom: theme.spacing.sm,
   },
   dockVeil: {
     marginHorizontal: -theme.spacing.lg,

@@ -45,3 +45,19 @@ export function parseDifficultyParam(value: string | string[] | undefined): Diff
   const raw = parseRouteParam(value);
   return isDifficultyId(raw) ? raw : "standard";
 }
+
+export type GameMode = "campaign" | "lantern";
+
+export function parseGameModeParam(value: string | string[] | undefined): GameMode {
+  return parseRouteParam(value) === "lantern" ? "lantern" : "campaign";
+}
+
+export function parseFlagParam(value: string | string[] | undefined): boolean {
+  const raw = parseRouteParam(value);
+  return raw === "1" || raw === "true";
+}
+
+export function parseStarsParam(value: string | string[] | undefined): number {
+  const parsed = parseScoreParam(value);
+  return Math.min(3, parsed);
+}

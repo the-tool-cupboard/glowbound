@@ -3,17 +3,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STARTING_EMBERS } from "../lib/economyConfig";
 import { createEconomyState } from "../lib/economyEngine";
 import { MAX_LEVEL, MAX_STORED_SCORE } from "../lib/gameConfig";
+import { createNightLanternState } from "../lib/nightLantern";
 import {
   getAdminUnlockAll,
   getAnimatedBackgroundsEnabled,
   getEconomyState,
   getHighScore,
   getHighestReachedLevel,
+  getNightLanternState,
   setAdminUnlockAll,
   setAnimatedBackgroundsEnabled,
   setEconomyState,
   setHighScore,
   setHighestReachedLevel,
+  setNightLanternState,
 } from "../lib/storage";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -143,5 +146,46 @@ describe("storage fallbacks", () => {
 
     await expect(setHighScore(40)).resolves.toBe(80);
     expect(mockedStorage.setItem).toHaveBeenCalledWith("glowbound:high-score", "80");
+  });
+
+  it("loads a default night lantern state and persists firstSeenDate", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    mockedStorage.setItem.mockResolvedValueOnce(undefined);
+
+    const loaded = await getNightLanternState();
+    expect(loaded.streak).toBe(0);
+    expect(loaded.attemptsToday).toBe(0);
+    expect(loaded.freezeOwned).toBe(0);
+    expect(loaded.firstSeenDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(mockedStorage.setItem).toHaveBeenCalledWith(
+      "glowbound:night-lantern",
+      expect.any(String)
+    );
+  });
+
+  it("loads a stored night lantern blob and ignores junk stars keys", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({
+        lastPlayDate: "2026-09-20",
+        attemptsToday: 1,
+        streak: 4,
+        freezeOwned: 2,
+        bestStarsByDay: { "2026-09-20": 3, nope: 9 },
+        firstSeenDate: "2026-09-01",
+      })
+    );
+
+    const loaded = await getNightLanternState();
+    expect(loaded.streak).toBe(4);
+    expect(loaded.freezeOwned).toBe(2);
+    expect(loaded.bestStarsByDay["2026-09-20"]).toBe(3);
+    expect(loaded.bestStarsByDay.nope).toBeUndefined();
+  });
+
+  it("does not throw when night lantern persistence fails", async () => {
+    mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
+    await expect(
+      setNightLanternState(createNightLanternState({ streak: 2 }, "2026-09-21"))
+    ).resolves.toBeUndefined();
   });
 });

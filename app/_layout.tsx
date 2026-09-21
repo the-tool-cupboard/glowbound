@@ -23,6 +23,7 @@ export default function RootLayout() {
             <Stack.Screen name="shop" />
             <Stack.Screen name="levels" />
             <Stack.Screen name="game" />
+            <Stack.Screen name="lantern" />
             <Stack.Screen name="level-complete" />
             <Stack.Screen name="results" />
           </Stack>

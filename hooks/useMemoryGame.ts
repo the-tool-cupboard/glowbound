@@ -11,6 +11,8 @@ import {
   getLevelConfig,
   getStagesForLevel,
 } from "@/lib/gameConfig";
+import { LANTERN_PATTERN_COUNT, lanternWrongTapEndsRun } from "@/lib/nightLantern";
+import type { GameMode } from "@/lib/routeParams";
 import {
   calculateScoreForLevel,
   evaluateRuneTap,
@@ -46,6 +48,13 @@ import type { CellId, GamePhase, RuneLayout } from "@/types/game";
 
 type PreviewKind = "round" | "sight";
 
+export interface StartGameOptions {
+  playLevel?: number;
+  score?: number;
+  mode?: GameMode;
+  targetCountOverride?: number;
+}
+
 function clearTimer(timerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>) {
   if (timerRef.current != null) {
     clearTimeout(timerRef.current);
@@ -71,6 +80,10 @@ export function useMemoryGame() {
   const [cooledBoard, setCooledBoard] = useState(false);
   const [lanternTrial, setLanternTrial] = useState(false);
   const [woodsLastChanceCoach, setWoodsLastChanceCoach] = useState(false);
+  const [lanternMode, setLanternMode] = useState(false);
+  const [patternsCleared, setPatternsCleared] = useState(0);
+  const [lastChanceUsed, setLastChanceUsed] = useState(false);
+  const [wardUsed, setWardUsed] = useState(false);
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,6 +122,12 @@ export function useMemoryGame() {
   const swapLockedRef = useRef(false);
   const orderedInputRef = useRef(false);
   const woodsLastChanceCoachedRef = useRef(false);
+  const lanternModeRef = useRef(false);
+  const targetCountOverrideRef = useRef<number | null>(null);
+  const patternsClearedRef = useRef(0);
+  const lastChanceUsedRef = useRef(false);
+  const wardUsedRef = useRef(false);
+  const lanternMercyUsedRef = useRef(false);
 
   const clearPreviewFx = useCallback(() => {
     setPreviewCellIds([]);
@@ -374,7 +393,14 @@ export function useMemoryGame() {
       swapLockedRef.current = false;
 
       const base = getLevelConfig(nextLevel);
-      const config = applyDifficultyToConfig(base, difficultyRef.current);
+      let config = applyDifficultyToConfig(base, difficultyRef.current);
+      const override = targetCountOverrideRef.current;
+      if (override != null) {
+        const capacity = Math.max(0, config.runeCount);
+        const safeOverride =
+          capacity <= 1 ? capacity : Math.min(capacity - 1, Math.max(1, Math.floor(override)));
+        config = { ...config, targetCount: safeOverride };
+      }
       const rules = resolveStageRules(nextLevel, difficultyRef.current);
       rulesRef.current = rules;
       const previewMs =
@@ -436,11 +462,27 @@ export function useMemoryGame() {
     };
   }, [pauseForInterrupt, resumeAfterInterrupt]);
 
+  const resetRunFlags = useCallback((mode: GameMode, targetCountOverride?: number) => {
+    lanternModeRef.current = mode === "lantern";
+    targetCountOverrideRef.current =
+      targetCountOverride != null && Number.isFinite(targetCountOverride)
+        ? Math.max(0, Math.floor(targetCountOverride))
+        : null;
+    patternsClearedRef.current = 0;
+    lastChanceUsedRef.current = false;
+    wardUsedRef.current = false;
+    lanternMercyUsedRef.current = false;
+    setLanternMode(lanternModeRef.current);
+    setPatternsCleared(0);
+    setLastChanceUsed(false);
+    setWardUsed(false);
+  }, []);
+
   const startGame = useCallback(
     (
       startLevel = 1,
       difficulty: DifficultyId = "standard",
-      resume?: { playLevel?: number; score?: number }
+      resume?: StartGameOptions
     ) => {
       const chapter = clampPlayLevel(startLevel);
       const playLevel = clampPlayLevel(resume?.playLevel ?? chapter);
@@ -453,11 +495,12 @@ export function useMemoryGame() {
       lanternOilMsRef.current = 0;
       wardArmedRef.current = false;
       woodsLastChanceCoachedRef.current = false;
+      resetRunFlags(resume?.mode ?? "campaign", resume?.targetCountOverride);
       setWardArmed(false);
       setWoodsLastChanceCoach(false);
       beginRound(playLevel, resumeScore, 1);
     },
-    [beginRound]
+    [beginRound, resetRunFlags]
   );
 
   const restartGame = useCallback(() => {
@@ -465,10 +508,14 @@ export function useMemoryGame() {
     lanternOilMsRef.current = 0;
     wardArmedRef.current = false;
     woodsLastChanceCoachedRef.current = false;
+    resetRunFlags(
+      lanternModeRef.current ? "lantern" : "campaign",
+      targetCountOverrideRef.current ?? undefined
+    );
     setWardArmed(false);
     setWoodsLastChanceCoach(false);
     beginRound(runStartLevelRef.current, 0, 1);
-  }, [beginRound]);
+  }, [beginRound, resetRunFlags]);
 
   const clearEmberFade = useCallback(() => {
     clearTimer(emberTimerRef);
@@ -522,6 +569,8 @@ export function useMemoryGame() {
 
     wardArmedRef.current = true;
     setWardArmed(true);
+    wardUsedRef.current = true;
+    setWardUsed(true);
     setStatusNote("The next wrong tap will be ignored.");
     return true;
   }, []);
@@ -550,7 +599,12 @@ export function useMemoryGame() {
   const completePatternSlot = useCallback(
     (nextScore: number) => {
       setStatusNote(null);
-      const stagesRequired = getStagesForLevel(levelRef.current);
+      const nextCleared = patternsClearedRef.current + 1;
+      patternsClearedRef.current = nextCleared;
+      setPatternsCleared(nextCleared);
+      const stagesRequired = lanternModeRef.current
+        ? LANTERN_PATTERN_COUNT
+        : getStagesForLevel(levelRef.current);
 
       if (stageRef.current < stagesRequired) {
         phaseRef.current = "stageComplete";
@@ -647,6 +701,11 @@ export function useMemoryGame() {
       if (wardArmedRef.current) {
         wardArmedRef.current = false;
         setWardArmed(false);
+        wardUsedRef.current = true;
+        setWardUsed(true);
+        if (lanternModeRef.current) {
+          lanternMercyUsedRef.current = true;
+        }
         setWrongCellId(cellId);
         setStatusNote("Ward used. Keep going.");
         clearTimer(wardTimerRef);
@@ -657,6 +716,21 @@ export function useMemoryGame() {
         }, WARD_FLASH_MS);
         return;
       }
+
+      if (lanternModeRef.current && lanternWrongTapEndsRun(lanternMercyUsedRef.current)) {
+        clearTimers();
+        setWrongCellId(cellId);
+        phaseRef.current = "gameOver";
+        setPhase("gameOver");
+        setStatusNote("The lantern fades.");
+        return;
+      }
+
+      if (lanternModeRef.current) {
+        lanternMercyUsedRef.current = true;
+      }
+      lastChanceUsedRef.current = true;
+      setLastChanceUsed(true);
 
       const woodsCoach = woodsLastChanceCoachTrigger(
         rulesRef.current,
@@ -671,7 +745,7 @@ export function useMemoryGame() {
       setWoodsLastChanceCoach(woodsCoach);
       setStatusNote(woodsCoach ? SLEEPING_WOODS_LAST_CHANCE_STATUS : "Wrong rune.");
     },
-    [completePatternSlot, inputStatusNote, startFlightPreview]
+    [clearTimers, completePatternSlot, inputStatusNote, startFlightPreview]
   );
 
   const applyMercyItem = useCallback((itemId: PowerUpId) => {
@@ -682,6 +756,11 @@ export function useMemoryGame() {
     setWrongCellId(null);
     wardArmedRef.current = false;
     setWardArmed(false);
+    wardUsedRef.current = true;
+    setWardUsed(true);
+    if (lanternModeRef.current) {
+      lanternMercyUsedRef.current = true;
+    }
     phaseRef.current = "playerInput";
     setPhase("playerInput");
     setStatusNote("Ward used. Keep going.");
@@ -714,7 +793,11 @@ export function useMemoryGame() {
     wrongCellId,
     remainingCount: Math.max(0, targetCellIds.length - selectedCellIds.length),
     stage,
-    stagesRequired: getStagesForLevel(level),
+    stagesRequired: lanternMode ? LANTERN_PATTERN_COUNT : getStagesForLevel(level),
+    lanternMode,
+    patternsCleared,
+    lastChanceUsed,
+    wardUsed,
     wardArmed,
     statusNote,
     cooledBoard,
