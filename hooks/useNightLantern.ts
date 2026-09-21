@@ -17,6 +17,7 @@ import {
   type LanternAttemptAvailability,
   type NightLanternState,
 } from "@/lib/nightLantern";
+import { syncLanternReminders } from "@/lib/lanternReminderNotifications";
 import { getNightLanternState, setNightLanternState } from "@/lib/storage";
 import { createSyncedResource } from "@/lib/syncedResource";
 
@@ -32,6 +33,7 @@ export function useNightLantern() {
   const persist = useCallback(async (next: NightLanternState) => {
     nightLanternResource.setValue(next);
     await setNightLanternState(next);
+    void syncLanternReminders({ lastPlayDate: next.lastPlayDate });
     return next;
   }, []);
 

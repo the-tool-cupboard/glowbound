@@ -13,6 +13,7 @@ const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
 const ADMIN_UNLOCK_ALL_KEY = "glowbound:admin-unlock-all";
 const NIGHT_LANTERN_KEY = "glowbound:night-lantern";
 const LANTERN_GHOSTS_KEY = "glowbound:lantern-ghosts";
+const LANTERN_REMINDER_KEY = "glowbound:lantern-reminder";
 
 function parseStoredInt(raw: string | null): number | null {
   if (raw == null) {
@@ -234,6 +235,23 @@ export async function setLanternGhostBook(book: LanternGhostBook): Promise<void>
       LANTERN_GHOSTS_KEY,
       JSON.stringify(createLanternGhostBook(book, { today: calendarDateInZone(new Date()) }))
     );
+  } catch {
+    // Storage can be unavailable in some runtimes; keep gameplay working.
+  }
+}
+
+export async function getLanternReminderEnabled(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(LANTERN_REMINDER_KEY);
+    return raw === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function setLanternReminderEnabled(enabled: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LANTERN_REMINDER_KEY, enabled ? "true" : "false");
   } catch {
     // Storage can be unavailable in some runtimes; keep gameplay working.
   }

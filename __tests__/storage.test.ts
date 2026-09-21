@@ -12,6 +12,7 @@ import {
   getHighScore,
   getHighestReachedLevel,
   getLanternGhostBook,
+  getLanternReminderEnabled,
   getNightLanternState,
   setAdminUnlockAll,
   setAnimatedBackgroundsEnabled,
@@ -19,6 +20,7 @@ import {
   setHighScore,
   setHighestReachedLevel,
   setLanternGhostBook,
+  setLanternReminderEnabled,
   setNightLanternState,
 } from "../lib/storage";
 
@@ -88,6 +90,8 @@ describe("storage fallbacks", () => {
     await expect(setEconomyState(createEconomyState({ embers: STARTING_EMBERS }))).resolves.toBeUndefined();
     await expect(setAnimatedBackgroundsEnabled(true)).resolves.toBeUndefined();
     await expect(setAdminUnlockAll(true)).resolves.toBeUndefined();
+    await expect(setLanternGhostBook(createLanternGhostBook({ selfId: "selfaa" }, { today: "2026-09-21" }))).resolves.toBeUndefined();
+    await expect(setLanternReminderEnabled(true)).resolves.toBeUndefined();
   });
 
   it("treats missing or unreadable animated-background flags as still images", async () => {
@@ -120,6 +124,22 @@ describe("storage fallbacks", () => {
   it("reads the admin-unlock flag when stored as true", async () => {
     mockedStorage.getItem.mockResolvedValueOnce("true");
     await expect(getAdminUnlockAll()).resolves.toBe(true);
+  });
+
+  it("treats missing or unreadable lantern-reminder flags as off", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getLanternReminderEnabled()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockResolvedValueOnce("false");
+    await expect(getLanternReminderEnabled()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getLanternReminderEnabled()).resolves.toBe(false);
+  });
+
+  it("reads the lantern-reminder flag when stored as true", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("true");
+    await expect(getLanternReminderEnabled()).resolves.toBe(true);
   });
 
   it("clamps an oversized stored high score", async () => {

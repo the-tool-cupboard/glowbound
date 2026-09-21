@@ -67,3 +67,31 @@ describe("night lantern phase 3 social light wiring", () => {
     expect(card).toContain("This week's whisper");
   });
 });
+
+describe("night lantern phase 2.5 reminder wiring", () => {
+  it("opts in from Camp only and never fetches a remote push token", () => {
+    const camp = fs.readFileSync(path.join(__dirname, "../app/index.tsx"), "utf8");
+    const layout = fs.readFileSync(path.join(__dirname, "../app/_layout.tsx"), "utf8");
+    const notifications = fs.readFileSync(
+      path.join(__dirname, "../lib/lanternReminderNotifications.ts"),
+      "utf8"
+    );
+    const hook = fs.readFileSync(path.join(__dirname, "../hooks/useLanternReminder.ts"), "utf8");
+
+    expect(camp).toContain("LanternReminderToggle");
+    expect(camp).toContain("toggleLanternReminder");
+    expect(layout).toContain("installLanternReminderRuntime");
+    expect(camp).not.toContain("requestLanternReminderPermission");
+    expect(layout).not.toContain("requestLanternReminderPermission");
+    expect(notifications).not.toContain("getExpoPushTokenAsync");
+    expect(notifications).not.toContain("getDevicePushTokenAsync");
+    expect(hook).toContain("if (next)");
+    expect(hook).toContain("requestLanternReminderPermission");
+  });
+
+  it("resyncs reminders after a lantern attempt is persisted", () => {
+    const lanternHook = fs.readFileSync(path.join(__dirname, "../hooks/useNightLantern.ts"), "utf8");
+    expect(lanternHook).toContain("syncLanternReminders");
+    expect(lanternHook).toContain("lastPlayDate: next.lastPlayDate");
+  });
+});
