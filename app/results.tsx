@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { LanternShareCard } from "@/components/LanternShareCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { StallStatPlate } from "@/components/StallStatPlate";
@@ -9,7 +10,8 @@ import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { calculateEmbersEarned } from "@/lib/economyEngine";
-import { lanternEmberDrip, lanternShareCopy, lanternStarsCopy } from "@/lib/nightLantern";
+import { shareLanternSeal } from "@/lib/lanternShare";
+import { lanternEmberDrip, lanternShareMessage, lanternStarsCopy } from "@/lib/nightLantern";
 import {
   parseDifficultyParam,
   parseFlagParam,
@@ -153,7 +155,7 @@ function LanternResults() {
     }
   }, [playSfx, rematch]);
 
-  const shareCopy = lanternShareCopy({
+  const shareCopy = lanternShareMessage({
     patternsCleared,
     chapterTitle,
     streak,
@@ -187,15 +189,25 @@ function LanternResults() {
           <StallStatPlate label="Streak" value={streak} accent={streak >= 3} />
           <StallStatPlate label="Embers" value={embersEarned} />
         </View>
-        <View style={styles.shareCard} accessible accessibilityLabel={shareCopy}>
-          <Text style={styles.shareLabel}>Lantern seal</Text>
-          <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.shareCopy}>
-            {shareCopy}
-          </Text>
-        </View>
+        <LanternShareCard
+          patternsCleared={patternsCleared}
+          chapterTitle={chapterTitle}
+          streak={streak}
+          stars={stars}
+        />
       </View>
 
       <View style={styles.dockVeil}>
+        <PrimaryButton
+          label="Share"
+          variant={rematch ? "ghost" : "primary"}
+          fullWidth
+          accessibilityHint="Opens the system share sheet with this lantern seal"
+          onPress={() => {
+            playSfx("uiTap");
+            void shareLanternSeal(shareCopy);
+          }}
+        />
         {rematch ? (
           <PrimaryButton
             label="Rematch"
@@ -211,7 +223,7 @@ function LanternResults() {
         ) : null}
         <PrimaryButton
           label="Return Camp"
-          variant={rematch ? "ghost" : "primary"}
+          variant="ghost"
           fullWidth
           accessibilityHint="Returns to camp"
           onPress={() => router.replace("/")}
@@ -261,23 +273,6 @@ const styles = StyleSheet.create({
   stats: {
     flexDirection: "row",
     gap: theme.spacing.sm,
-  },
-  shareCard: {
-    backgroundColor: theme.overlay.stall,
-    borderRadius: theme.radius.lg,
-    borderWidth: theme.pixel.inset,
-    borderColor: theme.overlay.stallRim,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.stallPlate.padding,
-    gap: theme.spacing.xs,
-  },
-  shareLabel: {
-    color: theme.colors.accent,
-    ...theme.typography.overline,
-  },
-  shareCopy: {
-    color: theme.colors.text,
-    ...theme.typography.caption,
   },
   dockVeil: {
     marginHorizontal: -theme.spacing.lg,

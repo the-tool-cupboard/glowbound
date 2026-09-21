@@ -3,13 +3,18 @@ import {
   LANTERN_ATTEMPTS_PER_DAY,
   LANTERN_PATTERN_COUNT,
   addCalendarDays,
+  addFrostWick,
+  applyFrostWickFreeze,
   applyLanternResult,
   beginLanternAttempt,
   calendarDateInZone,
+  calendarDaysMissed,
+  canOfferFrostWick,
   chapterIndexFromDayIndex,
   checkpointForDayIndex,
   createNightLanternState,
   dayIndexFromDate,
+  declineFrostWickFreeze,
   formatRelitCountdown,
   lanternAttemptAvailability,
   lanternDifficulty,
@@ -17,6 +22,8 @@ import {
   lanternPlayLevelFromDayIndex,
   lanternRoundTargetCount,
   lanternShareCopy,
+  lanternShareMessage,
+  lanternShareTitle,
   lanternStars,
   lanternStarsCopy,
   lanternTargetCount,
@@ -24,6 +31,7 @@ import {
   lanternWrongTapEndsRun,
   nextZonedMidnightUtc,
   pruneBestStarsByDay,
+  purchaseFrostWick,
   rollNightLanternDay,
   weekdayInZone,
 } from "../lib/nightLantern";
@@ -252,7 +260,7 @@ describe("streak day rollover", () => {
     expect(played.attemptsToday).toBe(1);
   });
 
-  it("does not spend freezeOwned in Phase 1", () => {
+  it("does not spend freezeOwned until a Frost Wick is used", () => {
     const today = "2026-09-21";
     const rolled = rollNightLanternDay(
       createNightLanternState(
@@ -266,8 +274,111 @@ describe("streak day rollover", () => {
       ),
       today
     );
-    expect(rolled.streak).toBe(0);
+    expect(rolled.streak).toBe(8);
     expect(rolled.freezeOwned).toBe(2);
+    expect(canOfferFrostWick(rolled, today)).toBe(true);
+  });
+});
+
+describe("Frost Wick purchase and streak freeze", () => {
+  it("buys a wick for 40 embers and stops at the shop cap of 3", () => {
+    expect(purchaseFrostWick(40, 0)).toEqual({ ok: true, embers: 0, freezeOwned: 1 });
+    expect(purchaseFrostWick(39, 0)).toEqual({ ok: false, reason: "cannotAfford" });
+    expect(purchaseFrostWick(120, 3)).toEqual({ ok: false, reason: "capReached" });
+
+    const granted = addFrostWick(createNightLanternState({ freezeOwned: 2 }, "2026-09-21"));
+    expect(granted?.freezeOwned).toBe(3);
+    expect(addFrostWick(createNightLanternState({ freezeOwned: 3 }, "2026-09-21"))).toBeNull();
+  });
+
+  it("holds streak when exactly one calendar day was missed and a wick is used", () => {
+    const today = "2026-09-21";
+    const atRisk = createNightLanternState(
+      {
+        firstSeenDate: "2026-09-01",
+        lastPlayDate: "2026-09-19",
+        streak: 6,
+        freezeOwned: 1,
+      },
+      today
+    );
+
+    expect(calendarDaysMissed("2026-09-19", today)).toBe(1);
+    expect(canOfferFrostWick(atRisk, today)).toBe(true);
+
+    const held = applyFrostWickFreeze(atRisk, today);
+    expect(held).not.toBeNull();
+    expect(held?.streak).toBe(6);
+    expect(held?.freezeOwned).toBe(0);
+    expect(held?.lastPlayDate).toBe("2026-09-20");
+    expect(canOfferFrostWick(held!, today)).toBe(false);
+
+    const played = applyLanternResult(held!, today, 1);
+    expect(played.streak).toBe(7);
+    expect(played.freezeOwned).toBe(0);
+  });
+
+  it("resets streak when the freeze is declined", () => {
+    const today = "2026-09-21";
+    const declined = declineFrostWickFreeze(
+      createNightLanternState(
+        {
+          firstSeenDate: "2026-09-01",
+          lastPlayDate: "2026-09-19",
+          streak: 6,
+          freezeOwned: 2,
+        },
+        today
+      ),
+      today
+    );
+
+    expect(declined.streak).toBe(0);
+    expect(declined.freezeOwned).toBe(2);
+    expect(canOfferFrostWick(declined, today)).toBe(false);
+  });
+
+  it("cannot cover a two-day gap even with a wick in the pack", () => {
+    const today = "2026-09-21";
+    const skipped = rollNightLanternDay(
+      createNightLanternState(
+        {
+          firstSeenDate: "2026-09-01",
+          lastPlayDate: "2026-09-18",
+          streak: 9,
+          freezeOwned: 2,
+        },
+        today
+      ),
+      today
+    );
+
+    expect(calendarDaysMissed("2026-09-18", today)).toBe(2);
+    expect(skipped.streak).toBe(0);
+    expect(skipped.freezeOwned).toBe(2);
+    expect(canOfferFrostWick(skipped, today)).toBe(false);
+    expect(applyFrostWickFreeze(skipped, today)).toBeNull();
+  });
+
+  it("consumes one wick if a result is recorded while the freeze is still pending", () => {
+    const today = "2026-09-21";
+    const played = applyLanternResult(
+      createNightLanternState(
+        {
+          firstSeenDate: "2026-09-01",
+          lastPlayDate: "2026-09-19",
+          streak: 4,
+          freezeOwned: 1,
+        },
+        today
+      ),
+      today,
+      2
+    );
+
+    expect(played.streak).toBe(5);
+    expect(played.freezeOwned).toBe(0);
+    expect(played.lastPlayDate).toBe(today);
   });
 });
 
@@ -333,7 +444,12 @@ describe("calendar helpers", () => {
     expect(pruned["2025-01-01"]).toBeUndefined();
     expect(
       lanternShareCopy({ patternsCleared: 5, chapterTitle: "Moonwell", streak: 3 })
-    ).toBe("Sealed 5 patterns under Moonwell · streak 3 · Kindled");
+    ).toBe("Sealed 5 patterns under Moonwell · streak 3");
+    expect(lanternShareTitle(3)).toBe("Kindled");
+    expect(lanternShareTitle(2)).toBe("Lantern seal");
+    expect(
+      lanternShareMessage({ patternsCleared: 5, chapterTitle: "Moonwell", streak: 3 })
+    ).toBe("Kindled\nSealed 5 patterns under Moonwell · streak 3");
     expect(LANTERN_PATTERN_COUNT).toBe(5);
   });
 });

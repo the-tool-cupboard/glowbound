@@ -1,9 +1,13 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import {
+  addFrostWick,
+  applyFrostWickFreeze,
   applyLanternResult,
   calendarDateInZone,
+  canOfferFrostWick,
   createNightLanternState,
+  declineFrostWickFreeze,
   lanternAttemptAvailability,
   lanternPlayLevel,
   lanternRelitLabel,
@@ -39,6 +43,28 @@ export function useNightLantern() {
     [persist]
   );
 
+  const grantFrostWick = useCallback(async (): Promise<NightLanternState | null> => {
+    const next = addFrostWick(nightLanternResource.value);
+    if (next == null) {
+      return null;
+    }
+    return persist(next);
+  }, [persist]);
+
+  const applyFreeze = useCallback(async (): Promise<NightLanternState | null> => {
+    const today = calendarDateInZone(new Date());
+    const next = applyFrostWickFreeze(nightLanternResource.value, today);
+    if (next == null) {
+      return null;
+    }
+    return persist(next);
+  }, [persist]);
+
+  const declineFreeze = useCallback(async (): Promise<NightLanternState> => {
+    const today = calendarDateInZone(new Date());
+    return persist(declineFrostWickFreeze(nightLanternResource.value, today));
+  }, [persist]);
+
   const view = useMemo(() => {
     const now = new Date();
     const today = calendarDateInZone(now);
@@ -51,6 +77,7 @@ export function useNightLantern() {
       playLevel: lanternPlayLevel(now),
       weekdayBand: lanternWeekdayBand(now),
       relitLabel: lanternRelitLabel(now),
+      freezeOffer: canOfferFrostWick(value, today),
     };
   }, [value]);
 
@@ -59,11 +86,15 @@ export function useNightLantern() {
     state: view.rolled,
     streak: view.rolled.streak,
     freezeOwned: view.rolled.freezeOwned,
+    freezeOffer: view.freezeOffer,
     firstSeenDate: view.rolled.firstSeenDate,
     availability: view.availability,
     playLevel: view.playLevel,
     weekdayBand: view.weekdayBand,
     relitLabel: view.relitLabel,
     recordResult,
+    grantFrostWick,
+    applyFreeze,
+    declineFreeze,
   };
 }

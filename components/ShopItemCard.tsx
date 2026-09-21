@@ -3,9 +3,9 @@ import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from "
 
 import { CHARM_GLYPH_PAINT, ShopCharmMark } from "@/components/ShopCharmMark";
 import { theme } from "@/lib/theme";
-import { MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
+import { FROST_WICK_SHOP_CAP, MAX_OWNED_PER_ITEM } from "@/lib/economyConfig";
 import { isInventoryFull } from "@/lib/economyEngine";
-import type { Inventory, PowerUpId, ShopItem } from "@/types/economy";
+import type { Inventory, ShopGlyphId, ShopListing } from "@/types/economy";
 
 const BUY_FLASH_MS = 720;
 const PRIME_WINDOW_MS = 650;
@@ -13,8 +13,9 @@ const SHOP_MARK_SIZE = 56;
 const SHOP_MARK_WELL = 60;
 
 interface ShopItemCardProps {
-  item: ShopItem;
+  item: ShopListing;
   owned: number;
+  cap: number;
   embers: number;
   canAfford: boolean;
   atCap: boolean;
@@ -25,6 +26,7 @@ interface ShopItemCardProps {
 export function ShopItemCard({
   item,
   owned,
+  cap,
   embers,
   canAfford,
   atCap,
@@ -105,12 +107,13 @@ export function ShopItemCard({
   const unaffordable = !canAfford && !atCap;
   const shortfall = Math.max(0, item.cost - embers);
   const paint = CHARM_GLYPH_PAINT[item.id];
+  const goodsWord = item.id === "frostWick" ? "Frost Wick" : "charm";
   const hint = atCap
-    ? `You already own the maximum of ${MAX_OWNED_PER_ITEM}`
+    ? `You already own the maximum of ${cap}`
     : canAfford
       ? instantBuy
-        ? "Buys this charm"
-        : "Double tap this charm to buy it"
+        ? `Buys this ${goodsWord}`
+        : `Double tap this ${goodsWord} to buy it`
       : shortfall > 0
         ? `Need ${shortfall} more embers`
         : "Not enough embers";
@@ -118,7 +121,7 @@ export function ShopItemCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${item.description}, ${item.cost} embers, ${owned} of ${MAX_OWNED_PER_ITEM} owned`}
+      accessibilityLabel={`${item.name}, ${item.description}, ${item.cost} embers, ${owned} of ${cap} owned`}
       accessibilityHint={hint}
       accessibilityState={{ disabled: locked }}
       disabled={locked}
@@ -177,9 +180,9 @@ export function ShopItemCard({
       </View>
       <Text
         style={[styles.owned, atCap && styles.ownedCapped]}
-        accessibilityLabel={`${owned} of ${MAX_OWNED_PER_ITEM} owned`}
+        accessibilityLabel={`${owned} of ${cap} owned`}
       >
-        {atCap ? `Max ${MAX_OWNED_PER_ITEM}` : `${owned} owned`}
+        {atCap ? `Max ${cap}` : `${owned} owned`}
       </Text>
       {boughtFlash ? (
         <View pointerEvents="none" style={styles.successFlash}>
@@ -193,19 +196,40 @@ export function ShopItemCard({
   );
 }
 
+function ownedForItem(
+  item: ShopListing,
+  inventory: Inventory,
+  freezeOwned: number
+): number {
+  return item.id === "frostWick" ? freezeOwned : inventory[item.id];
+}
+
+function capForItem(item: ShopListing): number {
+  return item.id === "frostWick" ? FROST_WICK_SHOP_CAP : MAX_OWNED_PER_ITEM;
+}
+
+function itemAtCap(item: ShopListing, inventory: Inventory, freezeOwned: number): boolean {
+  if (item.id === "frostWick") {
+    return freezeOwned >= FROST_WICK_SHOP_CAP;
+  }
+  return isInventoryFull(inventory, item.id);
+}
+
 export function ShopGoodsDisplay({
   items,
   inventory,
+  freezeOwned = 0,
   embers,
   canAfford,
   onBuy,
   showHint = true,
 }: {
-  items: readonly ShopItem[];
+  items: readonly ShopListing[];
   inventory: Inventory;
+  freezeOwned?: number;
   embers: number;
   canAfford: (embers: number, cost: number) => boolean;
-  onBuy: (id: PowerUpId) => void;
+  onBuy: (id: ShopGlyphId) => void;
   showHint?: boolean;
 }) {
   const [instantBuy, setInstantBuy] = useState(false);
@@ -243,10 +267,11 @@ export function ShopGoodsDisplay({
             <ShopItemCard
               key={item.id}
               item={item}
-              owned={inventory[item.id]}
+              owned={ownedForItem(item, inventory, freezeOwned)}
+              cap={capForItem(item)}
               embers={embers}
               canAfford={canAfford(embers, item.cost)}
-              atCap={isInventoryFull(inventory, item.id)}
+              atCap={itemAtCap(item, inventory, freezeOwned)}
               instantBuy={instantBuy}
               onBuy={() => onBuy(item.id)}
             />
@@ -254,7 +279,7 @@ export function ShopGoodsDisplay({
         </View>
         {showHint ? (
           <Text style={styles.hint}>
-            {instantBuy ? "Tap a charm to buy." : "Double-tap a charm to buy. Max 3 of each."}
+            {instantBuy ? "Tap a tile to buy." : "Double-tap a tile to buy. Max 3 of each."}
           </Text>
         ) : null}
       </View>

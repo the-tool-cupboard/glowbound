@@ -1,5 +1,5 @@
 import type { DifficultyId } from "../types/economy";
-import { getDifficulty } from "./economyConfig";
+import { FROST_WICK_COST, FROST_WICK_SHOP_CAP, getDifficulty } from "./economyConfig";
 import {
   CHECKPOINTS,
   STAGE_COUNT,
@@ -12,6 +12,7 @@ export const LANTERN_PATTERN_COUNT = 5;
 export const LANTERN_ATTEMPTS_PER_DAY = 2;
 export const LANTERN_MAX_STARS = 3;
 export const LANTERN_FREEZE_OWNED_CAP = 99;
+export { FROST_WICK_COST, FROST_WICK_SHOP_CAP };
 
 export type LanternWeekdayBand = "easy" | "mid" | "spicy";
 export type LanternStars = 0 | 1 | 2 | 3;
@@ -257,8 +258,20 @@ export function lanternShareCopy(input: {
   const patterns = Math.max(0, Math.floor(input.patternsCleared));
   const streak = Math.max(0, Math.floor(input.streak));
   const title = input.chapterTitle.trim() || "the night";
-  const sealed = `Sealed ${patterns} pattern${patterns === 1 ? "" : "s"} under ${title} · streak ${streak}`;
-  return streak >= 3 ? `${sealed} · Kindled` : sealed;
+  return `Sealed ${patterns} pattern${patterns === 1 ? "" : "s"} under ${title} · streak ${streak}`;
+}
+
+export function lanternShareTitle(streak: number): string {
+  return Math.max(0, Math.floor(streak)) >= 3 ? "Kindled" : "Lantern seal";
+}
+
+export function lanternShareMessage(input: {
+  patternsCleared: number;
+  chapterTitle: string;
+  streak: number;
+}): string {
+  const body = lanternShareCopy(input);
+  return Math.max(0, Math.floor(input.streak)) >= 3 ? `Kindled\n${body}` : body;
 }
 
 /** After one Last Chance / Ward recovery, the next miss ends the lantern. */
@@ -329,12 +342,88 @@ export function createNightLanternState(
   };
 }
 
+/** Calendar days between last play and today, not counting either endpoint. */
+export function calendarDaysMissed(lastPlayDate: string | null, today: string): number {
+  if (lastPlayDate == null || lastPlayDate === today) {
+    return 0;
+  }
+
+  return Math.max(0, dayIndexFromDate(today) - dayIndexFromDate(lastPlayDate) - 1);
+}
+
+export function canOfferFrostWick(state: NightLanternState, today: string): boolean {
+  const current = createNightLanternState(state, today);
+  return (
+    calendarDaysMissed(current.lastPlayDate, today) === 1 &&
+    current.streak > 0 &&
+    current.freezeOwned > 0
+  );
+}
+
+export function purchaseFrostWick(
+  embers: number,
+  freezeOwned: number
+):
+  | { ok: true; embers: number; freezeOwned: number }
+  | { ok: false; reason: "cannotAfford" | "capReached" } {
+  const safeEmbers = Math.max(0, Number.isFinite(embers) ? Math.floor(embers) : 0);
+  const owned = clampInt(freezeOwned, 0, LANTERN_FREEZE_OWNED_CAP, 0);
+  if (owned >= FROST_WICK_SHOP_CAP) {
+    return { ok: false, reason: "capReached" };
+  }
+  if (safeEmbers < FROST_WICK_COST) {
+    return { ok: false, reason: "cannotAfford" };
+  }
+
+  return {
+    ok: true,
+    embers: safeEmbers - FROST_WICK_COST,
+    freezeOwned: owned + 1,
+  };
+}
+
+export function addFrostWick(state: NightLanternState): NightLanternState | null {
+  const current = createNightLanternState(state);
+  if (current.freezeOwned >= FROST_WICK_SHOP_CAP) {
+    return null;
+  }
+
+  return {
+    ...current,
+    freezeOwned: current.freezeOwned + 1,
+  };
+}
+
+export function applyFrostWickFreeze(
+  state: NightLanternState,
+  today: string
+): NightLanternState | null {
+  const current = createNightLanternState(state, today);
+  if (!canOfferFrostWick(current, today)) {
+    return null;
+  }
+
+  return {
+    ...current,
+    freezeOwned: current.freezeOwned - 1,
+    lastPlayDate: addCalendarDays(today, -1),
+  };
+}
+
+export function declineFrostWickFreeze(state: NightLanternState, today: string): NightLanternState {
+  const current = createNightLanternState(state, today);
+  return {
+    ...current,
+    streak: 0,
+  };
+}
+
 export function rollNightLanternDay(state: NightLanternState, today: string): NightLanternState {
   const current = createNightLanternState(state, today);
-  const lastPlay = current.lastPlayDate;
+  const missed = calendarDaysMissed(current.lastPlayDate, today);
   let streak = current.streak;
 
-  if (lastPlay != null && lastPlay !== today && addCalendarDays(lastPlay, 1) !== today) {
+  if (missed >= 1 && !canOfferFrostWick(current, today)) {
     streak = 0;
   }
 
@@ -373,7 +462,10 @@ export function beginLanternAttempt(
   state: NightLanternState,
   today: string
 ): NightLanternState | null {
-  const rolled = rollNightLanternDay(state, today);
+  const held = canOfferFrostWick(state, today)
+    ? (applyFrostWickFreeze(state, today) ?? declineFrostWickFreeze(state, today))
+    : state;
+  const rolled = rollNightLanternDay(held, today);
   const availability = lanternAttemptAvailability(rolled, today);
   if (!availability.canStart) {
     return null;
@@ -392,7 +484,10 @@ export function applyLanternResult(
   today: string,
   stars: number
 ): NightLanternState {
-  const rolled = rollNightLanternDay(state, today);
+  const held = canOfferFrostWick(state, today)
+    ? (applyFrostWickFreeze(state, today) ?? declineFrostWickFreeze(state, today))
+    : state;
+  const rolled = rollNightLanternDay(held, today);
   const availability = lanternAttemptAvailability(rolled, today);
   const attemptsToday = availability.canStart
     ? Math.min(LANTERN_ATTEMPTS_PER_DAY, rolled.attemptsToday + 1)

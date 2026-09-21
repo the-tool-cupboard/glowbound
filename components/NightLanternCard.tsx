@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PathLanternMark } from "@/components/PathLanternMark";
+import { LanternStreakGlow } from "@/components/LanternStreakGlow";
 import { useGameAudio } from "@/hooks/useGameAudio";
 import { lanternRelitLabel } from "@/lib/nightLantern";
 import { theme } from "@/lib/theme";
@@ -15,6 +16,8 @@ interface NightLanternCardProps {
   canStart: boolean;
   rematch: boolean;
   pending: boolean;
+  freezeOwned?: number;
+  animateGlow?: boolean;
   onPress: () => void;
 }
 
@@ -25,6 +28,8 @@ export function NightLanternCard({
   canStart,
   rematch,
   pending,
+  freezeOwned = 0,
+  animateGlow = false,
   onPress,
 }: NightLanternCardProps) {
   const { playSfx } = useGameAudio();
@@ -48,11 +53,14 @@ export function NightLanternCard({
   const actionLabel = pending ? "…" : canStart ? (rematch ? "Relight" : "Light the lantern") : relitLabel;
   const chapterLine = dreamPreview ? `Tonight's dream · ${chapterTitle}` : chapterTitle;
   const disabled = pending || !canStart;
+  const longKindled = streak >= 7;
+  const wickLine = freezeOwned > 0 ? ` · Wick ${freezeOwned}` : "";
+  const streakLine = `Streak ${streak}${streak >= 3 ? " · Kindled" : ""}${wickLine}`;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Night Lantern, streak ${streak}, ${chapterLine}, ${actionLabel}`}
+      accessibilityLabel={`Night Lantern, ${streakLine}, ${chapterLine}, ${actionLabel}`}
       accessibilityHint={
         canStart
           ? rematch
@@ -68,18 +76,18 @@ export function NightLanternCard({
       }}
       style={({ pressed }) => [styles.outer, pressed && canStart && styles.pressed]}
     >
-      <View style={[styles.tile, canStart && styles.tileReady]}>
-        <View style={[styles.pixelHilite, canStart && styles.pixelHiliteOn]} />
-        <View style={[styles.mark, canStart && styles.markReady]}>
-          <PathLanternMark pathId="standard" selected={canStart} size={MARK_SIZE} />
+      <View style={[styles.tile, canStart && styles.tileReady, longKindled && styles.tileKindled]}>
+        <View style={[styles.pixelHilite, canStart && styles.pixelHiliteOn, longKindled && styles.pixelHiliteKindled]} />
+        <View style={[styles.mark, canStart && styles.markReady, longKindled && styles.markKindled]}>
+          <LanternStreakGlow active={longKindled} animate={animateGlow} />
+          <PathLanternMark pathId="standard" selected={canStart || longKindled} size={MARK_SIZE} />
         </View>
         <View style={styles.copy}>
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.name}>
             Night Lantern
           </Text>
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.meta}>
-            Streak {streak}
-            {streak >= 3 ? " · Kindled" : ""}
+            {streakLine}
           </Text>
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.chapter}>
             {chapterLine}
@@ -122,6 +130,10 @@ const styles = StyleSheet.create({
   tileReady: {
     backgroundColor: theme.colors.backgroundElevated,
   },
+  tileKindled: {
+    borderColor: theme.colors.accent,
+    backgroundColor: "rgba(21, 29, 48, 0.92)",
+  },
   pixelHilite: {
     position: "absolute",
     top: 0,
@@ -132,6 +144,9 @@ const styles = StyleSheet.create({
   },
   pixelHiliteOn: {
     backgroundColor: theme.button3d.highlight,
+  },
+  pixelHiliteKindled: {
+    backgroundColor: "rgba(255, 224, 138, 0.72)",
   },
   mark: {
     width: 56,
@@ -148,6 +163,12 @@ const styles = StyleSheet.create({
   markReady: {
     opacity: 1,
     borderColor: theme.path.standard.rim,
+  },
+  markKindled: {
+    opacity: 1,
+    borderColor: theme.colors.accent,
+    backgroundColor: "rgba(230, 195, 92, 0.22)",
+    overflow: "visible",
   },
   copy: {
     flex: 1,
