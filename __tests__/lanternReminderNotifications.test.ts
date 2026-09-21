@@ -3,7 +3,9 @@ import * as Notifications from "expo-notifications";
 
 import {
   LANTERN_REMINDER_BODY,
+  LANTERN_REMINDER_CHANNEL_DESCRIPTION,
   LANTERN_REMINDER_CHANNEL_ID,
+  LANTERN_REMINDER_CHANNEL_NAME,
   LANTERN_REMINDER_IDENTIFIER_PREFIX,
   LANTERN_REMINDER_TITLE,
 } from "../lib/lanternReminder";
@@ -120,6 +122,30 @@ describe("lantern reminder notifications", () => {
     expect(mockedNotifications.requestPermissionsAsync).toHaveBeenCalledWith({
       ios: { allowAlert: true, allowBadge: false, allowSound: true },
     });
+    expect(mockedNotifications.getExpoPushTokenAsync).not.toHaveBeenCalled();
+  });
+
+  it("names the Android Evening chime channel before asking permission", async () => {
+    Object.defineProperty(Platform, "OS", { configurable: true, value: "android" });
+    mockedNotifications.setNotificationChannelAsync.mockClear();
+    mockedNotifications.getPermissionsAsync.mockResolvedValue({
+      granted: false,
+      status: "undetermined",
+    } as Notifications.NotificationPermissionsStatus);
+    mockedNotifications.requestPermissionsAsync.mockResolvedValue({
+      granted: true,
+      status: "granted",
+    } as Notifications.NotificationPermissionsStatus);
+
+    await expect(requestLanternReminderPermission()).resolves.toBe(true);
+    expect(mockedNotifications.setNotificationChannelAsync).toHaveBeenCalledWith(
+      LANTERN_REMINDER_CHANNEL_ID,
+      {
+        name: LANTERN_REMINDER_CHANNEL_NAME,
+        description: LANTERN_REMINDER_CHANNEL_DESCRIPTION,
+        importance: Notifications.AndroidImportance.DEFAULT,
+      }
+    );
     expect(mockedNotifications.getExpoPushTokenAsync).not.toHaveBeenCalled();
   });
 });

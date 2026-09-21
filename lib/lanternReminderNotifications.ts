@@ -3,7 +3,9 @@ import * as Notifications from "expo-notifications";
 
 import {
   LANTERN_REMINDER_BODY,
+  LANTERN_REMINDER_CHANNEL_DESCRIPTION,
   LANTERN_REMINDER_CHANNEL_ID,
+  LANTERN_REMINDER_CHANNEL_NAME,
   LANTERN_REMINDER_TITLE,
   isLanternReminderIdentifier,
   lanternReminderReconcileActions,
@@ -38,7 +40,8 @@ async function ensureLanternReminderChannel(): Promise<void> {
   }
 
   await Notifications.setNotificationChannelAsync(LANTERN_REMINDER_CHANNEL_ID, {
-    name: "Night Lantern",
+    name: LANTERN_REMINDER_CHANNEL_NAME,
+    description: LANTERN_REMINDER_CHANNEL_DESCRIPTION,
     importance: Notifications.AndroidImportance.DEFAULT,
   });
 }
