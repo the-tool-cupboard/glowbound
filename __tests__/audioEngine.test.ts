@@ -2,12 +2,18 @@ import { createAudioPlayer } from "expo-audio";
 
 import { BGM_SOURCES, SFX_SOURCES, type SfxId } from "../lib/audioCatalog";
 import {
+  BGM_DUCK_FACTOR,
+  BGM_FADE_OUT_MS,
+  BGM_FADE_STEPS,
   BGM_VOLUME,
   DEFAULT_MUSIC_VOLUME,
   DEFAULT_SFX_VOLUME,
   POOLED_SFX_IDS,
   SFX_POOL_SIZE,
+  clampAudioVolume,
   createGameAudioEngine,
+  duckedMusicVolume,
+  musicFadeStepVolume,
   type AudioPreferences,
 } from "../lib/audioEngine";
 
@@ -34,7 +40,7 @@ interface MockAudioPlayer {
 const mockedCreateAudioPlayer = createAudioPlayer as jest.MockedFunction<typeof createAudioPlayer>;
 
 function makePlayer(): MockAudioPlayer {
-  return {
+  const player: MockAudioPlayer = {
     volume: 1,
     loop: false,
     playing: false,
@@ -43,6 +49,13 @@ function makePlayer(): MockAudioPlayer {
     seekTo: jest.fn(),
     release: jest.fn(),
   };
+  player.play.mockImplementation(() => {
+    player.playing = true;
+  });
+  player.pause.mockImplementation(() => {
+    player.playing = false;
+  });
+  return player;
 }
 
 function enabledPrefs(overrides: Partial<AudioPreferences> = {}): AudioPreferences {
@@ -59,6 +72,10 @@ function createdPlayers(): MockAudioPlayer[] {
   return mockedCreateAudioPlayer.mock.results
     .filter((result) => result.type === "return")
     .map((result) => result.value as unknown as MockAudioPlayer);
+}
+
+function loopingPlayers(): MockAudioPlayer[] {
+  return createdPlayers().filter((player) => player.loop);
 }
 
 function eagerSfxPlayerCount(): number {
@@ -221,5 +238,66 @@ describe("createGameAudioEngine lazy SFX", () => {
 
     engine.playSfx("uiTap");
     expect(mockedCreateAudioPlayer).toHaveBeenCalledTimes(1 + SFX_POOL_SIZE);
+  });
+});
+
+describe("audioEngine fade helpers", () => {
+  it("ducks the current bed volume before the fade-out ramp", () => {
+    expect(duckedMusicVolume(0.7)).toBeCloseTo(0.7 * BGM_DUCK_FACTOR);
+    expect(duckedMusicVolume(0)).toBe(0);
+    expect(clampAudioVolume(1.4)).toBe(1);
+  });
+
+  it("ramps fade steps from the ducked level down to silence", () => {
+    expect(musicFadeStepVolume(0.2, 0, BGM_FADE_STEPS)).toBeCloseTo(0.2);
+    expect(musicFadeStepVolume(0.2, BGM_FADE_STEPS, BGM_FADE_STEPS)).toBe(0);
+    expect(musicFadeStepVolume(0.2, 3, 6)).toBeCloseTo(0.1);
+  });
+});
+
+describe("createGameAudioEngine chapter beds", () => {
+  beforeEach(() => {
+    mockedCreateAudioPlayer.mockReset();
+    mockedCreateAudioPlayer.mockImplementation(() => makePlayer() as never);
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("skips restarting the same looping bed", () => {
+    const engine = createGameAudioEngine(enabledPrefs());
+
+    engine.playMusic("chapterBedSleepingWoods");
+    engine.playMusic("chapterBedSleepingWoods");
+
+    const beds = loopingPlayers();
+    expect(beds).toHaveLength(1);
+    expect(beds[0]?.play).toHaveBeenCalledTimes(1);
+    expect(beds[0]?.volume).toBeCloseTo(DEFAULT_MUSIC_VOLUME * BGM_VOLUME);
+
+    engine.dispose();
+  });
+
+  it("ducks then fades the outgoing bed when leaving or switching tracks", () => {
+    const engine = createGameAudioEngine(enabledPrefs());
+
+    engine.playMusic("chapterBedSleepingWoods");
+    const woods = loopingPlayers()[0];
+    expect(woods).toBeDefined();
+
+    engine.playMusic("chapterBedCastleGate");
+    expect(loopingPlayers()).toHaveLength(2);
+    expect(woods?.volume).toBeCloseTo(duckedMusicVolume(DEFAULT_MUSIC_VOLUME * BGM_VOLUME));
+    expect(woods?.release).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(BGM_FADE_OUT_MS + 40);
+    expect(woods?.pause).toHaveBeenCalled();
+    expect(woods?.release).toHaveBeenCalled();
+
+    engine.stopMusic();
+    jest.advanceTimersByTime(BGM_FADE_OUT_MS + 40);
+    engine.dispose();
   });
 });

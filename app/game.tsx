@@ -14,7 +14,7 @@ import { useAdminMode } from "@/hooks/useAdminMode";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
-import { chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
+import { chapterBedForLevel, chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
 import {
   chapterArtKey,
   chapterBackground,
@@ -112,7 +112,8 @@ export default function GameScreen() {
     onRunePress,
   } = useMemoryGame();
   const { playSfx } = useGameAudio();
-  useScreenMusic("playTheme");
+  const musicLevel = phase === "idle" ? playLevel : level;
+  useScreenMusic(paramsReady ? chapterBedForLevel(musicLevel) : null, { stopOnLeave: true });
 
   const prevPhaseRef = useRef(phase);
   const prevSelectedCountRef = useRef(selectedCellIds.length);

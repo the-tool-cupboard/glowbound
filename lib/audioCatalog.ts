@@ -29,7 +29,19 @@ export type SfxId =
   | "chapterEnterNightOrchard"
   | "chapterEnterTheBound";
 
-export type BgmId = "menuTheme" | "playTheme" | "resultsTheme";
+export type ChapterBedBgmId =
+  | "chapterBedSleepingWoods"
+  | "chapterBedCastleGate"
+  | "chapterBedMoonwell"
+  | "chapterBedCrystalAscent"
+  | "chapterBedEmberBridge"
+  | "chapterBedTheTower"
+  | "chapterBedStarfall"
+  | "chapterBedHollowCrown"
+  | "chapterBedNightOrchard"
+  | "chapterBedTheBound";
+
+export type BgmId = "menuTheme" | "playTheme" | "resultsTheme" | ChapterBedBgmId;
 
 export type AudioPriority = "low" | "medium" | "high";
 
@@ -114,6 +126,91 @@ export function shouldPlayChapterEnterSfx(previousLevel: number | null, level: n
   return getStageIndex(level) > getStageIndex(previousLevel);
 }
 
+/** Soft looping chapter beds in stage order (Sleeping Woods → The Bound). */
+export const CHAPTER_BED_BGM_IDS: readonly ChapterBedBgmId[] = [
+  "chapterBedSleepingWoods",
+  "chapterBedCastleGate",
+  "chapterBedMoonwell",
+  "chapterBedCrystalAscent",
+  "chapterBedEmberBridge",
+  "chapterBedTheTower",
+  "chapterBedStarfall",
+  "chapterBedHollowCrown",
+  "chapterBedNightOrchard",
+  "chapterBedTheBound",
+];
+
+const CHAPTER_BED_ENTRIES: readonly BgmEntry[] = [
+  {
+    id: "chapterBedSleepingWoods",
+    purpose: "Sleeping Woods in-run bed (levels 1–10)",
+    filename: "chapter-bed-sleeping-woods.wav",
+    assetPath: "assets/audio/music/chapter-bed-sleeping-woods.wav",
+  },
+  {
+    id: "chapterBedCastleGate",
+    purpose: "Castle Gate in-run bed (levels 11–20)",
+    filename: "chapter-bed-castle-gate.wav",
+    assetPath: "assets/audio/music/chapter-bed-castle-gate.wav",
+  },
+  {
+    id: "chapterBedMoonwell",
+    purpose: "Moonwell in-run bed (levels 21–30)",
+    filename: "chapter-bed-moonwell.wav",
+    assetPath: "assets/audio/music/chapter-bed-moonwell.wav",
+  },
+  {
+    id: "chapterBedCrystalAscent",
+    purpose: "Crystal Ascent in-run bed (levels 31–40)",
+    filename: "chapter-bed-crystal-ascent.wav",
+    assetPath: "assets/audio/music/chapter-bed-crystal-ascent.wav",
+  },
+  {
+    id: "chapterBedEmberBridge",
+    purpose: "Ember Bridge in-run bed (levels 41–50)",
+    filename: "chapter-bed-ember-bridge.wav",
+    assetPath: "assets/audio/music/chapter-bed-ember-bridge.wav",
+  },
+  {
+    id: "chapterBedTheTower",
+    purpose: "The Tower in-run bed (levels 51–60)",
+    filename: "chapter-bed-the-tower.wav",
+    assetPath: "assets/audio/music/chapter-bed-the-tower.wav",
+  },
+  {
+    id: "chapterBedStarfall",
+    purpose: "Starfall in-run bed (levels 61–70)",
+    filename: "chapter-bed-starfall.wav",
+    assetPath: "assets/audio/music/chapter-bed-starfall.wav",
+  },
+  {
+    id: "chapterBedHollowCrown",
+    purpose: "Hollow Crown in-run bed (levels 71–80)",
+    filename: "chapter-bed-hollow-crown.wav",
+    assetPath: "assets/audio/music/chapter-bed-hollow-crown.wav",
+  },
+  {
+    id: "chapterBedNightOrchard",
+    purpose: "Night Orchard in-run bed (levels 81–90)",
+    filename: "chapter-bed-night-orchard.wav",
+    assetPath: "assets/audio/music/chapter-bed-night-orchard.wav",
+  },
+  {
+    id: "chapterBedTheBound",
+    purpose: "The Bound in-run bed (levels 91–100)",
+    filename: "chapter-bed-the-bound.wav",
+    assetPath: "assets/audio/music/chapter-bed-the-bound.wav",
+  },
+];
+
+/** Fallback in-run bed when a chapter is unmapped or a bed file is missing. */
+export const FALLBACK_CHAPTER_BED_ID: BgmId = "playTheme";
+
+/** Matching chapter bed for a play level, or the shared play-theme fallback. */
+export function chapterBedForLevel(level: number): BgmId {
+  return CHAPTER_BED_BGM_IDS[getStageIndex(level) - 1] ?? FALLBACK_CHAPTER_BED_ID;
+}
+
 /** Background music slots — wired in engine; files optional. */
 export const BGM_CATALOG: readonly BgmEntry[] = [
   {
@@ -124,7 +221,7 @@ export const BGM_CATALOG: readonly BgmEntry[] = [
   },
   {
     id: "playTheme",
-    purpose: "Active run on the game screen",
+    purpose: "Fallback in-run bed when a chapter bed is unmapped",
     filename: "play-theme.wav",
     assetPath: "assets/audio/music/play-theme.wav",
   },
@@ -134,6 +231,7 @@ export const BGM_CATALOG: readonly BgmEntry[] = [
     filename: "results-theme.wav",
     assetPath: "assets/audio/music/results-theme.wav",
   },
+  ...CHAPTER_BED_ENTRIES,
 ] as const;
 
 /** Future cues documented for design and implementation planning. */
@@ -221,6 +319,16 @@ export const BGM_SOURCES: Partial<Record<BgmId, number>> = {
   menuTheme: require("../assets/audio/music/menu-theme.wav"),
   playTheme: require("../assets/audio/music/play-theme.wav"),
   resultsTheme: require("../assets/audio/music/results-theme.wav"),
+  chapterBedSleepingWoods: require("../assets/audio/music/chapter-bed-sleeping-woods.wav"),
+  chapterBedCastleGate: require("../assets/audio/music/chapter-bed-castle-gate.wav"),
+  chapterBedMoonwell: require("../assets/audio/music/chapter-bed-moonwell.wav"),
+  chapterBedCrystalAscent: require("../assets/audio/music/chapter-bed-crystal-ascent.wav"),
+  chapterBedEmberBridge: require("../assets/audio/music/chapter-bed-ember-bridge.wav"),
+  chapterBedTheTower: require("../assets/audio/music/chapter-bed-the-tower.wav"),
+  chapterBedStarfall: require("../assets/audio/music/chapter-bed-starfall.wav"),
+  chapterBedHollowCrown: require("../assets/audio/music/chapter-bed-hollow-crown.wav"),
+  chapterBedNightOrchard: require("../assets/audio/music/chapter-bed-night-orchard.wav"),
+  chapterBedTheBound: require("../assets/audio/music/chapter-bed-the-bound.wav"),
 };
 
 /** Guard for tests — SFX filenames expected on disk. */
