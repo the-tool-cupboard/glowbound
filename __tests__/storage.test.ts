@@ -12,6 +12,7 @@ import {
   getHighScore,
   getHighestReachedLevel,
   getLanternGhostBook,
+  getHasSeenWatchTapCoach,
   getLanternReminderEnabled,
   getNightLanternState,
   setAdminUnlockAll,
@@ -20,6 +21,7 @@ import {
   setHighScore,
   setHighestReachedLevel,
   setLanternGhostBook,
+  setHasSeenWatchTapCoach,
   setLanternReminderEnabled,
   setNightLanternState,
 } from "../lib/storage";
@@ -259,6 +261,32 @@ describe("storage fallbacks", () => {
     expect(loaded.ghosts).toHaveLength(1);
     expect(loaded.ghosts[0]?.id).toBe("pal009");
     expect(loaded.ghosts[0]?.streak).toBe(6);
+  });
+
+  it("treats the watch-tap coach as unseen until the one-shot flag is stored", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(null);
+    await expect(getHasSeenWatchTapCoach()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockResolvedValueOnce("false");
+    await expect(getHasSeenWatchTapCoach()).resolves.toBe(false);
+
+    mockedStorage.getItem.mockResolvedValueOnce("true");
+    await expect(getHasSeenWatchTapCoach()).resolves.toBe(true);
+
+    mockedStorage.getItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(getHasSeenWatchTapCoach()).resolves.toBe(false);
+  });
+
+  it("stores the watch-tap coach as seen and ignores a failed write", async () => {
+    mockedStorage.setItem.mockResolvedValueOnce(undefined);
+    await setHasSeenWatchTapCoach();
+    expect(mockedStorage.setItem).toHaveBeenCalledWith(
+      "glowbound:has-seen-watch-tap-coach",
+      "true"
+    );
+
+    mockedStorage.setItem.mockRejectedValueOnce(new Error("unavailable"));
+    await expect(setHasSeenWatchTapCoach()).resolves.toBeUndefined();
   });
 
   it("does not throw when ghost book persistence fails", async () => {

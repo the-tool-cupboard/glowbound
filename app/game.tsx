@@ -7,6 +7,7 @@ import { LastChanceMenu } from "@/components/LastChanceMenu";
 import { PowerUpBar } from "@/components/PowerUpBar";
 import { RuneGrid } from "@/components/RuneGrid";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { WatchTapCoach } from "@/components/WatchTapCoach";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useAdminMode } from "@/hooks/useAdminMode";
@@ -45,7 +46,8 @@ import {
   parsePlayLevel,
   parseScoreParam,
 } from "@/lib/routeParams";
-import { woodsLastChanceCopy } from "@/lib/stageModifiers";
+import { getHasSeenWatchTapCoach, setHasSeenWatchTapCoach } from "@/lib/storage";
+import { shouldShowWatchTapCoach, woodsLastChanceCopy } from "@/lib/stageModifiers";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
@@ -92,6 +94,8 @@ export default function GameScreen() {
   const lanternBootedRef = useRef(false);
   const [boardSlot, setBoardSlot] = useState({ width: 0, height: 0 });
   const [lastChanceMenuVisible, setLastChanceMenuVisible] = useState(false);
+  const [watchTapReady, setWatchTapReady] = useState(false);
+  const watchTapSeenRef = useRef(false);
   const { recordScore } = useHighScore();
   const { highestReachedLevel, ready: progressReady, recordReachedLevel } = useProgress();
   const { enabled: adminUnlockAll, ready: adminReady } = useAdminMode();
@@ -103,7 +107,8 @@ export default function GameScreen() {
     availability: lanternAvailability,
     recordResult,
   } = useNightLantern();
-  const paramsReady = progressReady && adminReady && (!isLantern || lanternReady);
+  const paramsReady =
+    progressReady && adminReady && (isLantern || watchTapReady) && (!isLantern || lanternReady);
   const startLevel = isLantern
     ? lanternLevel
     : paramsReady
@@ -135,6 +140,8 @@ export default function GameScreen() {
     cooledBoard,
     lanternTrial,
     woodsLastChanceCoach,
+    watchTapCoachBeat,
+    watchTapCoachCompleted,
     lanternMode,
     patternsCleared,
     lastChanceUsed,
@@ -305,12 +312,48 @@ export default function GameScreen() {
   ]);
 
   useEffect(() => {
+    if (isLantern) {
+      return;
+    }
+
+    let cancelled = false;
+    void getHasSeenWatchTapCoach().then((seen) => {
+      if (cancelled) {
+        return;
+      }
+      watchTapSeenRef.current = seen;
+      setWatchTapReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLantern]);
+
+  useEffect(() => {
+    if (!watchTapCoachCompleted) {
+      return;
+    }
+
+    watchTapSeenRef.current = true;
+    void setHasSeenWatchTapCoach();
+  }, [watchTapCoachCompleted]);
+
+  useEffect(() => {
     if (isLantern || !paramsReady) {
       return;
     }
 
     resetAwardFlags();
-    startGame(startLevel, difficulty, { playLevel, score: resumeScore });
+    startGame(startLevel, difficulty, {
+      playLevel,
+      score: resumeScore,
+      watchTapCoach: shouldShowWatchTapCoach({
+        mode: "campaign",
+        level: playLevel,
+        hasSeen: watchTapSeenRef.current,
+        rematch: resumeScore > 0,
+      }),
+    });
     if (shouldPlayChapterEnterSfx(null, playLevel)) {
       const enterSfx = chapterEnterSfxForLevel(playLevel);
       if (enterSfx != null) {
@@ -551,6 +594,7 @@ export default function GameScreen() {
           cooledBoard={cooledBoard}
           onRunePress={handleRunePress}
         />
+        <WatchTapCoach beat={watchTapCoachBeat} />
       </View>
       <View style={[styles.chrome, onArt && styles.dockVeil]}>
         <View style={styles.statusCluster}>

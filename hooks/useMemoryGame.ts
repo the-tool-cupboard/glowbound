@@ -26,6 +26,8 @@ import {
   EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
   SLEEPING_WOODS_LAST_CHANCE_STATUS,
+  WATCH_TAP_TAP_NOTE,
+  WATCH_TAP_WATCH_NOTE,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
@@ -38,10 +40,12 @@ import {
   resolveStageRules,
   roundPreviewStatusNote,
   splitTwoFlight,
+  watchTapBeatDurationMs,
   woodsInputStatusNote,
   woodsLastChanceCoachTrigger,
   type PreviewStep,
   type StageRules,
+  type WatchTapCoachBeat,
 } from "@/lib/stageModifiers";
 import type { DifficultyId, PowerUpId } from "@/types/economy";
 import type { CellId, GamePhase, RuneLayout } from "@/types/game";
@@ -53,6 +57,8 @@ export interface StartGameOptions {
   score?: number;
   mode?: GameMode;
   targetCountOverride?: number;
+  /** First-run Sleeping Woods L1 watch → tap coach. Ignored unless campaign level 1. */
+  watchTapCoach?: boolean;
 }
 
 function clearTimer(timerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>) {
@@ -80,6 +86,8 @@ export function useMemoryGame() {
   const [cooledBoard, setCooledBoard] = useState(false);
   const [lanternTrial, setLanternTrial] = useState(false);
   const [woodsLastChanceCoach, setWoodsLastChanceCoach] = useState(false);
+  const [watchTapCoachBeat, setWatchTapCoachBeat] = useState<WatchTapCoachBeat | null>(null);
+  const [watchTapCoachCompleted, setWatchTapCoachCompleted] = useState(false);
   const [lanternMode, setLanternMode] = useState(false);
   const [patternsCleared, setPatternsCleared] = useState(0);
   const [lastChanceUsed, setLastChanceUsed] = useState(false);
@@ -122,6 +130,13 @@ export function useMemoryGame() {
   const swapLockedRef = useRef(false);
   const orderedInputRef = useRef(false);
   const woodsLastChanceCoachedRef = useRef(false);
+  const watchTapArmedRef = useRef(false);
+  const watchTapBeatRef = useRef<WatchTapCoachBeat | null>(null);
+  const watchTapPausedBeatRef = useRef<WatchTapCoachBeat | null>(null);
+  const watchTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const beginTapCoachRef = useRef<() => void>(() => {});
+  const enterInputPhaseRef = useRef<() => void>(() => {});
+  const beginRoundRef = useRef<(level: number, score: number, stage: number) => void>(() => {});
   const lanternModeRef = useRef(false);
   const targetCountOverrideRef = useRef<number | null>(null);
   const patternsClearedRef = useRef(0);
@@ -144,6 +159,7 @@ export function useMemoryGame() {
     clearTimer(swapTimerRef);
     clearTimer(crownHoldTimerRef);
     clearTimer(lanternHoldTimerRef);
+    clearTimer(watchTapTimerRef);
     crownInputLockedRef.current = false;
     lanternHoldLockedRef.current = false;
   }, []);
@@ -164,6 +180,21 @@ export function useMemoryGame() {
   }, []);
 
   const enterInputPhase = useCallback(() => {
+    if (watchTapBeatRef.current != null) {
+      return;
+    }
+
+    if (
+      watchTapArmedRef.current &&
+      previewKindRef.current === "round" &&
+      !lanternModeRef.current &&
+      levelRef.current === 1 &&
+      stageRef.current === 1
+    ) {
+      beginTapCoachRef.current();
+      return;
+    }
+
     previewPausedRef.current = false;
     const committed = pendingInputTargetsRef.current ?? targetRef.current;
     pendingInputTargetsRef.current = null;
@@ -233,6 +264,69 @@ export function useMemoryGame() {
     }
   }, [clearPreviewFx, inputStatusNote]);
 
+  enterInputPhaseRef.current = enterInputPhase;
+
+  const scheduleWatchTapBeat = useCallback((beat: WatchTapCoachBeat) => {
+    clearTimer(watchTapTimerRef);
+    watchTapTimerRef.current = setTimeout(() => {
+      watchTapTimerRef.current = null;
+      if (watchTapBeatRef.current !== beat) {
+        return;
+      }
+
+      watchTapBeatRef.current = null;
+      setWatchTapCoachBeat(null);
+      if (beat === "watch") {
+        beginRoundRef.current(levelRef.current, scoreRef.current, stageRef.current);
+        return;
+      }
+
+      setWatchTapCoachCompleted(true);
+      enterInputPhaseRef.current();
+    }, watchTapBeatDurationMs(beat));
+  }, []);
+
+  const beginTapCoach = useCallback(() => {
+    watchTapArmedRef.current = false;
+    clearPreviewFx();
+    phaseRef.current = "preview";
+    setPhase("preview");
+    setStatusNote(WATCH_TAP_TAP_NOTE);
+    watchTapBeatRef.current = "tap";
+    setWatchTapCoachBeat("tap");
+    scheduleWatchTapBeat("tap");
+  }, [clearPreviewFx, scheduleWatchTapBeat]);
+
+  beginTapCoachRef.current = beginTapCoach;
+
+  const openWatchTapCoach = useCallback(
+    (nextLevel: number, nextScore: number) => {
+      clearTimers();
+      clearPreviewFx();
+      selectedRef.current = [];
+      hintRef.current = [];
+      setSelectedCellIds([]);
+      setHintCellIds([]);
+      setWrongCellId(null);
+      setTargetCellIds([]);
+      setCooledBoard(false);
+      levelRef.current = nextLevel;
+      scoreRef.current = nextScore;
+      stageRef.current = 1;
+      setLevel(nextLevel);
+      setScore(nextScore);
+      setStage(1);
+      setLayout(getLayoutForLevel(nextLevel));
+      phaseRef.current = "idle";
+      setPhase("idle");
+      setStatusNote(WATCH_TAP_WATCH_NOTE);
+      watchTapBeatRef.current = "watch";
+      setWatchTapCoachBeat("watch");
+      scheduleWatchTapBeat("watch");
+    },
+    [clearPreviewFx, clearTimers, scheduleWatchTapBeat]
+  );
+
   const runPreviewStep = useCallback(
     (index: number) => {
       const steps = previewPlanRef.current;
@@ -271,6 +365,12 @@ export function useMemoryGame() {
   );
 
   const pauseForInterrupt = useCallback(() => {
+    if (watchTapBeatRef.current != null) {
+      clearTimer(watchTapTimerRef);
+      watchTapPausedBeatRef.current = watchTapBeatRef.current;
+      return;
+    }
+
     if (phaseRef.current === "preview") {
       clearTimer(previewTimerRef);
       clearTimer(sightTimerRef);
@@ -285,6 +385,15 @@ export function useMemoryGame() {
   }, []);
 
   const resumeAfterInterrupt = useCallback(() => {
+    const pausedBeat = watchTapPausedBeatRef.current;
+    if (pausedBeat != null && watchTapBeatRef.current === pausedBeat) {
+      watchTapPausedBeatRef.current = null;
+      scheduleWatchTapBeat(pausedBeat);
+      return;
+    }
+
+    watchTapPausedBeatRef.current = null;
+
     if (previewPausedRef.current && phaseRef.current === "preview") {
       previewPausedRef.current = false;
       if (previewKindRef.current === "sight") {
@@ -298,7 +407,7 @@ export function useMemoryGame() {
       stageAdvancePausedRef.current = false;
       beginRoundRef.current(levelRef.current, scoreRef.current, stageRef.current + 1);
     }
-  }, []);
+  }, [scheduleWatchTapBeat]);
 
   const startFlightPreview = useCallback(
     (args: {
@@ -437,7 +546,6 @@ export function useMemoryGame() {
     [clearTimers, startFlightPreview]
   );
 
-  const beginRoundRef = useRef(beginRound);
   beginRoundRef.current = beginRound;
 
   useEffect(() => {
@@ -498,9 +606,24 @@ export function useMemoryGame() {
       resetRunFlags(resume?.mode ?? "campaign", resume?.targetCountOverride);
       setWardArmed(false);
       setWoodsLastChanceCoach(false);
+      watchTapPausedBeatRef.current = null;
+      watchTapBeatRef.current = null;
+      setWatchTapCoachBeat(null);
+      setWatchTapCoachCompleted(false);
+      const mode = resume?.mode ?? "campaign";
+      const armWatchTap =
+        resume?.watchTapCoach === true &&
+        mode === "campaign" &&
+        playLevel === 1 &&
+        resumeScore === 0;
+      watchTapArmedRef.current = armWatchTap;
+      if (armWatchTap) {
+        openWatchTapCoach(playLevel, resumeScore);
+        return;
+      }
       beginRound(playLevel, resumeScore, 1);
     },
-    [beginRound, resetRunFlags]
+    [beginRound, openWatchTapCoach, resetRunFlags]
   );
 
   const restartGame = useCallback(() => {
@@ -508,6 +631,10 @@ export function useMemoryGame() {
     lanternOilMsRef.current = 0;
     wardArmedRef.current = false;
     woodsLastChanceCoachedRef.current = false;
+    watchTapArmedRef.current = false;
+    watchTapPausedBeatRef.current = null;
+    watchTapBeatRef.current = null;
+    setWatchTapCoachBeat(null);
     resetRunFlags(
       lanternModeRef.current ? "lantern" : "campaign",
       targetCountOverrideRef.current ?? undefined
@@ -803,6 +930,8 @@ export function useMemoryGame() {
     cooledBoard,
     lanternTrial,
     woodsLastChanceCoach,
+    watchTapCoachBeat,
+    watchTapCoachCompleted,
     startGame,
     restartGame,
     applySecondSight,
