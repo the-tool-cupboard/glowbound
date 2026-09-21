@@ -1,5 +1,3 @@
-export type CurrencyId = "embers";
-
 export type DifficultyId = "calm" | "standard" | "harsh";
 
 export type PowerUpId = "secondSight" | "lanternOil" | "ward" | "pathHint";

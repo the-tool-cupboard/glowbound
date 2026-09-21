@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { STARTING_EMBERS } from "../lib/economyConfig";
 import { createEconomyState } from "../lib/economyEngine";
+import { MAX_LEVEL, MAX_STORED_SCORE } from "../lib/gameConfig";
 import {
   getAdminUnlockAll,
   getAnimatedBackgroundsEnabled,
@@ -12,6 +13,7 @@ import {
   setAnimatedBackgroundsEnabled,
   setEconomyState,
   setHighScore,
+  setHighestReachedLevel,
 } from "../lib/storage";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -76,7 +78,7 @@ describe("storage fallbacks", () => {
   it("does not throw when persistence fails", async () => {
     mockedStorage.setItem.mockRejectedValue(new Error("unavailable"));
 
-    await expect(setHighScore(40)).resolves.toBeUndefined();
+    await expect(setHighScore(40)).resolves.toBe(40);
     await expect(setEconomyState(createEconomyState({ embers: STARTING_EMBERS }))).resolves.toBeUndefined();
     await expect(setAnimatedBackgroundsEnabled(true)).resolves.toBeUndefined();
     await expect(setAdminUnlockAll(true)).resolves.toBeUndefined();
@@ -112,5 +114,34 @@ describe("storage fallbacks", () => {
   it("reads the admin-unlock flag when stored as true", async () => {
     mockedStorage.getItem.mockResolvedValueOnce("true");
     await expect(getAdminUnlockAll()).resolves.toBe(true);
+  });
+
+  it("clamps an oversized stored high score", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce(String(MAX_STORED_SCORE * 4));
+    await expect(getHighScore()).resolves.toBe(MAX_STORED_SCORE);
+  });
+
+  it("clamps an oversized stored reached level to MAX_LEVEL", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("99999");
+    await expect(getHighestReachedLevel()).resolves.toBe(MAX_LEVEL);
+  });
+
+  it("refuses to persist a reached level above MAX_LEVEL", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("12");
+    mockedStorage.setItem.mockResolvedValueOnce(undefined);
+
+    await expect(setHighestReachedLevel(500)).resolves.toBe(MAX_LEVEL);
+    expect(mockedStorage.setItem).toHaveBeenCalledWith(
+      "glowbound:highest-reached-level",
+      String(MAX_LEVEL)
+    );
+  });
+
+  it("keeps the higher of the current high score and the incoming score", async () => {
+    mockedStorage.getItem.mockResolvedValueOnce("80");
+    mockedStorage.setItem.mockResolvedValueOnce(undefined);
+
+    await expect(setHighScore(40)).resolves.toBe(80);
+    expect(mockedStorage.setItem).toHaveBeenCalledWith("glowbound:high-score", "80");
   });
 });

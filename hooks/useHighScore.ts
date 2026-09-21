@@ -1,46 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { getHighScore, setHighScore } from "@/lib/storage";
+import { createSyncedResource } from "@/lib/syncedResource";
+
+const highScoreResource = createSyncedResource(0, getHighScore);
 
 export function useHighScore() {
-  const [highScore, setHighScoreState] = useState(0);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void getHighScore()
-      .then((value) => {
-        if (!cancelled) {
-          setHighScoreState(value);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: highScore, ready } = useSyncExternalStore(
+    highScoreResource.subscribe,
+    highScoreResource.getSnapshot,
+    highScoreResource.getServerSnapshot
+  );
 
   const recordScore = useCallback(async (score: number) => {
+    const safeScore = Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
+    const next = Math.max(highScoreResource.value, safeScore);
+    highScoreResource.setValue(next);
+
     try {
-      const current = await getHighScore();
-      const next = Math.max(current, score);
-      setHighScoreState(next);
-
-      if (next !== current) {
-        await setHighScore(next);
+      const stored = await setHighScore(next);
+      if (stored !== highScoreResource.value) {
+        highScoreResource.setValue(Math.max(highScoreResource.value, stored));
       }
-
-      return next;
+      return highScoreResource.value;
     } catch {
-      setHighScoreState((current) => Math.max(current, score));
-      return Math.max(0, Math.floor(score));
+      return next;
     }
   }, []);
 

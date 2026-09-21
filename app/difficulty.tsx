@@ -5,25 +5,29 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { DifficultyCard } from "@/components/DifficultyCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useScreenMusic } from "@/hooks/useGameAudio";
+import { useProgress } from "@/hooks/useProgress";
 import { DIFFICULTIES } from "@/lib/economyConfig";
 import { isDifficultyId } from "@/lib/economyEngine";
+import { resolveUnlockedStartLevel } from "@/lib/gameConfig";
+import { parsePlayLevel } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 import type { DifficultyId } from "@/types/economy";
 
 const pathBackground = require("../assets/images/game images/GB_Difficulty-Background.png");
 
-function asCount(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
 export default function DifficultyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ startLevel?: string }>();
-  const startLevel = asCount(params.startLevel) || 1;
+  const { highestReachedLevel, ready: progressReady } = useProgress();
+  const { enabled: adminUnlockAll, ready: adminReady } = useAdminMode();
+  const startLevel = resolveUnlockedStartLevel(
+    parsePlayLevel(params.startLevel),
+    progressReady ? highestReachedLevel : 0,
+    adminReady && adminUnlockAll
+  );
   const { difficulty, ready, setDifficulty } = useGameEconomy();
   const [selected, setSelected] = useState<DifficultyId>("standard");
   useScreenMusic("menuTheme");

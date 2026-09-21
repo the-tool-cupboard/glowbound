@@ -6,6 +6,7 @@ import {
   fittedRuneCellSize,
   getLayout,
   minNormalizedDistance,
+  runeBoardMetrics,
   runeCellSize,
   runeHitSlop,
   runeNeighborGap,
@@ -60,6 +61,19 @@ describe("getLayout", () => {
       expect(gap + 1e-9).toBeGreaterThanOrEqual(cell);
       expect(cell).toBeLessThanOrEqual(fittedRuneCellSize(layout.points, boardSize));
     }
+  });
+});
+
+describe("runeBoardMetrics", () => {
+  it("matches the dedicated cell-size and neighbor-gap helpers", () => {
+    const points = getLayout("grid", 16).points;
+    const boardSize = 280;
+    const metrics = runeBoardMetrics(points, boardSize);
+
+    expect(metrics.fitted).toBe(fittedRuneCellSize(points, boardSize));
+    expect(metrics.cellSize).toBe(runeCellSize(points, boardSize));
+    expect(metrics.neighborGap).toBe(runeNeighborGap(points, boardSize));
+    expect(metrics.minDist).toBe(minNormalizedDistance(points));
   });
 });
 

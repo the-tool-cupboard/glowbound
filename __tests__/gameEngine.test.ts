@@ -20,6 +20,8 @@ import {
   isCheckpointUnlocked,
   isLanternTrial,
   isStageStartUnlocked,
+  resolvePlayLevel,
+  resolveUnlockedStartLevel,
 } from "../lib/gameConfig";
 
 describe("generateUniqueTargetCellIds", () => {
@@ -216,6 +218,44 @@ describe("isStageStartUnlocked", () => {
   it("unlocks every stage when admin mode is on", () => {
     expect(isStageStartUnlocked(11, 1, true)).toBe(true);
     expect(isStageStartUnlocked(91, 0, true)).toBe(true);
+  });
+});
+
+describe("resolveUnlockedStartLevel", () => {
+  it("keeps an unlocked checkpoint start", () => {
+    expect(resolveUnlockedStartLevel(11, 15, false)).toBe(11);
+    expect(resolveUnlockedStartLevel(1, 15, false)).toBe(1);
+  });
+
+  it("snaps a mid-chapter request down to that chapter's start when unlocked", () => {
+    expect(resolveUnlockedStartLevel(15, 15, false)).toBe(11);
+  });
+
+  it("falls back to the latest unlocked checkpoint when the request is locked", () => {
+    expect(resolveUnlockedStartLevel(91, 15, false)).toBe(11);
+    expect(resolveUnlockedStartLevel(91, 1, false)).toBe(1);
+  });
+
+  it("honors admin unlock for a late chapter", () => {
+    expect(resolveUnlockedStartLevel(91, 1, true)).toBe(91);
+  });
+});
+
+describe("resolvePlayLevel", () => {
+  it("allows continue one level past saved progress", () => {
+    expect(resolvePlayLevel(16, 1, 15, false)).toBe(16);
+  });
+
+  it("rejects a deep-link skip past saved progress", () => {
+    expect(resolvePlayLevel(50, 1, 15, false)).toBe(16);
+  });
+
+  it("does not start before the resolved chapter start", () => {
+    expect(resolvePlayLevel(5, 11, 15, false)).toBe(11);
+  });
+
+  it("lets admin mode open any play level", () => {
+    expect(resolvePlayLevel(91, 1, 1, true)).toBe(91);
   });
 });
 

@@ -6,15 +6,10 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { StallStatPlate } from "@/components/StallStatPlate";
 import { useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
+import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 
 const failBackground = require("../assets/images/game images/GB_Results-Fail.png");
-
-function asCount(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "0", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -25,11 +20,11 @@ export default function ResultsScreen() {
     difficulty?: string;
     embers?: string;
   }>();
-  const score = asCount(params.score);
-  const level = asCount(params.level);
-  const startLevel = asCount(params.startLevel) || 1;
-  const embersEarned = asCount(params.embers);
-  const difficulty = params.difficulty ?? "standard";
+  const score = parseScoreParam(params.score);
+  const level = parsePlayLevel(params.level);
+  const startLevel = parsePlayLevel(params.startLevel);
+  const embersEarned = parseScoreParam(params.embers);
+  const difficulty = parseDifficultyParam(params.difficulty);
   const { highScore, ready } = useHighScore();
   const bestScore = Math.max(highScore, score);
   const highlightBest = ready && score > 0 && score >= highScore;

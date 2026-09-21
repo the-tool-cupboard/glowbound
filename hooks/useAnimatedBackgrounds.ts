@@ -1,43 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import {
   getAnimatedBackgroundsEnabled,
   setAnimatedBackgroundsEnabled,
 } from "@/lib/storage";
+import { createSyncedResource } from "@/lib/syncedResource";
+
+const animatedBackgroundsResource = createSyncedResource(false, getAnimatedBackgroundsEnabled);
 
 export function useAnimatedBackgrounds() {
-  const [enabled, setEnabledState] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void getAnimatedBackgroundsEnabled()
-      .then((value) => {
-        if (!cancelled) {
-          setEnabledState(value);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: enabled, ready } = useSyncExternalStore(
+    animatedBackgroundsResource.subscribe,
+    animatedBackgroundsResource.getSnapshot,
+    animatedBackgroundsResource.getServerSnapshot
+  );
 
   const setEnabled = useCallback(async (next: boolean) => {
-    setEnabledState(next);
+    animatedBackgroundsResource.setValue(next);
     await setAnimatedBackgroundsEnabled(next);
   }, []);
 
   const toggle = useCallback(() => {
-    void setEnabled(!enabled);
-  }, [enabled, setEnabled]);
+    void setEnabled(!animatedBackgroundsResource.value);
+  }, [setEnabled]);
 
   return {
     enabled,
