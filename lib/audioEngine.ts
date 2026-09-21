@@ -133,7 +133,7 @@ function safeRelease(player: AudioPlayer | null | undefined): void {
   }
   try {
     player.pause();
-    player.release();
+    player.remove();
   } catch {
     // Ignore cleanup errors.
   }
