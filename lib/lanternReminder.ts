@@ -10,6 +10,11 @@ export const LANTERN_REMINDER_MINUTE = 0;
 export const LANTERN_REMINDER_LOOKAHEAD_DAYS = 7;
 export const LANTERN_REMINDER_IDENTIFIER_PREFIX = "glowbound.lantern.evening.";
 export const LANTERN_REMINDER_CHANNEL_ID = "lantern-evening";
+/** Android Settings label for the Evening chime channel. */
+export const LANTERN_REMINDER_CHANNEL_NAME = "Night Lantern";
+/** Android Settings description. expo-notifications has no app.json field for this copy. */
+export const LANTERN_REMINDER_CHANNEL_DESCRIPTION =
+  "Evening reminder if tonight's lantern is still unlit. Off unless you turn on Evening chime.";
 export const LANTERN_REMINDER_TITLE = "Your lantern waits";
 export const LANTERN_REMINDER_BODY =
   "Tonight's wick is still unlit — a short lighting, if you wish.";
