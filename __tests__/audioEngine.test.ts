@@ -58,7 +58,7 @@ function enabledPrefs(overrides: Partial<AudioPreferences> = {}): AudioPreferenc
 function createdPlayers(): MockAudioPlayer[] {
   return mockedCreateAudioPlayer.mock.results
     .filter((result) => result.type === "return")
-    .map((result) => result.value as MockAudioPlayer);
+    .map((result) => result.value as unknown as MockAudioPlayer);
 }
 
 function eagerSfxPlayerCount(): number {
@@ -159,12 +159,11 @@ describe("createGameAudioEngine lazy SFX", () => {
   });
 
   it("skips a cue after createAudioPlayer throws and does not retry that cue", () => {
-    mockedCreateAudioPlayer.mockImplementation((source) => {
-      if (source === SFX_SOURCES.purchaseFail) {
+    mockedCreateAudioPlayer
+      .mockImplementationOnce(() => {
         throw new Error("missing asset");
-      }
-      return makePlayer() as never;
-    });
+      })
+      .mockImplementation(() => makePlayer() as never);
 
     const engine = createGameAudioEngine(enabledPrefs());
     expect(() => engine.playSfx("purchaseFail")).not.toThrow();
