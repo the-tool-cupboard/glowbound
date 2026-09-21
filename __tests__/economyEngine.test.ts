@@ -147,10 +147,11 @@ describe("calculateEmbersEarned", () => {
     expect(calculateEmbersEarned(100, 5, "standard")).toBe(37);
   });
 
-  it("floors the difficulty-scaled total and ignores junk inputs", () => {
+  it("floors the difficulty-scaled total and treats junk inputs as zero", () => {
     expect(calculateEmbersEarned(40.9, 3.9, "standard")).toBe(18);
     expect(calculateEmbersEarned(-10, -2, "standard")).toBe(0);
-    expect(calculateEmbersEarned(Number.NaN, 3, "standard")).toBe(0);
+    expect(calculateEmbersEarned(Number.NaN, 3, "standard")).toBe(16);
+    expect(calculateEmbersEarned(40, Number.NaN, "standard")).toBe(2);
   });
 });
 
