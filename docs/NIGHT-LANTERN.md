@@ -136,12 +136,20 @@ Shipped:
 - **Share** on lantern results: in-app seal card (chapter, stars, streak; **Kindled** title at streak ≥ 3) + system share sheet (`Share.share` text). Image export still later.
 - Camp lantern **streak ≥ 7** glow + pixel ember motes (static halo when motion is off). Ember bonus `floor(streak/7)` already shipped in Phase 1.
 
+### Phase 2.5 — Evening reminder (shipped)
+
+- **Opt-in only.** Camp **Evening chime** toggle, default **off**. Never prompts on launch; OS permission is requested only when the player turns the toggle on.
+- **Local notifications** via `expo-notifications`. No remote Expo push token, no server, no IAP.
+- Evening = **20:00** in `America/New_York` (same civil-day helper as the lantern).
+- Copy: “Your lantern waits” / “Tonight's wick is still unlit — a short lighting, if you wish.”
+- At most **one reminder per civil day**. Skipped if tonight is already lit or dusk has passed; cancelled/rescheduled after a lantern attempt that day or when the toggle is off.
+- Schedules the next few unlit evenings so a missed night still has a reminder without opening the app.
+
 Deferred:
 
-- **Phase 2.5 — Push reminders (opt-in).** Needs notification permission + local scheduling. Not in-repo; do not ship until that stack exists.
 - Share-card **image** render/export (ViewShot / file share). Phase 2 ships text + in-app card.
 
-### Phase 3 — Social light (this PR)
+### Phase 3 — Social light (shipped)
 
 Client-only, offline-first. No accounts, Firebase, or live-ops backend.
 

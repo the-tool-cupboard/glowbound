@@ -565,6 +565,42 @@ export function nextZonedMidnightUtc(
   return new Date(hi);
 }
 
+/** First UTC instant whose wall clock in `timeZone` is `dateStr` at `hour`:`minute`. */
+export function instantForZonedWallClock(
+  dateStr: string,
+  hour: number,
+  minute: number,
+  timeZone: string = NIGHT_LANTERN_TIMEZONE
+): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (match == null) {
+    return new Date(Number.NaN);
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const safeHour = Math.min(23, Math.max(0, Math.floor(hour)));
+  const safeMinute = Math.min(59, Math.max(0, Math.floor(minute)));
+  const targetKey = `${dateStr}${pad2(safeHour)}${pad2(safeMinute)}`;
+
+  let lo = Date.UTC(year, month - 1, day) - 14 * 3_600_000;
+  let hi = Date.UTC(year, month - 1, day) + 38 * 3_600_000;
+  while (hi - lo > 250) {
+    const mid = Math.floor((lo + hi) / 2);
+    const parts = zonedParts(new Date(mid), timeZone);
+    const midKey = `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}${pad2(parts.hour)}${pad2(
+      parts.minute
+    )}`;
+    if (midKey >= targetKey) {
+      hi = mid;
+    } else {
+      lo = mid + 1;
+    }
+  }
+  return new Date(hi);
+}
+
 export function formatRelitCountdown(ms: number): string {
   const totalMin = Math.max(0, Math.ceil(ms / 60_000));
   const hours = Math.floor(totalMin / 60);

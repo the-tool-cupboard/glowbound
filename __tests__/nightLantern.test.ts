@@ -30,6 +30,7 @@ import {
   lanternWeekdayBandFromWeekday,
   lanternWeeklyWhisper,
   lanternWrongTapEndsRun,
+  instantForZonedWallClock,
   nextZonedMidnightUtc,
   pruneBestStarsByDay,
   purchaseFrostWick,
@@ -456,6 +457,16 @@ describe("calendar helpers", () => {
     const next = nextZonedMidnightUtc(beforeMidnight);
     expect(calendarDateInZone(next)).toBe("2026-09-22");
     expect(formatRelitCountdown(75 * 60 * 1000)).toBe("Relit in 1h 15m");
+  });
+
+  it("resolves 20:00 America/New_York in EDT and EST", () => {
+    const duskEdt = instantForZonedWallClock("2026-09-21", 20, 0);
+    expect(Math.abs(duskEdt.getTime() - Date.parse("2026-09-22T00:00:00.000Z"))).toBeLessThan(1000);
+    expect(calendarDateInZone(duskEdt)).toBe("2026-09-21");
+
+    const duskEst = instantForZonedWallClock("2026-01-15", 20, 0);
+    expect(Math.abs(duskEst.getTime() - Date.parse("2026-01-16T01:00:00.000Z"))).toBeLessThan(1000);
+    expect(calendarDateInZone(duskEst)).toBe("2026-01-15");
   });
 
   it("prunes old best-star days and writes share copy", () => {

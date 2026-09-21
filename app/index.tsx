@@ -5,6 +5,7 @@ import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";
 import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { FrostWickOffer } from "@/components/FrostWickOffer";
+import { LanternReminderToggle } from "@/components/LanternReminderToggle";
 import { LanternSocialLight } from "@/components/LanternSocialLight";
 import { MotionToggle } from "@/components/MotionToggle";
 import { NightLanternCard } from "@/components/NightLanternCard";
@@ -17,6 +18,7 @@ import { useGameEconomy } from "@/hooks/useGameEconomy";
 import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useLanternGhosts } from "@/hooks/useLanternGhosts";
+import { useLanternReminder } from "@/hooks/useLanternReminder";
 import { useNightLantern } from "@/hooks/useNightLantern";
 import { useProgress } from "@/hooks/useProgress";
 import { getCheckpointForLevel, isCheckpointUnlocked } from "@/lib/gameConfig";
@@ -57,6 +59,11 @@ export default function HomeScreen() {
   const { enabled: animatedBackgrounds, ready: motionReady, toggle: toggleAnimatedBackgrounds } =
     useAnimatedBackgrounds();
   const { enabled: adminUnlockAll, ready: adminReady, toggle: toggleAdminUnlockAll } = useAdminMode();
+  const {
+    enabled: lanternReminder,
+    ready: reminderReady,
+    toggle: toggleLanternReminder,
+  } = useLanternReminder();
   const focused = useIsFocused();
   const {
     playSfx,
@@ -204,6 +211,14 @@ export default function HomeScreen() {
             onRemoveGhost={(ghostId) => {
               playSfx("uiTap");
               void removeSeal(ghostId);
+            }}
+          />
+          <LanternReminderToggle
+            enabled={lanternReminder}
+            disabled={!reminderReady}
+            onToggle={() => {
+              playSfx("uiTap");
+              toggleLanternReminder();
             }}
           />
         </ScrollView>
