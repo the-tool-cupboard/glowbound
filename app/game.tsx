@@ -14,7 +14,7 @@ import { useAdminMode } from "@/hooks/useAdminMode";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
 import { useProgress } from "@/hooks/useProgress";
-import { chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
+import { chapterBedForLevel, chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
 import {
   chapterArtKey,
   chapterBackground,
@@ -29,6 +29,7 @@ import {
   resolveUnlockedStartLevel,
 } from "@/lib/gameConfig";
 import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
+import { woodsLastChanceCopy } from "@/lib/stageModifiers";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
@@ -67,6 +68,7 @@ export default function GameScreen() {
   const awardedRef = useRef(false);
   const shardsAwardedRef = useRef(false);
   const [boardSlot, setBoardSlot] = useState({ width: 0, height: 0 });
+  const [lastChanceMenuVisible, setLastChanceMenuVisible] = useState(false);
   const { recordScore } = useHighScore();
   const { highestReachedLevel, ready: progressReady, recordReachedLevel } = useProgress();
   const { enabled: adminUnlockAll, ready: adminReady } = useAdminMode();
@@ -97,6 +99,7 @@ export default function GameScreen() {
     statusNote,
     cooledBoard,
     lanternTrial,
+    woodsLastChanceCoach,
     startGame,
     applySecondSight,
     applyLanternOil,
@@ -109,7 +112,8 @@ export default function GameScreen() {
     onRunePress,
   } = useMemoryGame();
   const { playSfx } = useGameAudio();
-  useScreenMusic("playTheme");
+  const musicLevel = phase === "idle" ? playLevel : level;
+  useScreenMusic(paramsReady ? chapterBedForLevel(musicLevel) : null, { stopOnLeave: true });
 
   const prevPhaseRef = useRef(phase);
   const prevSelectedCountRef = useRef(selectedCellIds.length);
@@ -154,6 +158,30 @@ export default function GameScreen() {
       playSfx("runeWrong");
     }
   }, [phase, playSfx, wrongCellId]);
+
+  const woodsCoachCopy = woodsLastChanceCoach
+    ? woodsLastChanceCopy(inventory.ward > 0)
+    : null;
+
+  useEffect(() => {
+    if (phase !== "lastChance") {
+      setLastChanceMenuVisible(false);
+      return;
+    }
+
+    const delayMs = woodsCoachCopy?.menuDelayMs ?? 0;
+    if (delayMs <= 0) {
+      setLastChanceMenuVisible(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLastChanceMenuVisible(true);
+    }, delayMs);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [phase, woodsCoachCopy?.menuDelayMs]);
 
   useEffect(() => {
     if (
@@ -408,8 +436,10 @@ export default function GameScreen() {
         />
       </View>
       <LastChanceMenu
-        visible={phase === "lastChance"}
+        visible={lastChanceMenuVisible}
         inventory={inventory}
+        title={woodsCoachCopy?.title}
+        question={woodsCoachCopy?.question}
         onUseItem={onUseMercyItem}
         onDecline={() => {
           void endRun();

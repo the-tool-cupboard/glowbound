@@ -4,8 +4,12 @@ import path from "path";
 import {
   AUDIO_OPPORTUNITIES,
   BGM_CATALOG,
+  BGM_SOURCES,
+  CHAPTER_BED_BGM_IDS,
   CHAPTER_ENTER_SFX_IDS,
+  chapterBedForLevel,
   chapterEnterSfxForLevel,
+  FALLBACK_CHAPTER_BED_ID,
   SFX_CATALOG,
   SFX_FILENAMES,
   SFX_SOURCES,
@@ -106,6 +110,68 @@ describe("audioCatalog", () => {
   it("has a wav on disk for every catalog SFX filename", () => {
     const dir = path.join(__dirname, "..", "assets", "audio", "sfx");
     for (const entry of SFX_CATALOG) {
+      expect(fs.existsSync(path.join(dir, entry.filename))).toBe(true);
+    }
+  });
+
+  it("ships one looping chapter bed per checkpoint stage", () => {
+    expect(CHAPTER_BED_BGM_IDS).toHaveLength(STAGE_COUNT);
+    expect(CHAPTER_BED_BGM_IDS).toHaveLength(CHECKPOINTS.length);
+    expect(new Set(CHAPTER_BED_BGM_IDS).size).toBe(CHAPTER_BED_BGM_IDS.length);
+    expect(FALLBACK_CHAPTER_BED_ID).toBe("playTheme");
+
+    const expected: { level: number; id: (typeof CHAPTER_BED_BGM_IDS)[number]; file: string }[] = [
+      { level: 1, id: "chapterBedSleepingWoods", file: "chapter-bed-sleeping-woods.wav" },
+      { level: 11, id: "chapterBedCastleGate", file: "chapter-bed-castle-gate.wav" },
+      { level: 21, id: "chapterBedMoonwell", file: "chapter-bed-moonwell.wav" },
+      { level: 31, id: "chapterBedCrystalAscent", file: "chapter-bed-crystal-ascent.wav" },
+      { level: 41, id: "chapterBedEmberBridge", file: "chapter-bed-ember-bridge.wav" },
+      { level: 51, id: "chapterBedTheTower", file: "chapter-bed-the-tower.wav" },
+      { level: 61, id: "chapterBedStarfall", file: "chapter-bed-starfall.wav" },
+      { level: 71, id: "chapterBedHollowCrown", file: "chapter-bed-hollow-crown.wav" },
+      { level: 81, id: "chapterBedNightOrchard", file: "chapter-bed-night-orchard.wav" },
+      { level: 91, id: "chapterBedTheBound", file: "chapter-bed-the-bound.wav" },
+    ];
+
+    expected.forEach((entry, index) => {
+      expect(CHECKPOINTS[index]?.startLevel).toBe(entry.level);
+      expect(CHAPTER_BED_BGM_IDS[index]).toBe(entry.id);
+      expect(chapterBedForLevel(entry.level)).toBe(entry.id);
+      expect(chapterBedForLevel(entry.level + 9)).toBe(entry.id);
+      const catalog = BGM_CATALOG.find((item) => item.id === entry.id);
+      expect(catalog?.filename).toBe(entry.file);
+      expect(BGM_SOURCES[entry.id]).toBeDefined();
+    });
+  });
+
+  it("clamps play levels onto a mapped chapter bed and keeps playTheme as source fallback", () => {
+    expect(chapterBedForLevel(0)).toBe("chapterBedSleepingWoods");
+    expect(chapterBedForLevel(100)).toBe("chapterBedTheBound");
+    expect(chapterBedForLevel(Number.NaN)).toBe("chapterBedSleepingWoods");
+    expect(FALLBACK_CHAPTER_BED_ID).toBe("playTheme");
+    expect(BGM_SOURCES[FALLBACK_CHAPTER_BED_ID]).toBeDefined();
+  });
+
+  it("keeps chapter beds distinct from enter-stingers and does not reuse sting files", () => {
+    const musicDir = path.join(__dirname, "..", "assets", "audio", "music");
+    const sfxDir = path.join(__dirname, "..", "assets", "audio", "sfx");
+
+    for (const bedId of CHAPTER_BED_BGM_IDS) {
+      expect(CHAPTER_ENTER_SFX_IDS).not.toContain(bedId);
+      const bed = BGM_CATALOG.find((entry) => entry.id === bedId);
+      expect(bed).toBeDefined();
+      expect(bed?.filename.startsWith("chapter-bed-")).toBe(true);
+      expect(fs.existsSync(path.join(musicDir, bed?.filename ?? ""))).toBe(true);
+    }
+
+    for (const stingId of CHAPTER_ENTER_SFX_IDS) {
+      expect(fs.existsSync(path.join(sfxDir, SFX_FILENAMES[stingId]))).toBe(true);
+    }
+  });
+
+  it("has a wav on disk for every catalog BGM filename", () => {
+    const dir = path.join(__dirname, "..", "assets", "audio", "music");
+    for (const entry of BGM_CATALOG) {
       expect(fs.existsSync(path.join(dir, entry.filename))).toBe(true);
     }
   });
