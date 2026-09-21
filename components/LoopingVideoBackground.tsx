@@ -35,7 +35,7 @@ export function LoopingVideoBackground({
         contentFit="cover"
         nativeControls={false}
         playsInline
-        allowsFullscreen={false}
+        fullscreenOptions={{ enable: false }}
         allowsPictureInPicture={false}
       />
     </View>
