@@ -10,6 +10,7 @@ import {
   StyleSheet,
   View,
   useWindowDimensions,
+  type ImageStyle,
   type LayoutChangeEvent,
   type ViewStyle,
 } from "react-native";
@@ -45,6 +46,7 @@ interface ScreenContainerProps {
   children: ReactNode;
   style?: ViewStyle;
   backgroundSource?: ImageProps["source"];
+  backgroundImageStyle?: ImageStyle;
   backgroundVideo?: number;
   playBackgroundVideo?: boolean;
 }
@@ -53,6 +55,7 @@ export function ScreenContainer({
   children,
   style,
   backgroundSource,
+  backgroundImageStyle,
   backgroundVideo,
   playBackgroundVideo = false,
 }: ScreenContainerProps) {
@@ -107,7 +110,10 @@ export function ScreenContainer({
       {backgroundSource != null ? (
         <Image
           source={backgroundSource}
-          style={styles.backgroundImage}
+          style={[
+            styles.backgroundImage,
+            backgroundImageStyle ?? styles.backgroundImageFill,
+          ]}
           contentFit="cover"
           contentPosition="center"
           cachePolicy="memory-disk"
@@ -134,9 +140,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
     zIndex: 0,
     pointerEvents: "none",
+  },
+  backgroundImageFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   safeArea: {
     flex: 1,
