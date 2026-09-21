@@ -204,9 +204,15 @@ export function useGameAudio(): GameAudioContextValue {
   return context;
 }
 
+interface ScreenMusicOptions {
+  /** Duck/fade the bed when this screen leaves. Hub hops omit this so same-track menu BGM keeps playing. */
+  stopOnLeave?: boolean;
+}
+
 /** Starts looping BGM for a screen. Same-track hub hops keep playing. */
-export function useScreenMusic(trackId: BgmId | null): void {
-  const { playMusic, musicEnabled, musicVolume } = useGameAudio();
+export function useScreenMusic(trackId: BgmId | null, options: ScreenMusicOptions = {}): void {
+  const { playMusic, stopMusic, musicEnabled, musicVolume } = useGameAudio();
+  const stopOnLeave = options.stopOnLeave === true;
 
   useEffect(() => {
     if (trackId == null || !(musicEnabled || musicVolume > 0)) {
@@ -214,5 +220,12 @@ export function useScreenMusic(trackId: BgmId | null): void {
     }
 
     playMusic(trackId);
-  }, [trackId, playMusic, musicEnabled, musicVolume]);
+    if (!stopOnLeave) {
+      return;
+    }
+
+    return () => {
+      stopMusic();
+    };
+  }, [trackId, playMusic, stopMusic, musicEnabled, musicVolume, stopOnLeave]);
 }
