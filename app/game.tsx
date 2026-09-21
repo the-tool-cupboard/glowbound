@@ -20,7 +20,7 @@ import {
   chapterBackground,
   chapterPlayfieldCropStyle,
 } from "@/lib/chapterBackgrounds";
-import { calculateLanternShards } from "@/lib/economyEngine";
+import { calculateEmbersEarned, calculateLanternShards } from "@/lib/economyEngine";
 import {
   GAME_OVER_REVEAL_MS,
   LEVEL_COMPLETE_DELAY_MS,
@@ -300,6 +300,8 @@ export default function GameScreen() {
       void recordScore(score);
     }
 
+    const embersEarned = calculateEmbersEarned(score, level, difficulty);
+
     const timer = setTimeout(() => {
       router.replace({
         pathname: "/results",
@@ -308,7 +310,7 @@ export default function GameScreen() {
           level: String(level),
           startLevel: String(startLevel),
           difficulty,
-          embers: "0",
+          embers: String(embersEarned),
         },
       });
     }, GAME_OVER_REVEAL_MS);
