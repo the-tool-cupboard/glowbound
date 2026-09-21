@@ -28,7 +28,7 @@ export function LanternGhostImport({
     >
       <View style={styles.pixelHilite} />
       <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.title}>
-        Import a friend's ghost
+        Import a friend{"'"}s ghost
       </Text>
       <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.body}>
         Paste their GBG1 seal. It only stands beside yours — no scores compared.

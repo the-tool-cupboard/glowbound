@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { LanternGhostImport } from "@/components/LanternGhostImport";
@@ -36,11 +36,9 @@ export function LanternSocialLight({
 }: LanternSocialLightProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<GhostImportFailure | null>(null);
-  const [nameDraft, setNameDraft] = useState(selfName ?? "");
-
-  useEffect(() => {
-    setNameDraft(selfName ?? "");
-  }, [selfName]);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameEdited, setNameEdited] = useState(false);
+  const signedName = nameEdited ? nameDraft : (selfName ?? "");
 
   const whisperLine = whisperIsTonight
     ? `Tonight carries this week's whisper.`
@@ -84,10 +82,13 @@ export function LanternSocialLight({
             accessibilityHint="Optional name included when you share a ghost seal"
             autoCapitalize="words"
             autoCorrect={false}
-            value={nameDraft}
+            value={signedName}
             editable={ready}
-            onChangeText={setNameDraft}
-            onEndEditing={() => onChangeName(nameDraft)}
+            onChangeText={(text) => {
+              setNameEdited(true);
+              setNameDraft(text);
+            }}
+            onEndEditing={() => onChangeName(signedName)}
             placeholder="Sign as (optional)"
             placeholderTextColor={theme.colors.textMuted}
             style={styles.nameInput}
@@ -100,7 +101,7 @@ export function LanternSocialLight({
               if (!ready) {
                 return;
               }
-              onChangeName(nameDraft);
+              onChangeName(signedName);
               onShare();
             }}
           />

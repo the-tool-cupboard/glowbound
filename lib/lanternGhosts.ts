@@ -88,6 +88,15 @@ export function sanitizeGhostName(value: unknown): string | null {
   return cleaned.slice(0, LANTERN_GHOST_NAME_MAX);
 }
 
+export interface LanternGhostSealInput {
+  id?: unknown;
+  name?: unknown;
+  streak?: unknown;
+  chapterTitle?: unknown;
+  stars?: unknown;
+  litDate?: unknown;
+}
+
 export function canonicalizeGhostChapter(value: unknown): string {
   if (typeof value !== "string") {
     return "the night";
@@ -98,6 +107,7 @@ export function canonicalizeGhostChapter(value: unknown): string {
     return "the night";
   }
 
+  const asIndex = Number.parseInt(cleaned, 10);
   if (Number.isFinite(asIndex) && asIndex >= 1 && asIndex <= CHECKPOINTS.length && String(asIndex) === cleaned) {
     return CHECKPOINTS[asIndex - 1]?.title ?? cleaned;
   }
@@ -116,7 +126,7 @@ export function sanitizeLitDate(value: unknown, fallback: string): string {
 }
 
 export function createLanternGhostSeal(
-  partial: Partial<LanternGhostSeal> | null | undefined,
+  partial: LanternGhostSealInput | null | undefined,
   fallbackDate: string
 ): LanternGhostSeal | null {
   const id = sanitizeGhostId(partial?.id);
@@ -129,7 +139,7 @@ export function createLanternGhostSeal(
     name: sanitizeGhostName(partial?.name),
     streak: clampInt(partial?.streak, 0, 10_000, 0),
     chapterTitle: canonicalizeGhostChapter(partial?.chapterTitle),
-    stars: clampLanternStars(partial?.stars ?? 0),
+    stars: clampLanternStars(Number(partial?.stars)),
     litDate: sanitizeLitDate(partial?.litDate, fallbackDate),
   };
 }
