@@ -10,6 +10,7 @@ interface GameHeaderProps {
   stage?: number;
   stagesRequired?: number;
   onArt?: boolean;
+  mode?: "campaign" | "lantern";
   onReturnToCamp: () => void;
 }
 
@@ -19,22 +20,36 @@ export function GameHeader({
   stage,
   stagesRequired,
   onArt = false,
+  mode = "campaign",
   onReturnToCamp,
 }: GameHeaderProps) {
-  const stageLabel =
+  const isLantern = mode === "lantern";
+  const patternLabel =
     stage != null && stagesRequired != null ? `Pattern ${stage} of ${stagesRequired}` : null;
+  const stageLabel = isLantern
+    ? patternLabel
+      ? `Night Lantern · ${patternLabel}`
+      : "Night Lantern"
+    : patternLabel;
   const artStyle = onArt ? styles.onArt : undefined;
   const { playSfx } = useGameAudio();
 
   return (
     <View style={styles.row} accessibilityRole="header">
       <View style={styles.side}>
-        <Text style={[styles.label, artStyle]}>Level</Text>
+        <Text style={[styles.label, artStyle]}>{isLantern ? "Lantern" : "Level"}</Text>
         <Text
-          style={[styles.value, artStyle]}
-          accessibilityLabel={`Level ${level}${stageLabel ? `, ${stageLabel}` : ""}`}
+          style={[styles.value, isLantern && styles.lanternValue, artStyle]}
+          accessibilityLabel={
+            isLantern
+              ? stageLabel ?? "Night Lantern"
+              : `Level ${level}${stageLabel ? `, ${stageLabel}` : ""}`
+          }
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.55}
         >
-          {level}
+          {isLantern ? "Night" : level}
         </Text>
       </View>
       <View style={styles.center}>
@@ -101,6 +116,12 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontVariant: ["tabular-nums"],
     ...theme.typography.score,
+  },
+  lanternValue: {
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: 0.4,
+    fontVariant: [],
   },
   alignRight: {
     textAlign: "right",

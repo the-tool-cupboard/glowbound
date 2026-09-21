@@ -6,15 +6,25 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { StallStatPlate } from "@/components/StallStatPlate";
 import { useGameEconomy } from "@/hooks/useGameEconomy";
-import { useScreenMusic } from "@/hooks/useGameAudio";
+import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useHighScore } from "@/hooks/useHighScore";
 import { calculateEmbersEarned } from "@/lib/economyEngine";
-import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
+import { lanternEmberDrip, lanternShareCopy, lanternStarsCopy } from "@/lib/nightLantern";
+import {
+  parseDifficultyParam,
+  parseFlagParam,
+  parseGameModeParam,
+  parsePlayLevel,
+  parseRouteParam,
+  parseScoreParam,
+  parseStarsParam,
+} from "@/lib/routeParams";
 import { theme } from "@/lib/theme";
 
 const failBackground = require("../assets/images/game images/GB_Results-Fail.png");
+const passBackground = require("../assets/images/game images/GB_Results-Pass.png");
 
-export default function ResultsScreen() {
+function CampaignResults() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     score?: string;
@@ -96,6 +106,129 @@ export default function ResultsScreen() {
   );
 }
 
+function LanternResults() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    stars?: string;
+    streak?: string;
+    embers?: string;
+    patterns?: string;
+    chapter?: string;
+    rematch?: string;
+    dream?: string;
+  }>();
+  const stars = parseStarsParam(params.stars);
+  const streak = parseScoreParam(params.streak);
+  const patternsCleared = parseScoreParam(params.patterns);
+  const chapterTitle = parseRouteParam(params.chapter) ?? "the night";
+  const rematch = parseFlagParam(params.rematch);
+  const dreamPreview = parseFlagParam(params.dream);
+  const embersEarned =
+    params.embers == null || params.embers === ""
+      ? lanternEmberDrip(stars, streak)
+      : parseScoreParam(params.embers);
+  const { addEmbers, ready: economyReady } = useGameEconomy();
+  const { playSfx } = useGameAudio();
+  const grantAppliedRef = useRef(false);
+  const stingPlayedRef = useRef(false);
+  useScreenMusic("resultsTheme");
+
+  useEffect(() => {
+    if (!economyReady || grantAppliedRef.current || embersEarned <= 0) {
+      return;
+    }
+
+    grantAppliedRef.current = true;
+    void addEmbers(embersEarned);
+    playSfx("emberGain");
+  }, [addEmbers, economyReady, embersEarned, playSfx]);
+
+  useEffect(() => {
+    if (stingPlayedRef.current) {
+      return;
+    }
+    stingPlayedRef.current = true;
+    if (rematch) {
+      playSfx("lastChanceSting");
+    }
+  }, [playSfx, rematch]);
+
+  const shareCopy = lanternShareCopy({
+    patternsCleared,
+    chapterTitle,
+    streak,
+  });
+
+  return (
+    <ScreenContainer
+      style={styles.screen}
+      backgroundSource={stars >= 3 ? passBackground : failBackground}
+    >
+      <View style={styles.skyVeil}>
+        <Text
+          accessibilityRole="header"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          maxFontSizeMultiplier={1.2}
+          style={styles.title}
+        >
+          {lanternStarsCopy(stars)}
+        </Text>
+        <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.copy}>
+          {dreamPreview ? `Tonight's dream of ${chapterTitle}.` : chapterTitle} You gathered{" "}
+          {embersEarned} embers.
+        </Text>
+      </View>
+
+      <View style={styles.stage}>
+        <View style={styles.stats}>
+          <StallStatPlate label="Stars" value={stars} accent={stars >= 3} />
+          <StallStatPlate label="Streak" value={streak} accent={streak >= 3} />
+          <StallStatPlate label="Embers" value={embersEarned} />
+        </View>
+        <View style={styles.shareCard} accessible accessibilityLabel={shareCopy}>
+          <Text style={styles.shareLabel}>Lantern seal</Text>
+          <Text numberOfLines={3} maxFontSizeMultiplier={1.2} style={styles.shareCopy}>
+            {shareCopy}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.dockVeil}>
+        {rematch ? (
+          <PrimaryButton
+            label="Rematch"
+            fullWidth
+            accessibilityHint="Lights the lantern once more tonight"
+            onPress={() =>
+              router.replace({
+                pathname: "/game",
+                params: { mode: "lantern" },
+              })
+            }
+          />
+        ) : null}
+        <PrimaryButton
+          label="Return Camp"
+          variant={rematch ? "ghost" : "primary"}
+          fullWidth
+          accessibilityHint="Returns to camp"
+          onPress={() => router.replace("/")}
+        />
+      </View>
+    </ScreenContainer>
+  );
+}
+
+export default function ResultsScreen() {
+  const params = useLocalSearchParams<{ mode?: string }>();
+  if (parseGameModeParam(params.mode) === "lantern") {
+    return <LanternResults />;
+  }
+  return <CampaignResults />;
+}
+
 const styles = StyleSheet.create({
   screen: {
     width: "100%",
@@ -123,10 +256,28 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.md,
   },
   stats: {
     flexDirection: "row",
     gap: theme.spacing.sm,
+  },
+  shareCard: {
+    backgroundColor: theme.overlay.stall,
+    borderRadius: theme.radius.lg,
+    borderWidth: theme.pixel.inset,
+    borderColor: theme.overlay.stallRim,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.stallPlate.padding,
+    gap: theme.spacing.xs,
+  },
+  shareLabel: {
+    color: theme.colors.accent,
+    ...theme.typography.overline,
+  },
+  shareCopy: {
+    color: theme.colors.text,
+    ...theme.typography.caption,
   },
   dockVeil: {
     marginHorizontal: -theme.spacing.lg,

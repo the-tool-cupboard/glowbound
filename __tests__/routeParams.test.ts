@@ -1,9 +1,12 @@
 import { MAX_LEVEL, MAX_STORED_SCORE } from "../lib/gameConfig";
 import {
   parseDifficultyParam,
+  parseFlagParam,
+  parseGameModeParam,
   parsePlayLevel,
   parseRouteParam,
   parseScoreParam,
+  parseStarsParam,
 } from "../lib/routeParams";
 
 describe("parseRouteParam", () => {
@@ -42,5 +45,25 @@ describe("parseDifficultyParam", () => {
     expect(parseDifficultyParam("wanderer")).toBe("standard");
     expect(parseDifficultyParam(["hacked", "harsh"])).toBe("standard");
     expect(parseDifficultyParam(undefined)).toBe("standard");
+  });
+});
+
+describe("parseGameModeParam", () => {
+  it("treats only lantern as a distinct mode", () => {
+    expect(parseGameModeParam("lantern")).toBe("lantern");
+    expect(parseGameModeParam(["lantern"])).toBe("lantern");
+    expect(parseGameModeParam("campaign")).toBe("campaign");
+    expect(parseGameModeParam(undefined)).toBe("campaign");
+  });
+});
+
+describe("parseFlagParam and parseStarsParam", () => {
+  it("reads 1/true flags and clamps stars to 0–3", () => {
+    expect(parseFlagParam("1")).toBe(true);
+    expect(parseFlagParam("true")).toBe(true);
+    expect(parseFlagParam("0")).toBe(false);
+    expect(parseStarsParam("3")).toBe(3);
+    expect(parseStarsParam("9")).toBe(3);
+    expect(parseStarsParam(undefined)).toBe(0);
   });
 });

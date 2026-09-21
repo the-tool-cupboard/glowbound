@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { createEconomyState } from "./economyEngine";
 import { MAX_LEVEL, MAX_STORED_SCORE } from "./gameConfig";
+import { createNightLanternState, type NightLanternState } from "./nightLantern";
 import type { EconomyState } from "../types/economy";
 
 const HIGH_SCORE_KEY = "glowbound:high-score";
@@ -9,6 +10,7 @@ const HIGHEST_REACHED_KEY = "glowbound:highest-reached-level";
 const ECONOMY_KEY = "glowbound:economy";
 const ANIMATED_BACKGROUNDS_KEY = "glowbound:animated-backgrounds";
 const ADMIN_UNLOCK_ALL_KEY = "glowbound:admin-unlock-all";
+const NIGHT_LANTERN_KEY = "glowbound:night-lantern";
 
 function parseStoredInt(raw: string | null): number | null {
   if (raw == null) {
@@ -156,6 +158,41 @@ export async function getAdminUnlockAll(): Promise<boolean> {
 export async function setAdminUnlockAll(enabled: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(ADMIN_UNLOCK_ALL_KEY, enabled ? "true" : "false");
+  } catch {
+    // Storage can be unavailable in some runtimes; keep gameplay working.
+  }
+}
+
+function parseNightLantern(raw: string | null): NightLanternState {
+  if (raw == null) {
+    return createNightLanternState();
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<NightLanternState>;
+    return createNightLanternState(parsed);
+  } catch {
+    return createNightLanternState();
+  }
+}
+
+export async function getNightLanternState(): Promise<NightLanternState> {
+  try {
+    const raw = await AsyncStorage.getItem(NIGHT_LANTERN_KEY);
+    if (raw == null) {
+      const created = createNightLanternState();
+      await setNightLanternState(created);
+      return created;
+    }
+    return parseNightLantern(raw);
+  } catch {
+    return createNightLanternState();
+  }
+}
+
+export async function setNightLanternState(state: NightLanternState): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NIGHT_LANTERN_KEY, JSON.stringify(createNightLanternState(state)));
   } catch {
     // Storage can be unavailable in some runtimes; keep gameplay working.
   }

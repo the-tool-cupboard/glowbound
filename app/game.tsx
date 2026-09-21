@@ -12,6 +12,7 @@ import { useGameAudio, useScreenMusic } from "@/hooks/useGameAudio";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { useHighScore } from "@/hooks/useHighScore";
 import { useMemoryGame } from "@/hooks/useMemoryGame";
+import { useNightLantern } from "@/hooks/useNightLantern";
 import { useProgress } from "@/hooks/useProgress";
 import { chapterBedForLevel, chapterEnterSfxForLevel, shouldPlayChapterEnterSfx } from "@/lib/audioCatalog";
 import {
@@ -23,17 +24,36 @@ import { calculateEmbersEarned, calculateLanternShards } from "@/lib/economyEngi
 import {
   GAME_OVER_REVEAL_MS,
   LEVEL_COMPLETE_DELAY_MS,
+  getCheckpointForLevel,
+  getLevelConfig,
   getStageIndex,
+  isCheckpointUnlocked,
   resolvePlayLevel,
   resolveUnlockedStartLevel,
 } from "@/lib/gameConfig";
-import { parseDifficultyParam, parsePlayLevel, parseScoreParam } from "@/lib/routeParams";
+import {
+  calendarDateInZone,
+  lanternAttemptAvailability,
+  lanternDifficulty,
+  lanternEmberDrip,
+  lanternRoundTargetCount,
+  lanternStars,
+} from "@/lib/nightLantern";
+import {
+  parseDifficultyParam,
+  parseGameModeParam,
+  parsePlayLevel,
+  parseScoreParam,
+} from "@/lib/routeParams";
 import { woodsLastChanceCopy } from "@/lib/stageModifiers";
 import { theme } from "@/lib/theme";
 import type { PowerUpId } from "@/types/economy";
 import type { CellId } from "@/types/game";
 
-function statusCopy(phase: ReturnType<typeof useMemoryGame>["phase"]): string {
+function statusCopy(
+  phase: ReturnType<typeof useMemoryGame>["phase"],
+  isLantern: boolean
+): string {
   switch (phase) {
     case "preview":
       return "Watch the runes.";
@@ -42,11 +62,11 @@ function statusCopy(phase: ReturnType<typeof useMemoryGame>["phase"]): string {
     case "stageComplete":
       return "Pattern cleared.";
     case "levelComplete":
-      return "Level complete.";
+      return isLantern ? "The lantern holds." : "Level complete.";
     case "lastChance":
       return "Wrong rune.";
     case "gameOver":
-      return "Run over.";
+      return isLantern ? "The lantern fades." : "Run over.";
     default:
       return "Get ready.";
   }
@@ -59,26 +79,42 @@ export default function GameScreen() {
     playLevel?: string;
     resumeScore?: string;
     difficulty?: string;
+    mode?: string;
   }>();
+  const isLantern = parseGameModeParam(params.mode) === "lantern";
   const requestedStart = parsePlayLevel(params.startLevel);
   const requestedPlay = parsePlayLevel(params.playLevel, requestedStart);
   const resumeScore = parseScoreParam(params.resumeScore);
   const difficulty = parseDifficultyParam(params.difficulty);
   const awardedRef = useRef(false);
   const shardsAwardedRef = useRef(false);
+  const lanternSettledRef = useRef(false);
+  const lanternBootedRef = useRef(false);
   const [boardSlot, setBoardSlot] = useState({ width: 0, height: 0 });
   const [lastChanceMenuVisible, setLastChanceMenuVisible] = useState(false);
   const { recordScore } = useHighScore();
   const { highestReachedLevel, ready: progressReady, recordReachedLevel } = useProgress();
   const { enabled: adminUnlockAll, ready: adminReady } = useAdminMode();
-  const paramsReady = progressReady && adminReady;
-  const startLevel = paramsReady
-    ? resolveUnlockedStartLevel(requestedStart, highestReachedLevel, adminUnlockAll)
-    : 1;
-  const playLevel = paramsReady
-    ? resolvePlayLevel(requestedPlay, startLevel, highestReachedLevel, adminUnlockAll)
-    : startLevel;
-  const { inventory, addEmbers, consumeItem } = useGameEconomy();
+  const {
+    ready: lanternReady,
+    firstSeenDate,
+    playLevel: lanternLevel,
+    weekdayBand,
+    availability: lanternAvailability,
+    recordResult,
+  } = useNightLantern();
+  const paramsReady = progressReady && adminReady && (!isLantern || lanternReady);
+  const startLevel = isLantern
+    ? lanternLevel
+    : paramsReady
+      ? resolveUnlockedStartLevel(requestedStart, highestReachedLevel, adminUnlockAll)
+      : 1;
+  const playLevel = isLantern
+    ? lanternLevel
+    : paramsReady
+      ? resolvePlayLevel(requestedPlay, startLevel, highestReachedLevel, adminUnlockAll)
+      : startLevel;
+  const { inventory, addEmbers, consumeItem, difficulty: savedDifficulty } = useGameEconomy();
   const {
     phase,
     level,
@@ -99,6 +135,10 @@ export default function GameScreen() {
     cooledBoard,
     lanternTrial,
     woodsLastChanceCoach,
+    lanternMode,
+    patternsCleared,
+    lastChanceUsed,
+    wardUsed,
     startGame,
     applySecondSight,
     applyLanternOil,
@@ -219,7 +259,53 @@ export default function GameScreen() {
   );
 
   useEffect(() => {
-    if (!paramsReady) {
+    if (!isLantern || !paramsReady) {
+      return;
+    }
+    if (lanternBootedRef.current) {
+      return;
+    }
+    if (!lanternAvailability.canStart) {
+      router.replace("/");
+      return;
+    }
+
+    lanternBootedRef.current = true;
+    resetAwardFlags();
+    lanternSettledRef.current = false;
+    const lanternDiff = lanternDifficulty(savedDifficulty, {
+      firstSeenDate,
+      today: calendarDateInZone(new Date()),
+      highestReachedLevel,
+    });
+    const runeCount = getLevelConfig(playLevel).runeCount;
+    startGame(playLevel, lanternDiff, {
+      playLevel,
+      mode: "lantern",
+      targetCountOverride: lanternRoundTargetCount(runeCount, weekdayBand, lanternDiff),
+    });
+    playSfx("emberGain");
+    const enterSfx = chapterEnterSfxForLevel(playLevel);
+    if (enterSfx != null) {
+      playSfx(enterSfx);
+    }
+    chapterEnterStageRef.current = getStageIndex(playLevel);
+  }, [
+    firstSeenDate,
+    highestReachedLevel,
+    isLantern,
+    lanternAvailability.canStart,
+    paramsReady,
+    playLevel,
+    playSfx,
+    router,
+    savedDifficulty,
+    startGame,
+    weekdayBand,
+  ]);
+
+  useEffect(() => {
+    if (isLantern || !paramsReady) {
       return;
     }
 
@@ -232,7 +318,7 @@ export default function GameScreen() {
       }
     }
     chapterEnterStageRef.current = getStageIndex(playLevel);
-  }, [difficulty, paramsReady, playLevel, playSfx, resumeScore, startGame, startLevel]);
+  }, [difficulty, isLantern, paramsReady, playLevel, playSfx, resumeScore, startGame, startLevel]);
 
   useEffect(() => {
     if (phase === "idle") {
@@ -250,7 +336,7 @@ export default function GameScreen() {
   }, [level, phase, playSfx]);
 
   useEffect(() => {
-    if (phase === "idle") {
+    if (isLantern || phase === "idle") {
       return;
     }
 
@@ -261,10 +347,10 @@ export default function GameScreen() {
       chapterUnlockCueAtRef.current = result.stored;
       playSfx("chapterUnlock");
     });
-  }, [level, phase, playSfx, recordReachedLevel]);
+  }, [isLantern, level, phase, playSfx, recordReachedLevel]);
 
   useEffect(() => {
-    if (phase !== "levelComplete" || shardsAwardedRef.current) {
+    if (isLantern || phase !== "levelComplete" || shardsAwardedRef.current) {
       return;
     }
 
@@ -288,10 +374,10 @@ export default function GameScreen() {
     return () => {
       clearTimeout(timer);
     };
-  }, [addEmbers, difficulty, level, phase, router, score, startLevel]);
+  }, [addEmbers, difficulty, isLantern, level, phase, router, score, startLevel]);
 
   useEffect(() => {
-    if (phase !== "gameOver") {
+    if (isLantern || phase !== "gameOver") {
       return;
     }
 
@@ -318,7 +404,61 @@ export default function GameScreen() {
     return () => {
       clearTimeout(timer);
     };
-  }, [difficulty, level, phase, recordScore, router, score, startLevel]);
+  }, [difficulty, isLantern, level, phase, recordScore, router, score, startLevel]);
+
+  useEffect(() => {
+    if (!isLantern || (phase !== "levelComplete" && phase !== "gameOver")) {
+      return;
+    }
+
+    const delayMs = phase === "gameOver" ? GAME_OVER_REVEAL_MS : LEVEL_COMPLETE_DELAY_MS;
+    const timer = setTimeout(() => {
+      if (lanternSettledRef.current) {
+        return;
+      }
+      lanternSettledRef.current = true;
+      const stars = lanternStars({
+        patternsCleared,
+        lastChanceUsed,
+        wardUsed,
+      });
+      const checkpoint = getCheckpointForLevel(level);
+      const dreamPreview = !isCheckpointUnlocked(checkpoint.startLevel, highestReachedLevel);
+      void recordResult(stars).then((next) => {
+        const embersEarned = lanternEmberDrip(stars, next.streak);
+        const rematch = lanternAttemptAvailability(next, calendarDateInZone(new Date())).canRematch;
+        router.replace({
+          pathname: "/results",
+          params: {
+            mode: "lantern",
+            stars: String(stars),
+            streak: String(next.streak),
+            embers: String(embersEarned),
+            patterns: String(patternsCleared),
+            chapter: checkpoint.title,
+            rematch: rematch ? "1" : "0",
+            dream: dreamPreview ? "1" : "0",
+            score: String(score),
+          },
+        });
+      });
+    }, delayMs);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    highestReachedLevel,
+    isLantern,
+    lastChanceUsed,
+    level,
+    patternsCleared,
+    phase,
+    recordResult,
+    router,
+    score,
+    wardUsed,
+  ]);
 
   const onUsePowerUp = (id: PowerUpId) => {
     if (phase !== "playerInput") {
@@ -348,6 +488,16 @@ export default function GameScreen() {
   };
 
   const onReturnToCamp = () => {
+    if (isLantern && !lanternSettledRef.current && phase !== "idle") {
+      lanternSettledRef.current = true;
+      void recordResult(
+        lanternStars({
+          patternsCleared,
+          lastChanceUsed,
+          wardUsed,
+        })
+      );
+    }
     pauseForInterrupt();
     router.replace("/");
   };
@@ -380,6 +530,7 @@ export default function GameScreen() {
           score={score}
           stage={stage}
           stagesRequired={stagesRequired}
+          mode={isLantern || lanternMode ? "lantern" : "campaign"}
           onArt={onArt}
           onReturnToCamp={onReturnToCamp}
         />
@@ -413,7 +564,7 @@ export default function GameScreen() {
             ]}
             accessibilityLiveRegion="polite"
           >
-            {statusNote ?? statusCopy(phase)}
+            {statusNote ?? statusCopy(phase, isLantern)}
           </Text>
           <Text
             style={[
