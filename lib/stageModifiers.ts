@@ -10,6 +10,14 @@ import type { Rng } from "./gameEngine";
 export const WOODS_HOLD_MS = 200;
 export const SLEEPING_WOODS_STATUS_NOTE = "Sleeping Woods — watch, then tap.";
 export const SLEEPING_WOODS_INPUT_NOTE = "Tap what you saw.";
+/** First-wrong Last Chance coach for Sleeping Woods only. Later misses use global copy. */
+export const WOODS_LAST_CHANCE_HOLD_MS = 320;
+export const SLEEPING_WOODS_LAST_CHANCE_STATUS = "Last chance — watch, then tap.";
+export const SLEEPING_WOODS_LAST_CHANCE_TITLE = "Last chance";
+export const SLEEPING_WOODS_LAST_CHANCE_WARD =
+  "A Rune Ward can ignore this miss. Then watch, and tap what you saw.";
+export const SLEEPING_WOODS_LAST_CHANCE_NO_WARD =
+  "No Rune Ward this time. Next run, watch, then tap.";
 export const MIRROR_GHOST_MS = 380;
 export const MIRROR_SETTLE_MS = 120;
 export const MOONWELL_STATUS_NOTE = "Moonwell — the water lies.";
@@ -523,6 +531,41 @@ export function woodsInputStatusNote(
   rules: Pick<StageRules, "modifier">
 ): string | null {
   return rules.modifier === "none" ? SLEEPING_WOODS_INPUT_NOTE : null;
+}
+
+export interface WoodsLastChanceCopy {
+  title: string;
+  question: string;
+  statusNote: string;
+  menuDelayMs: number;
+}
+
+/** One-shot first-wrong Last Chance coach. Sleeping Woods only (`modifier: none`). */
+export function woodsLastChanceCoachTrigger(
+  rules: Pick<StageRules, "modifier">,
+  alreadyCoached: boolean
+): boolean {
+  return rules.modifier === "none" && !alreadyCoached;
+}
+
+export function woodsLastChanceCopy(hasWard: boolean): WoodsLastChanceCopy {
+  return {
+    title: SLEEPING_WOODS_LAST_CHANCE_TITLE,
+    question: hasWard
+      ? SLEEPING_WOODS_LAST_CHANCE_WARD
+      : SLEEPING_WOODS_LAST_CHANCE_NO_WARD,
+    statusNote: SLEEPING_WOODS_LAST_CHANCE_STATUS,
+    menuDelayMs: WOODS_LAST_CHANCE_HOLD_MS,
+  };
+}
+
+export function woodsLastChanceStatusNote(
+  rules: Pick<StageRules, "modifier">,
+  alreadyCoached: boolean
+): string | null {
+  return woodsLastChanceCoachTrigger(rules, alreadyCoached)
+    ? SLEEPING_WOODS_LAST_CHANCE_STATUS
+    : null;
 }
 
 export function betweenFlightHoldMs(rules: TwoFlightRules): number {

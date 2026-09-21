@@ -27,6 +27,10 @@ import {
   RIPEN_ROT_LEAVE_MS,
   RIPEN_ROT_SETTLE_MS,
   SLEEPING_WOODS_INPUT_NOTE,
+  SLEEPING_WOODS_LAST_CHANCE_NO_WARD,
+  SLEEPING_WOODS_LAST_CHANCE_STATUS,
+  SLEEPING_WOODS_LAST_CHANCE_TITLE,
+  SLEEPING_WOODS_LAST_CHANCE_WARD,
   SLEEPING_WOODS_STATUS_NOTE,
   STARFALL_HOLD_MS,
   STARFALL_ORDER_STATUS_NOTE,
@@ -37,6 +41,7 @@ import {
   TOWER_FIRST_FLIGHT_NOTE,
   TOWER_SECOND_FLIGHT_NOTE,
   WOODS_HOLD_MS,
+  WOODS_LAST_CHANCE_HOLD_MS,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
@@ -59,6 +64,9 @@ import {
   splitTwoFlight,
   towerFlightNote,
   woodsInputStatusNote,
+  woodsLastChanceCoachTrigger,
+  woodsLastChanceCopy,
+  woodsLastChanceStatusNote,
 } from "../lib/stageModifiers";
 import { chapterArtKey } from "../lib/chapterBackgrounds";
 
@@ -686,6 +694,50 @@ describe("preview status notes", () => {
     expect(woodsInputStatusNote(gate)).toBeNull();
     expect(woodsInputStatusNote(resolveStageRules(71, "standard"))).toBeNull();
     expect(woodsInputStatusNote(resolveStageRules(51, "standard"))).toBeNull();
+  });
+
+  it("teaches Last Chance on the first Sleeping Woods miss only", () => {
+    expect(WOODS_LAST_CHANCE_HOLD_MS).toBe(320);
+    expect(SLEEPING_WOODS_LAST_CHANCE_STATUS).toBe("Last chance — watch, then tap.");
+    expect(SLEEPING_WOODS_LAST_CHANCE_TITLE).toBe("Last chance");
+    expect(SLEEPING_WOODS_LAST_CHANCE_WARD).toBe(
+      "A Rune Ward can ignore this miss. Then watch, and tap what you saw."
+    );
+    expect(SLEEPING_WOODS_LAST_CHANCE_NO_WARD).toBe(
+      "No Rune Ward this time. Next run, watch, then tap."
+    );
+
+    for (const difficulty of ["calm", "standard", "harsh"] as const) {
+      const woods = resolveStageRules(1, difficulty);
+      expect(woodsLastChanceCoachTrigger(woods, false)).toBe(true);
+      expect(woodsLastChanceStatusNote(woods, false)).toBe(SLEEPING_WOODS_LAST_CHANCE_STATUS);
+      expect(woodsLastChanceCoachTrigger(woods, true)).toBe(false);
+      expect(woodsLastChanceStatusNote(woods, true)).toBeNull();
+    }
+
+    const lateWoods = resolveStageRules(10, "standard");
+    expect(woodsLastChanceCoachTrigger(lateWoods, false)).toBe(true);
+    expect(woodsLastChanceCopy(true)).toEqual({
+      title: SLEEPING_WOODS_LAST_CHANCE_TITLE,
+      question: SLEEPING_WOODS_LAST_CHANCE_WARD,
+      statusNote: SLEEPING_WOODS_LAST_CHANCE_STATUS,
+      menuDelayMs: WOODS_LAST_CHANCE_HOLD_MS,
+    });
+    expect(woodsLastChanceCopy(false)).toEqual({
+      title: SLEEPING_WOODS_LAST_CHANCE_TITLE,
+      question: SLEEPING_WOODS_LAST_CHANCE_NO_WARD,
+      statusNote: SLEEPING_WOODS_LAST_CHANCE_STATUS,
+      menuDelayMs: WOODS_LAST_CHANCE_HOLD_MS,
+    });
+  });
+
+  it("keeps Last Chance coaching off later chapters", () => {
+    const later = [11, 21, 31, 41, 51, 61, 71, 81, 91] as const;
+    for (const level of later) {
+      const rules = resolveStageRules(level, "standard");
+      expect(woodsLastChanceCoachTrigger(rules, false)).toBe(false);
+      expect(woodsLastChanceStatusNote(rules, false)).toBeNull();
+    }
   });
 
   it("teaches Starfall by difficulty during preview", () => {
