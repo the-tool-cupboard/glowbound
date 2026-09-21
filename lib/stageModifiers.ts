@@ -10,6 +10,23 @@ import type { Rng } from "./gameEngine";
 export const WOODS_HOLD_MS = 200;
 export const SLEEPING_WOODS_STATUS_NOTE = "Sleeping Woods — watch, then tap.";
 export const SLEEPING_WOODS_INPUT_NOTE = "Tap what you saw.";
+/** First-session coach before the Sleeping Woods L1 preview. */
+export const WATCH_TAP_WATCH_MS = 1200;
+export const WATCH_TAP_WATCH_NOTE = "Watch the pattern.";
+/** First-session coach after that preview, before input unlocks. */
+export const WATCH_TAP_TAP_MS = 1200;
+export const WATCH_TAP_TAP_NOTE = "Tap what you saw.";
+/** Soft settle after the tap coach, matching the Woods pattern hold. */
+export const WATCH_TAP_SETTLE_MS = WOODS_HOLD_MS;
+
+export type WatchTapCoachBeat = "watch" | "tap";
+
+export interface WatchTapCoachContext {
+  mode: "campaign" | "lantern";
+  level: number;
+  hasSeen: boolean;
+  rematch: boolean;
+}
 /** First-wrong Last Chance coach for Sleeping Woods only. Later misses use global copy. */
 export const WOODS_LAST_CHANCE_HOLD_MS = 320;
 export const SLEEPING_WOODS_LAST_CHANCE_STATUS = "Last chance — watch, then tap.";
@@ -77,6 +94,8 @@ export interface PreviewStep {
   glintCellIds: readonly CellId[];
   ghostCellIds: readonly CellId[];
   durationMs: number;
+  /** First-run watch → tap coach. Absent on ordinary preview steps. */
+  coachBeat?: WatchTapCoachBeat | null;
 }
 
 export interface RoundPresentation {
@@ -566,6 +585,42 @@ export function woodsLastChanceStatusNote(
   return woodsLastChanceCoachTrigger(rules, alreadyCoached)
     ? SLEEPING_WOODS_LAST_CHANCE_STATUS
     : null;
+}
+
+export function watchTapBeatDurationMs(beat: WatchTapCoachBeat): number {
+  return beat === "watch" ? WATCH_TAP_WATCH_MS : WATCH_TAP_TAP_MS + WATCH_TAP_SETTLE_MS;
+}
+
+const QUIET_PREVIEW = {
+  previewCellIds: [] as const,
+  glintCellIds: [] as const,
+  ghostCellIds: [] as const,
+};
+
+/** Watch veil, then the real pattern, then the tap veil. */
+export function withWatchTapCoachSteps(steps: readonly PreviewStep[]): PreviewStep[] {
+  return [
+    { ...QUIET_PREVIEW, durationMs: watchTapBeatDurationMs("watch"), coachBeat: "watch" },
+    ...steps.map((step) => ({ ...step, coachBeat: null })),
+    { ...QUIET_PREVIEW, durationMs: watchTapBeatDurationMs("tap"), coachBeat: "tap" },
+  ];
+}
+
+/**
+ * First campaign Sleeping Woods L1 only.
+ * Night Lantern, later levels, rematches, and a seen flag all skip it.
+ * Sits beside the Woods preview/input notes and the Last Chance coach.
+ */
+export function shouldShowWatchTapCoach(context: WatchTapCoachContext): boolean {
+  if (context.hasSeen || context.rematch || context.mode !== "campaign") {
+    return false;
+  }
+
+  if (!Number.isFinite(context.level) || Math.floor(context.level) !== 1) {
+    return false;
+  }
+
+  return getCheckpointForLevel(1).modifier === "none";
 }
 
 export function betweenFlightHoldMs(rules: TwoFlightRules): number {

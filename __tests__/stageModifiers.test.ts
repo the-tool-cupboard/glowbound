@@ -40,6 +40,11 @@ import {
   TOWER_ASCEND_NOTE,
   TOWER_FIRST_FLIGHT_NOTE,
   TOWER_SECOND_FLIGHT_NOTE,
+  WATCH_TAP_SETTLE_MS,
+  WATCH_TAP_TAP_MS,
+  WATCH_TAP_TAP_NOTE,
+  WATCH_TAP_WATCH_MS,
+  WATCH_TAP_WATCH_NOTE,
   WOODS_HOLD_MS,
   WOODS_LAST_CHANCE_HOLD_MS,
   applyCalmPreviewBonus,
@@ -63,6 +68,9 @@ import {
   sortByBoardY,
   splitTwoFlight,
   towerFlightNote,
+  shouldShowWatchTapCoach,
+  watchTapBeatDurationMs,
+  withWatchTapCoachSteps,
   woodsInputStatusNote,
   woodsLastChanceCoachTrigger,
   woodsLastChanceCopy,
@@ -729,6 +737,44 @@ describe("preview status notes", () => {
       statusNote: SLEEPING_WOODS_LAST_CHANCE_STATUS,
       menuDelayMs: WOODS_LAST_CHANCE_HOLD_MS,
     });
+  });
+
+  it("teaches the first-run watch-tap beat once, beside the Woods notes", () => {
+    expect(WATCH_TAP_WATCH_NOTE).toBe("Watch the pattern.");
+    expect(WATCH_TAP_TAP_NOTE).toBe("Tap what you saw.");
+    expect(WATCH_TAP_SETTLE_MS).toBe(WOODS_HOLD_MS);
+    expect(watchTapBeatDurationMs("watch")).toBe(WATCH_TAP_WATCH_MS);
+    expect(watchTapBeatDurationMs("tap")).toBe(WATCH_TAP_TAP_MS + WATCH_TAP_SETTLE_MS);
+    expect(WATCH_TAP_WATCH_MS + watchTapBeatDurationMs("tap")).toBeLessThan(4000);
+    expect(SLEEPING_WOODS_STATUS_NOTE).toBe("Sleeping Woods — watch, then tap.");
+    expect(SLEEPING_WOODS_INPUT_NOTE).toBe("Tap what you saw.");
+
+    const freshWoods = {
+      mode: "campaign" as const,
+      level: 1,
+      hasSeen: false,
+      rematch: false,
+    };
+    expect(shouldShowWatchTapCoach(freshWoods)).toBe(true);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, hasSeen: true })).toBe(false);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, mode: "lantern" })).toBe(false);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, rematch: true })).toBe(false);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, level: 2 })).toBe(false);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, level: 11 })).toBe(false);
+    expect(shouldShowWatchTapCoach({ ...freshWoods, level: Number.NaN })).toBe(false);
+
+    const wrapped = withWatchTapCoachSteps([
+      {
+        previewCellIds: [1, 2],
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: 1600,
+      },
+    ]);
+    expect(wrapped.map((step) => step.coachBeat)).toEqual(["watch", null, "tap"]);
+    expect(wrapped[0]?.previewCellIds).toEqual([]);
+    expect(wrapped[1]?.previewCellIds).toEqual([1, 2]);
+    expect(wrapped[2]?.durationMs).toBe(watchTapBeatDurationMs("tap"));
   });
 
   it("keeps Last Chance coaching off later chapters", () => {
