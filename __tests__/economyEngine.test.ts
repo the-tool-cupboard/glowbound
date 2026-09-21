@@ -136,6 +136,23 @@ describe("calculateEmbersEarned", () => {
   it("awards nothing when the run never leaves level 1", () => {
     expect(calculateEmbersEarned(0, 1, "standard")).toBe(0);
   });
+
+  it("pays a score slice even on a level-1 fail", () => {
+    expect(calculateEmbersEarned(19, 1, "standard")).toBe(0);
+    expect(calculateEmbersEarned(20, 1, "standard")).toBe(1);
+    expect(calculateEmbersEarned(40, 1, "standard")).toBe(2);
+  });
+
+  it("pays 8 embers per completed level plus score/20 on standard", () => {
+    expect(calculateEmbersEarned(100, 5, "standard")).toBe(37);
+  });
+
+  it("floors the difficulty-scaled total and treats junk inputs as zero", () => {
+    expect(calculateEmbersEarned(40.9, 3.9, "standard")).toBe(18);
+    expect(calculateEmbersEarned(-10, -2, "standard")).toBe(0);
+    expect(calculateEmbersEarned(Number.NaN, 3, "standard")).toBe(16);
+    expect(calculateEmbersEarned(40, Number.NaN, "standard")).toBe(2);
+  });
 });
 
 describe("applyDifficultyToConfig", () => {
