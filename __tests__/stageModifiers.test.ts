@@ -70,6 +70,7 @@ import {
   towerFlightNote,
   shouldShowWatchTapCoach,
   watchTapBeatDurationMs,
+  withWatchTapCoachSteps,
   woodsInputStatusNote,
   woodsLastChanceCoachTrigger,
   woodsLastChanceCopy,
@@ -761,6 +762,19 @@ describe("preview status notes", () => {
     expect(shouldShowWatchTapCoach({ ...freshWoods, level: 2 })).toBe(false);
     expect(shouldShowWatchTapCoach({ ...freshWoods, level: 11 })).toBe(false);
     expect(shouldShowWatchTapCoach({ ...freshWoods, level: Number.NaN })).toBe(false);
+
+    const wrapped = withWatchTapCoachSteps([
+      {
+        previewCellIds: [1, 2],
+        glintCellIds: [],
+        ghostCellIds: [],
+        durationMs: 1600,
+      },
+    ]);
+    expect(wrapped.map((step) => step.coachBeat)).toEqual(["watch", null, "tap"]);
+    expect(wrapped[0]?.previewCellIds).toEqual([]);
+    expect(wrapped[1]?.previewCellIds).toEqual([1, 2]);
+    expect(wrapped[2]?.durationMs).toBe(watchTapBeatDurationMs("tap"));
   });
 
   it("keeps Last Chance coaching off later chapters", () => {

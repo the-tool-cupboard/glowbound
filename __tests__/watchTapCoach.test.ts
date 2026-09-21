@@ -58,9 +58,10 @@ describe("watch-tap coach playback", () => {
   }
 
   function finishOpeningBeat() {
-    expect(game.phase).toBe("idle");
+    expect(game.phase).toBe("preview");
     expect(game.watchTapCoachBeat).toBe("watch");
     expect(game.statusNote).toBe(WATCH_TAP_WATCH_NOTE);
+    expect(game.previewCellIds).toEqual([]);
     expect(game.watchTapCoachCompleted).toBe(false);
 
     advance(watchTapBeatDurationMs("watch"));
@@ -156,7 +157,8 @@ describe("watch-tap coach playback", () => {
     });
     advance(watchTapBeatDurationMs("watch") + 400);
     expect(game.watchTapCoachBeat).toBe("watch");
-    expect(game.phase).toBe("idle");
+    expect(game.phase).toBe("preview");
+    expect(game.previewCellIds).toEqual([]);
 
     act(() => {
       game.resumeAfterInterrupt();
@@ -165,5 +167,6 @@ describe("watch-tap coach playback", () => {
     expect(game.phase).toBe("preview");
     expect(game.watchTapCoachBeat).toBeNull();
     expect(game.statusNote).toBe(SLEEPING_WOODS_STATUS_NOTE);
+    expect(game.previewCellIds.length).toBeGreaterThan(0);
   });
 });

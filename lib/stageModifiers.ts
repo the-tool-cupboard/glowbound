@@ -94,6 +94,8 @@ export interface PreviewStep {
   glintCellIds: readonly CellId[];
   ghostCellIds: readonly CellId[];
   durationMs: number;
+  /** First-run watch → tap coach. Absent on ordinary preview steps. */
+  coachBeat?: WatchTapCoachBeat | null;
 }
 
 export interface RoundPresentation {
@@ -587,6 +589,21 @@ export function woodsLastChanceStatusNote(
 
 export function watchTapBeatDurationMs(beat: WatchTapCoachBeat): number {
   return beat === "watch" ? WATCH_TAP_WATCH_MS : WATCH_TAP_TAP_MS + WATCH_TAP_SETTLE_MS;
+}
+
+const QUIET_PREVIEW = {
+  previewCellIds: [] as const,
+  glintCellIds: [] as const,
+  ghostCellIds: [] as const,
+};
+
+/** Watch veil, then the real pattern, then the tap veil. */
+export function withWatchTapCoachSteps(steps: readonly PreviewStep[]): PreviewStep[] {
+  return [
+    { ...QUIET_PREVIEW, durationMs: watchTapBeatDurationMs("watch"), coachBeat: "watch" },
+    ...steps.map((step) => ({ ...step, coachBeat: null })),
+    { ...QUIET_PREVIEW, durationMs: watchTapBeatDurationMs("tap"), coachBeat: "tap" },
+  ];
 }
 
 /**

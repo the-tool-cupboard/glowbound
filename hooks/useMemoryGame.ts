@@ -40,7 +40,7 @@ import {
   resolveStageRules,
   roundPreviewStatusNote,
   splitTwoFlight,
-  watchTapBeatDurationMs,
+  withWatchTapCoachSteps,
   woodsInputStatusNote,
   woodsLastChanceCoachTrigger,
   type PreviewStep,
@@ -132,10 +132,7 @@ export function useMemoryGame() {
   const woodsLastChanceCoachedRef = useRef(false);
   const watchTapArmedRef = useRef(false);
   const watchTapBeatRef = useRef<WatchTapCoachBeat | null>(null);
-  const watchTapPausedBeatRef = useRef<WatchTapCoachBeat | null>(null);
-  const watchTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const beginTapCoachRef = useRef<() => void>(() => {});
-  const enterInputPhaseRef = useRef<() => void>(() => {});
+  const watchTapRoundRef = useRef(false);
   const beginRoundRef = useRef<(level: number, score: number, stage: number) => void>(() => {});
   const lanternModeRef = useRef(false);
   const targetCountOverrideRef = useRef<number | null>(null);
@@ -159,7 +156,6 @@ export function useMemoryGame() {
     clearTimer(swapTimerRef);
     clearTimer(crownHoldTimerRef);
     clearTimer(lanternHoldTimerRef);
-    clearTimer(watchTapTimerRef);
     crownInputLockedRef.current = false;
     lanternHoldLockedRef.current = false;
   }, []);
@@ -180,21 +176,6 @@ export function useMemoryGame() {
   }, []);
 
   const enterInputPhase = useCallback(() => {
-    if (watchTapBeatRef.current != null) {
-      return;
-    }
-
-    if (
-      watchTapArmedRef.current &&
-      previewKindRef.current === "round" &&
-      !lanternModeRef.current &&
-      levelRef.current === 1 &&
-      stageRef.current === 1
-    ) {
-      beginTapCoachRef.current();
-      return;
-    }
-
     previewPausedRef.current = false;
     const committed = pendingInputTargetsRef.current ?? targetRef.current;
     pendingInputTargetsRef.current = null;
@@ -264,78 +245,50 @@ export function useMemoryGame() {
     }
   }, [clearPreviewFx, inputStatusNote]);
 
-  enterInputPhaseRef.current = enterInputPhase;
+  const applyCoachBeat = useCallback((beat: WatchTapCoachBeat | null) => {
+    const previous = watchTapBeatRef.current;
+    if (previous !== beat) {
+      watchTapBeatRef.current = beat;
+      setWatchTapCoachBeat(beat);
+    }
 
-  const scheduleWatchTapBeat = useCallback((beat: WatchTapCoachBeat) => {
-    clearTimer(watchTapTimerRef);
-    watchTapTimerRef.current = setTimeout(() => {
-      watchTapTimerRef.current = null;
-      if (watchTapBeatRef.current !== beat) {
-        return;
-      }
-
-      watchTapBeatRef.current = null;
-      setWatchTapCoachBeat(null);
-      if (beat === "watch") {
-        beginRoundRef.current(levelRef.current, scoreRef.current, stageRef.current);
-        return;
-      }
-
-      setWatchTapCoachCompleted(true);
-      enterInputPhaseRef.current();
-    }, watchTapBeatDurationMs(beat));
-  }, []);
-
-  const beginTapCoach = useCallback(() => {
-    watchTapArmedRef.current = false;
-    clearPreviewFx();
-    phaseRef.current = "preview";
-    setPhase("preview");
-    setStatusNote(WATCH_TAP_TAP_NOTE);
-    watchTapBeatRef.current = "tap";
-    setWatchTapCoachBeat("tap");
-    scheduleWatchTapBeat("tap");
-  }, [clearPreviewFx, scheduleWatchTapBeat]);
-
-  beginTapCoachRef.current = beginTapCoach;
-
-  const openWatchTapCoach = useCallback(
-    (nextLevel: number, nextScore: number) => {
-      clearTimers();
-      clearPreviewFx();
-      selectedRef.current = [];
-      hintRef.current = [];
-      setSelectedCellIds([]);
-      setHintCellIds([]);
-      setWrongCellId(null);
-      setTargetCellIds([]);
-      setCooledBoard(false);
-      levelRef.current = nextLevel;
-      scoreRef.current = nextScore;
-      stageRef.current = 1;
-      setLevel(nextLevel);
-      setScore(nextScore);
-      setStage(1);
-      setLayout(getLayoutForLevel(nextLevel));
-      phaseRef.current = "idle";
-      setPhase("idle");
+    if (beat === "watch") {
       setStatusNote(WATCH_TAP_WATCH_NOTE);
-      watchTapBeatRef.current = "watch";
-      setWatchTapCoachBeat("watch");
-      scheduleWatchTapBeat("watch");
-    },
-    [clearPreviewFx, clearTimers, scheduleWatchTapBeat]
-  );
+      return;
+    }
+
+    if (beat === "tap") {
+      setStatusNote(WATCH_TAP_TAP_NOTE);
+      return;
+    }
+
+    if (previous != null) {
+      setStatusNote(
+        roundPreviewStatusNote(
+          rulesRef.current,
+          flightIndexRef.current,
+          flightsRef.current != null ? 2 : 1
+        )
+      );
+    }
+  }, []);
 
   const runPreviewStep = useCallback(
     (index: number) => {
       const steps = previewPlanRef.current;
       const step = steps[index];
       if (step == null) {
+        if (watchTapRoundRef.current) {
+          watchTapRoundRef.current = false;
+          watchTapBeatRef.current = null;
+          setWatchTapCoachBeat(null);
+          setWatchTapCoachCompleted(true);
+        }
         enterInputPhase();
         return;
       }
 
+      applyCoachBeat(step.coachBeat ?? null);
       setPreviewCellIds(step.previewCellIds);
       setGlintCellIds(step.glintCellIds);
       setGhostCellIds(step.ghostCellIds);
@@ -346,7 +299,7 @@ export function useMemoryGame() {
         runPreviewStepRef.current(index + 1);
       }, step.durationMs);
     },
-    [enterInputPhase]
+    [applyCoachBeat, enterInputPhase]
   );
 
   const runPreviewStepRef = useRef(runPreviewStep);
@@ -365,12 +318,6 @@ export function useMemoryGame() {
   );
 
   const pauseForInterrupt = useCallback(() => {
-    if (watchTapBeatRef.current != null) {
-      clearTimer(watchTapTimerRef);
-      watchTapPausedBeatRef.current = watchTapBeatRef.current;
-      return;
-    }
-
     if (phaseRef.current === "preview") {
       clearTimer(previewTimerRef);
       clearTimer(sightTimerRef);
@@ -385,15 +332,6 @@ export function useMemoryGame() {
   }, []);
 
   const resumeAfterInterrupt = useCallback(() => {
-    const pausedBeat = watchTapPausedBeatRef.current;
-    if (pausedBeat != null && watchTapBeatRef.current === pausedBeat) {
-      watchTapPausedBeatRef.current = null;
-      scheduleWatchTapBeat(pausedBeat);
-      return;
-    }
-
-    watchTapPausedBeatRef.current = null;
-
     if (previewPausedRef.current && phaseRef.current === "preview") {
       previewPausedRef.current = false;
       if (previewKindRef.current === "sight") {
@@ -407,7 +345,7 @@ export function useMemoryGame() {
       stageAdvancePausedRef.current = false;
       beginRoundRef.current(levelRef.current, scoreRef.current, stageRef.current + 1);
     }
-  }, [scheduleWatchTapBeat]);
+  }, []);
 
   const startFlightPreview = useCallback(
     (args: {
@@ -487,7 +425,21 @@ export function useMemoryGame() {
       );
       setPhase("preview");
 
-      schedulePreviewPlan(kind, shownDuringPreview);
+      const coachThisPreview =
+        watchTapArmedRef.current &&
+        kind === "round" &&
+        !lanternModeRef.current &&
+        nextLevel === 1 &&
+        nextStage === 1;
+      const previewSteps = coachThisPreview
+        ? withWatchTapCoachSteps(shownDuringPreview)
+        : shownDuringPreview;
+      if (coachThisPreview) {
+        watchTapArmedRef.current = false;
+        watchTapRoundRef.current = true;
+      }
+
+      schedulePreviewPlan(kind, previewSteps);
     },
     [schedulePreviewPlan]
   );
@@ -606,24 +558,19 @@ export function useMemoryGame() {
       resetRunFlags(resume?.mode ?? "campaign", resume?.targetCountOverride);
       setWardArmed(false);
       setWoodsLastChanceCoach(false);
-      watchTapPausedBeatRef.current = null;
       watchTapBeatRef.current = null;
+      watchTapRoundRef.current = false;
       setWatchTapCoachBeat(null);
       setWatchTapCoachCompleted(false);
       const mode = resume?.mode ?? "campaign";
-      const armWatchTap =
+      watchTapArmedRef.current =
         resume?.watchTapCoach === true &&
         mode === "campaign" &&
         playLevel === 1 &&
         resumeScore === 0;
-      watchTapArmedRef.current = armWatchTap;
-      if (armWatchTap) {
-        openWatchTapCoach(playLevel, resumeScore);
-        return;
-      }
       beginRound(playLevel, resumeScore, 1);
     },
-    [beginRound, openWatchTapCoach, resetRunFlags]
+    [beginRound, resetRunFlags]
   );
 
   const restartGame = useCallback(() => {
@@ -632,7 +579,7 @@ export function useMemoryGame() {
     wardArmedRef.current = false;
     woodsLastChanceCoachedRef.current = false;
     watchTapArmedRef.current = false;
-    watchTapPausedBeatRef.current = null;
+    watchTapRoundRef.current = false;
     watchTapBeatRef.current = null;
     setWatchTapCoachBeat(null);
     resetRunFlags(

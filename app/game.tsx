@@ -162,6 +162,7 @@ export default function GameScreen() {
   useScreenMusic(paramsReady ? chapterBedForLevel(musicLevel) : null, { stopOnLeave: true });
 
   const prevPhaseRef = useRef(phase);
+  const prevPreviewLitRef = useRef(0);
   const prevSelectedCountRef = useRef(selectedCellIds.length);
   const prevWardArmedRef = useRef(wardArmed);
   const wrongPlayedRef = useRef(false);
@@ -170,9 +171,11 @@ export default function GameScreen() {
 
   useEffect(() => {
     const prevPhase = prevPhaseRef.current;
-    if (phase === "preview" && prevPhase !== "preview") {
+    const previewLit = phase === "preview" ? previewCellIds.length : 0;
+    if (phase === "preview" && previewLit > 0 && prevPreviewLitRef.current === 0) {
       playSfx("previewChime");
     }
+    prevPreviewLitRef.current = previewLit;
     if (phase === "stageComplete" && prevPhase !== "stageComplete") {
       playSfx("stageClear");
     }
@@ -189,7 +192,7 @@ export default function GameScreen() {
       wrongPlayedRef.current = false;
     }
     prevPhaseRef.current = phase;
-  }, [lanternTrial, phase, playSfx]);
+  }, [lanternTrial, phase, playSfx, previewCellIds.length]);
 
   useEffect(() => {
     if (phase === "playerInput" && selectedCellIds.length > prevSelectedCountRef.current) {
