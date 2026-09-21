@@ -23,6 +23,7 @@ import {
   CROWN_INPUT_HOLD_MS,
   EMBER_FADE_STATUS_NOTE,
   EMBER_FADE_SWAP_MS,
+  SLEEPING_WOODS_LAST_CHANCE_STATUS,
   applyCalmPreviewBonus,
   applyTargetSwap,
   betweenFlightHoldMs,
@@ -36,6 +37,7 @@ import {
   roundPreviewStatusNote,
   splitTwoFlight,
   woodsInputStatusNote,
+  woodsLastChanceCoachTrigger,
   type PreviewStep,
   type StageRules,
 } from "@/lib/stageModifiers";
@@ -68,6 +70,7 @@ export function useMemoryGame() {
   const [stage, setStage] = useState(1);
   const [cooledBoard, setCooledBoard] = useState(false);
   const [lanternTrial, setLanternTrial] = useState(false);
+  const [woodsLastChanceCoach, setWoodsLastChanceCoach] = useState(false);
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,6 +108,7 @@ export function useMemoryGame() {
   const emberFadedRef = useRef(false);
   const swapLockedRef = useRef(false);
   const orderedInputRef = useRef(false);
+  const woodsLastChanceCoachedRef = useRef(false);
 
   const clearPreviewFx = useCallback(() => {
     setPreviewCellIds([]);
@@ -448,7 +452,9 @@ export function useMemoryGame() {
       recentPatternKeysRef.current = [];
       lanternOilMsRef.current = 0;
       wardArmedRef.current = false;
+      woodsLastChanceCoachedRef.current = false;
       setWardArmed(false);
+      setWoodsLastChanceCoach(false);
       beginRound(playLevel, resumeScore, 1);
     },
     [beginRound]
@@ -458,7 +464,9 @@ export function useMemoryGame() {
     recentPatternKeysRef.current = [];
     lanternOilMsRef.current = 0;
     wardArmedRef.current = false;
+    woodsLastChanceCoachedRef.current = false;
     setWardArmed(false);
+    setWoodsLastChanceCoach(false);
     beginRound(runStartLevelRef.current, 0, 1);
   }, [beginRound]);
 
@@ -650,10 +658,18 @@ export function useMemoryGame() {
         return;
       }
 
+      const woodsCoach = woodsLastChanceCoachTrigger(
+        rulesRef.current,
+        woodsLastChanceCoachedRef.current
+      );
+      if (woodsCoach) {
+        woodsLastChanceCoachedRef.current = true;
+      }
       phaseRef.current = "lastChance";
       setWrongCellId(cellId);
       setPhase("lastChance");
-      setStatusNote("Wrong rune.");
+      setWoodsLastChanceCoach(woodsCoach);
+      setStatusNote(woodsCoach ? SLEEPING_WOODS_LAST_CHANCE_STATUS : "Wrong rune.");
     },
     [completePatternSlot, inputStatusNote, startFlightPreview]
   );
@@ -703,6 +719,7 @@ export function useMemoryGame() {
     statusNote,
     cooledBoard,
     lanternTrial,
+    woodsLastChanceCoach,
     startGame,
     restartGame,
     applySecondSight,
