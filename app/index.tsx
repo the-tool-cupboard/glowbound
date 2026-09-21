@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 
 import { AdminUnlockToggle } from "@/components/AdminUnlockToggle";
 import { AudioMuteBar } from "@/components/AudioMuteBar";

@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.button3d.highlight,
   },
   primeRing: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     margin: 4,
     borderWidth: theme.pixel.inset,
     borderColor: theme.colors.accent,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
   },
   successFlash: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(230, 195, 92, 0.42)",
     alignItems: "center",
     justifyContent: "center",

@@ -2,6 +2,12 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Requirements
+
+- **Node.js** 22.13 or newer (SDK 57 minimum; this repo is developed on Node 22 LTS)
+- **Expo SDK** 57 (`expo@~57.0.24`)
+- Native iOS builds need **Xcode 26.4+** and iOS 16.4+. Use a development build (`expo-dev-client`); Expo Go on the App Store may lag this SDK.
+
 ## Get started
 
 1. Install dependencies

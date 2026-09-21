@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   },
   backgroundImageFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   safeArea: {
     flex: 1,

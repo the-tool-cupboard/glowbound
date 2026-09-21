@@ -59,7 +59,7 @@ export function LastChanceMenu({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(7, 11, 22, 0.78)",
     justifyContent: "center",
     paddingHorizontal: theme.spacing.md,

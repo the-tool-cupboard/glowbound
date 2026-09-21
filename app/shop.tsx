@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 
 import { CurrencyBalance } from "@/components/CurrencyBalance";
 import { PrimaryButton } from "@/components/PrimaryButton";
