@@ -1,0 +1,61 @@
+# Required status check for the main ruleset: ci
+# Rulesets match this job name. The workflow name is not part of the check name.
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Unit tests
+        run: npm test -- --ci --watchAll=false
+
+      - name: Export web bundle
+        run: npx expo export --platform web
+
+      - name: Verify web export
+        run: |
+          test -s dist/index.html
+          test -s dist/game.html
+          test -s dist/shop.html
+          grep -q '_expo/static/js/web/entry-' dist/index.html
+          find dist/_expo/static/js/web -type f -name 'entry-*.js' | grep -q .
+          echo "Web export produced index, game, and shop routes plus a JS bundle."
