@@ -1,7 +1,10 @@
 /**
  * Runs `expo lint` (app/ and components/) and fails on any finding that is not
- * listed in scripts/lint-baseline.json. Known findings are printed and allowed
- * so CI can be required on main without rewriting play-session UI.
+ * covered by scripts/lint-baseline.json.
+ *
+ * A baseline entry is a file, a rule, and how many distinct lines that pair may
+ * occupy. Repeated messages on one line count once, so a line move stays inside
+ * the allowance. A new line, file, or rule fails the job.
  */
 const { spawnSync } = require("child_process");
 const fs = require("fs");
@@ -11,8 +14,12 @@ const path = require("path");
 const projectRoot = path.join(__dirname, "..");
 const baselinePath = path.join(__dirname, "lint-baseline.json");
 
-function findingKey(finding) {
-  return [finding.file, finding.ruleId, finding.line, finding.column].join("\0");
+function pairKey(entry) {
+  return `${entry.file}\0${entry.ruleId}`;
+}
+
+function distinctLines(findings) {
+  return [...new Set(findings.map((finding) => finding.line))].sort((a, b) => a - b);
 }
 
 function loadBaseline() {
@@ -25,12 +32,16 @@ function loadBaseline() {
     if (
       typeof entry.file !== "string" ||
       typeof entry.ruleId !== "string" ||
-      typeof entry.line !== "number" ||
-      typeof entry.column !== "number"
+      !Number.isInteger(entry.count) ||
+      entry.count < 1
     ) {
       throw new Error(`Invalid baseline entry: ${JSON.stringify(entry)}`);
     }
-    allow.set(findingKey(entry), entry);
+    const key = pairKey(entry);
+    if (allow.has(key)) {
+      throw new Error(`Duplicate baseline entry for ${entry.file} ${entry.ruleId}`);
+    }
+    allow.set(key, entry);
   }
   return allow;
 }
@@ -57,29 +68,67 @@ function collectFindings(report) {
 }
 
 function classifyLintFindings(findings, allow) {
-  const unexpected = [];
-  const seen = new Set();
+  const groups = new Map();
   for (const finding of findings) {
-    const key = findingKey(finding);
-    if (allow.has(key)) {
-      seen.add(key);
+    const key = pairKey(finding);
+    const group = groups.get(key);
+    if (group) {
+      group.push(finding);
     } else {
-      unexpected.push(finding);
+      groups.set(key, [finding]);
     }
   }
+
+  const unexpected = [];
+  const matched = [];
+  const seen = new Set();
+  let allowedCount = 0;
+
+  for (const [key, group] of groups) {
+    const lines = distinctLines(group);
+    const entry = allow.get(key);
+    if (!entry || lines.length > entry.count) {
+      unexpected.push(...group);
+      if (entry) {
+        seen.add(key);
+      }
+      continue;
+    }
+    seen.add(key);
+    allowedCount += lines.length;
+    matched.push({ entry, lines });
+  }
+
   const stale = [];
+  const reduced = [];
   for (const [key, entry] of allow) {
     if (!seen.has(key)) {
       stale.push(entry);
+      continue;
+    }
+    const match = matched.find((item) => pairKey(item.entry) === key);
+    if (match && match.lines.length < entry.count) {
+      reduced.push({ entry, observed: match.lines.length });
     }
   }
-  return { unexpected, stale, allowedCount: seen.size };
+
+  return { unexpected, stale, reduced, matched, allowedCount };
 }
 
 function formatFinding(finding) {
-  const reason = finding.reason ? ` — ${finding.reason}` : "";
-  const detail = finding.message ? ` — ${finding.message}` : reason;
+  const detail = finding.message ? ` — ${finding.message}` : "";
   return `  ${finding.file}:${finding.line}:${finding.column} ${finding.ruleId}${detail}`;
+}
+
+function formatAllowance(entry, lines) {
+  const where =
+    lines.length === 0
+      ? ""
+      : lines.length === 1
+        ? ` on line ${lines[0]}`
+        : ` on lines ${lines.join(", ")}`;
+  const reason = entry.reason ? ` — ${entry.reason}` : "";
+  return `  ${entry.file} ${entry.ruleId}${where} (${lines.length}/${entry.count})${reason}`;
 }
 
 function runExpoLint(reportPath) {
@@ -131,22 +180,30 @@ function main() {
   }
 
   const findings = collectFindings(JSON.parse(fs.readFileSync(reportPath, "utf8")));
-  const { unexpected, stale, allowedCount } = classifyLintFindings(findings, allow);
+  const { unexpected, stale, reduced, matched, allowedCount } = classifyLintFindings(
+    findings,
+    allow
+  );
 
   console.log(
     `Lint scanned app/ and components/ (${findings.length} message${findings.length === 1 ? "" : "s"}).`
   );
-  console.log(`Allowed known findings: ${allowedCount}.`);
-  for (const entry of allow.values()) {
-    if (!stale.includes(entry)) {
-      console.log(formatFinding(entry));
+  console.log(`Allowed known findings: ${allowedCount} distinct line${allowedCount === 1 ? "" : "s"}.`);
+  for (const { entry, lines } of matched) {
+    console.log(formatAllowance(entry, lines));
+  }
+
+  if (reduced.length > 0) {
+    console.log("Baseline allows more lines than this run reported (safe to lower the count):");
+    for (const { entry, observed } of reduced) {
+      console.log(`  ${entry.file} ${entry.ruleId} observed ${observed}, allows ${entry.count}`);
     }
   }
 
   if (stale.length > 0) {
     console.log("Baseline entries not reported this run (safe to delete when you next edit the baseline):");
     for (const entry of stale) {
-      console.log(formatFinding(entry));
+      console.log(formatAllowance(entry, []));
     }
   }
 
@@ -166,5 +223,6 @@ if (require.main === module) {
 module.exports = {
   classifyLintFindings,
   collectFindings,
-  findingKey,
+  distinctLines,
+  pairKey,
 };
