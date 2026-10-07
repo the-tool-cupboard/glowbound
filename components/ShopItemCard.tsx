@@ -238,9 +238,9 @@ export function ShopGoodsDisplay({
   useEffect(() => {
     // react-native-web always resolves isScreenReaderEnabled to true, which would
     // skip the double-tap confirm on every desktop preview. Native VoiceOver /
-    // TalkBack still use the instant-buy path below.
+    // TalkBack still use the instant-buy path below. instantBuy starts false, so
+    // web keeps the double-tap path without a synchronous setState in this effect.
     if (Platform.OS === "web") {
-      setInstantBuy(false);
       return;
     }
 

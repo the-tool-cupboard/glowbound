@@ -1,0 +1,89 @@
+{
+  "note": "Known `expo lint` errors already on main. CI fails if app/ or components/ reports any other finding. These were not rewritten because the fixes change selection timing, last-chance menu timing, animation, the video player, or slider gestures.",
+  "allow": [
+    {
+      "file": "app/difficulty.tsx",
+      "ruleId": "react-hooks/set-state-in-effect",
+      "line": 37,
+      "column": 7,
+      "reason": "Copies the saved difficulty into local selection after economy storage loads. A render-time setState changes when the first paint shows the saved path."
+    },
+    {
+      "file": "app/game.tsx",
+      "ruleId": "react-hooks/set-state-in-effect",
+      "line": 217,
+      "column": 7,
+      "reason": "Hides the last-chance menu when play leaves that phase, and shows it after the woods coach delay. That is session UI timing."
+    },
+    {
+      "file": "components/LanternStreakGlow.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 32,
+      "column": 13,
+      "reason": "Animated.Value is stored with useRef().current and read while rendering the mote. The compiler rule flags that pattern, and the same line is reported more than once."
+    },
+    {
+      "file": "components/LanternStreakGlow.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 33,
+      "column": 19,
+      "reason": "Same Animated.Value ref pattern as the mote's translate value."
+    },
+    {
+      "file": "components/LanternStreakGlow.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 75,
+      "column": 6,
+      "reason": "The effect dependency list names the Animated.Values taken from refs during render."
+    },
+    {
+      "file": "components/LanternStreakGlow.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 80,
+      "column": 14,
+      "reason": "The mote style passes those Animated.Values into Animated.View."
+    },
+    {
+      "file": "components/LanternStreakGlow.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 82,
+      "column": 9,
+      "reason": "The mote style object reads the Animated.Values during render."
+    },
+    {
+      "file": "components/LoopingVideoBackground.tsx",
+      "ruleId": "react-hooks/immutability",
+      "line": 21,
+      "column": 5,
+      "reason": "expo-video looping is set by assigning player.loop. The immutability rule treats the useVideoPlayer result as frozen."
+    },
+    {
+      "file": "components/PixelSlider.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 57,
+      "column": 3,
+      "reason": "The latest volume is written to a ref during render so drag handlers are not one frame stale."
+    },
+    {
+      "file": "components/PixelSlider.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 58,
+      "column": 3,
+      "reason": "The latest onChange callback is written to a ref during render so drag handlers are not one frame stale."
+    },
+    {
+      "file": "components/PixelSlider.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 59,
+      "column": 3,
+      "reason": "The latest drag-preview callback is written to a ref during render so drag handlers are not one frame stale."
+    },
+    {
+      "file": "components/PixelSlider.tsx",
+      "ruleId": "react-hooks/refs",
+      "line": 130,
+      "column": 27,
+      "reason": "PanResponder is created with a grant handler that reads those refs from gesture callbacks, not during render. The rule still flags it."
+    }
+  ]
+}
