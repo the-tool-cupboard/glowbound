@@ -4,4 +4,5 @@
 - [Store kit](./STORE.md) — App Store and Play listing draft, screenshot shot list, icon and splash paths
 - [Privacy policy](./PRIVACY.md) — local-only draft; hosting URL is still a TODO placeholder
 - [Night Lantern](./NIGHT-LANTERN.md) — daily-loop design (short lantern run beside the campaign)
+- [Stage bible](./STAGE-BIBLE.md) — chapter polish spec: voice, copy length, timing ranges, batch PR
 - [Stage bible note](./STAGE-BIBLE-NOTE.md) — Night Lantern does not replace the 10-stage Bound journey

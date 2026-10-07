@@ -6,4 +6,4 @@ The campaign remains Sleeping Woods → Castle Gate → Moonwell → Crystal Asc
 
 Night Lantern reuses a chapter’s layout, twist, art, and bed as **today’s dream** — a 5-pattern daily run with stars and streak. It never advances `highestReached`, never unlocks chapters, and never deep-links into campaign mid-run.
 
-See [NIGHT-LANTERN.md](./NIGHT-LANTERN.md).
+See [NIGHT-LANTERN.md](./NIGHT-LANTERN.md). Chapter voice, copy length, and timing live in [STAGE-BIBLE.md](./STAGE-BIBLE.md).
